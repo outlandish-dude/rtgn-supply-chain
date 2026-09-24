@@ -1,0 +1,476 @@
+{
+  "package": "pip",
+  "version": "0.3",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:37:31.511261+00:00",
+  "payload": {
+    "info": {
+      "author": "The Open Planning Project",
+      "author_email": "python-virtualenv@groups.google.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Topic :: Software Development :: Build Tools"
+      ],
+      "description": "\\ \nThe main website for pip is `pip.openplans.org\n<http://pip.openplans.org>`_\n\n\n\n.. contents::\n\nIntroduction\n------------\n\npip is a replacement for `easy_install\n<http://peak.telecommunity.com/DevCenter/EasyInstall>`_.  It uses mostly the\nsame techniques for finding packages, so packages that were made\neasy_installable should be pip-installable as well.\n\npip is meant to improve on easy_install.  Some of the improvements:\n\n* All packages are downloaded before installation.  Partially-completed\n  installation doesn't occur as a result.\n\n* Care is taken to present useful output on the console.\n\n* The reasons for actions are kept track of.  For instance, if a package is\n  being installed, pip keeps track of why that package was required.\n\n* Error messages should be useful.\n\n* The code is relatively concise and cohesive, making it easier to use\n  programmatically.\n\n* Packages don't have to be installed as egg archives, they can be installed\n  flat (while keeping the egg metadata).\n\n* Maybe features like native support for other version control systems, or\n  uninstallation, will get added.  (They might get added to easy_install, but I\n  think the chance for pip is higher.)\n\nAlso, pip will eventually be merged directly with poacheggs, making it\nsimple to define fixed sets of requirements and reliably reproduce a set of\npackages.\n\npip is complementary with `virtualenv\n<http://pypi.python.org/pypi/virtualenv>`_, and it is encouraged that you use\nvirtualenv to isolate your installation.\n\nCommunity\n---------\n\nThe homepage for pip is temporarily located `on PyPI\n<http://pypi.python.org/pypi/pip>`_ -- a more proper homepage\nwill follow.  Bugs can go on the `poacheggs Trac instance\n<http://trac.openplans.org/poacheggs/>`_ (probably that will change\ntoo).  Discussion should happen on the `virtualenv email group\n<http://groups.google.com/group/python-virtualenv?hl=en>`_.\n\nDifferences From easy_install\n-----------------------------\n\npip cannot install some packages.  Specifically:\n\n* It cannot install from eggs.  It only installs from source.  (Maybe this will\n  be changed sometime, but it's low priority.)\n\n* It doesn't understand Setuptools extras (like ``package[test]``).  This should\n  be added eventually.\n\n* It is incompatible with some packages that customize distutils or setuptools\n  in their ``setup.py`` files.\n\n* Maybe it doesn't work on Windows.  At least, the author doesn't test on\n  Windows often.\n\n* It also has some extra features.  Extra features the author thinks are great.\n\n.. _`requirements file`:\n\nRequirements Files\n------------------\n\nWhen installing software, and Python packages in particular, it's common that\nyou get a lot of libraries installed.  You just did ``easy_install MyPackage``\nand you get a dozen packages.  Each of these packages has its own version.\n\nMaybe you ran that installation and it works.  Great!  Will it keep working? \nDid you have to provide special options to get it to find everything?  Did you\nhave to install a bunch of other optional pieces?  Most of all, will you be able\nto do it again?\n\nIf you've ever tried to setup an application on a new system, or with slightly\nupdated pieces, and had it fail, pip requirements are for you.  If you\nhaven't had this problem then you will eventually, so pip requirements are\nfor you too -- requirements make explicit, repeatable installation of packages.\n\nSo what are requirements files?  They are very simple: lists of packages to\ninstall.  Instead of running something like ``pip MyApp`` and getting\nwhatever libraries come along, you can create a requirements file something like::\n\n    MyApp\n    Framework==0.9.4\n    Library>=0.2\n\nThen, regardless of what MyApp lists in ``setup.py``, you'll get a specific\nversion of Framework and at least the 0.2 version of Library.  (You might think\nyou could list these specific versions in ``setup.py`` -- try it and you'll\nquickly see why that doesn't work.)  You can add optional libraries and support\ntools that MyApp doesn't strictly require.\n\nYou can also include \"editable\" packages -- packages that are checked out from\nSubversion, Git, Mercurial and Bazaar.  These are just like using the ``-e``\noption to pip.  They look like::\n\n    -e svn+http://myrepo/svn/MyApp#egg=MyApp\n\nYou have to start the URL with ``svn+`` (``git+``, ``hg+``or ``bzr+``), and\nyou have to include ``#egg=Package`` so pip knows what to expect at that URL.\nYou can also include ``@rev`` in the URL, e.g., ``@275`` to check out\nrevision 275.\n\nFreezing Requirements\n---------------------\n\nSo you have a working set of packages, and you want to be able to install them\nelsewhere.  `Requirements files`_ let you install exact versions, but it won't\ntell you what all the exact versions are.\n\nTo create a new requirements file from a known working environment, use::\n\n    $ pip freeze stable-req.txt\n\nThis will write a listing of *all* installed libraries to ``stable-req.txt``\nwith exact versions for every library.  You may want to edit the file down after\ngenerating (e.g., to eliminate unnecessary libraries), but it'll give you a\nstable starting point for constructing your requirements file.\n\nYou can also give it an existing requirements file, and it will use that as a\nsort of template for the new file.  So if you do::\n\n    $ pip freeze stable-req.txt -r devel-req.txt\n\nit will keep the packages listed in ``devel-req.txt`` in order and preserve\ncomments.\n\nBundles\n-------\n\nAnother way to distribute a set of libraries is a bundle format (specific to\npip).  This format is not stable at this time (there simply hasn't been\nany feedback, nor a great deal of thought).  A bundle file contains all the\nsource for your package, and you can have pip install them all together. \nOnce you have the bundle file further network access won't be necessary.  To\nbuild a bundle file, do::\n\n    $ pip install bundle=MyApp.pybundle MyApp\n\n(Using a `requirements file`_ would be wise.)  Then someone else can get the\nfile ``MyApp.pybundle`` and run::\n\n    $ pip install MyApp.pybundle\n\nThis is *not* a binary format.  This only packages source.  If you have binary\npackages, then the person who installs the files will have to have a compiler,\nany necessary headers installed, etc.  Binary packages are hard, this is\nrelatively easy.\n\nUsing pip With virtualenv\n-------------------------\n\npip is most nutritious when used with `virtualenv\n<http://pypi.python.org/pypi/virtualenv>`_.  One of the reasons pip\ndoesn't install \"multi-version\" eggs is that virtualenv removes much of the need\nfor it.\n\npip does not have to be installed to use it, you can run ``python\npip`` and it will work.  This is intended to avoid the bootstrapping\nproblem of installation.  You can also run pip inside any virtualenv\nenvironment, like::\n\n    $ virtualenv new-env/\n    ... creates new-env/ ...\n    $ pip install -E new-env/ MyPackage\n\nThis is exactly equivalent to::\n\n    $ ./new-env/bin/python pip install MyPackage\n\nExcept, if you have ``virtualenv`` installed and the path ``new-env/``\ndoesn't exist, then a new virtualenv will be created.\n\nUsing pip with buildout\n-----------------------\n\nIf you are using `zc.buildout\n<http://pypi.python.org/pypi/zc.buildout>` you should look at\n`gp.recipe.pip <http://pypi.python.org/pypi/gp.recipe.pip>`_ as an\noption to use pip and virtualenv in your buildouts.",
+      "description_content_type": null,
+      "docs_url": null,
+      "download_url": "UNKNOWN",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "http://pip.openplans.org",
+      "keywords": "easy_install distutils setuptools egg virtualenv",
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "pip",
+      "package_url": "https://pypi.org/project/pip/",
+      "platform": "UNKNOWN",
+      "project_url": "https://pypi.org/project/pip/",
+      "project_urls": {
+        "Download": "UNKNOWN",
+        "Homepage": "http://pip.openplans.org"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/pip/0.3/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "pip installs packages.  Python packages.  An easy_install replacement",
+      "version": "0.3",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 39699919,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "acsbidoul"
+        },
+        {
+          "role": "Owner",
+          "user": "dstufft"
+        },
+        {
+          "role": "Owner",
+          "user": "ichard26"
+        },
+        {
+          "role": "Owner",
+          "user": "notatallshaw"
+        },
+        {
+          "role": "Owner",
+          "user": "pf_moore"
+        },
+        {
+          "role": "Owner",
+          "user": "pradyunsg"
+        },
+        {
+          "role": "Owner",
+          "user": "uranusjr"
+        },
+        {
+          "role": "Owner",
+          "user": "xafer"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "1705f66144ef69b436d07f8eeeb28b7f77137f80de4bf60349ec6f0f9509e801",
+          "md5": "8fccb5b49c6377cbfb1949ccd7be43b3",
+          "sha256": "183c72455cb7f8860ac1376f8c4f14d7f545aeab8ee7c22cd4caf79f35a2ed47"
+        },
+        "downloads": -1,
+        "filename": "pip-0.3.tar.gz",
+        "has_sig": false,
+        "md5_digest": "8fccb5b49c6377cbfb1949ccd7be43b3",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 47710,
+        "upload_time": "2009-01-21T04:46:30",
+        "upload_time_iso_8601": "2009-01-21T04:46:30Z",
+        "url": "https://files.pythonhosted.org/packages/17/05/f66144ef69b436d07f8eeeb28b7f77137f80de4bf60349ec6f0f9509e801/pip-0.3.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "aliases": [
+          "CVE-2013-5123",
+          "GHSA-c5h8-cq4v-cvfm"
+        ],
+        "details": "The mirroring support (-M, --use-mirrors) in Python Pip before 1.5 uses insecure DNS querying and authenticity checks which allows attackers to perform man-in-the-middle attacks.",
+        "fixed_in": [
+          "1.5"
+        ],
+        "id": "PYSEC-2019-160",
+        "link": "https://osv.dev/vulnerability/PYSEC-2019-160",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2019-20916",
+          "GHSA-gpvv-69j7-gwj8"
+        ],
+        "details": "The pip package before 19.2 for Python allows Directory Traversal when a URL is given in an install command, because a Content-Disposition header can have ../ in a filename, as demonstrated by overwriting the /root/.ssh/authorized_keys file. This occurs in _download_http_url in _internal/download.py.",
+        "fixed_in": [
+          "19.2"
+        ],
+        "id": "PYSEC-2020-173",
+        "link": "https://osv.dev/vulnerability/PYSEC-2020-173",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2021-3572",
+          "GHSA-5xp3-jfq3-5q8x"
+        ],
+        "details": "A flaw was found in python-pip in the way it handled Unicode separators in git references. A remote attacker could possibly use this issue to install a different revision on a repository. The highest threat from this vulnerability is to data integrity. This is fixed in python-pip version 21.1.",
+        "fixed_in": [
+          "21.1"
+        ],
+        "id": "PYSEC-2021-437",
+        "link": "https://osv.dev/vulnerability/PYSEC-2021-437",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2013-1629",
+          "GHSA-g3p5-fjj9-h8gj"
+        ],
+        "details": "pip before 1.3 uses HTTP to retrieve packages from the PyPI repository, and does not perform integrity checks on package contents, which allows man-in-the-middle attackers to execute arbitrary code via a crafted response to a \"pip install\" operation.",
+        "fixed_in": [
+          "1.3"
+        ],
+        "id": "PYSEC-2013-8",
+        "link": "https://osv.dev/vulnerability/PYSEC-2013-8",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2013-1888",
+          "GHSA-4gv5-qhvr-36vv"
+        ],
+        "details": "pip before 1.3 allows local users to overwrite arbitrary files via a symlink attack on a file in the /tmp/pip-build temporary directory.",
+        "fixed_in": [
+          "1.3"
+        ],
+        "id": "PYSEC-2013-9",
+        "link": "https://osv.dev/vulnerability/PYSEC-2013-9",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2019-20916",
+          "PYSEC-2020-173"
+        ],
+        "details": "The pip package before 19.2 for Python allows Directory Traversal when a URL is given in an install command, because a Content-Disposition header can have ../ in a filename, as demonstrated by overwriting the /root/.ssh/authorized_keys file. This occurs in _download_http_url in _internal/download.py. A fix was committed 6704f2ace.",
+        "fixed_in": [
+          "19.2"
+        ],
+        "id": "GHSA-gpvv-69j7-gwj8",
+        "link": "https://osv.dev/vulnerability/GHSA-gpvv-69j7-gwj8",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2021-3572",
+          "PYSEC-2021-437"
+        ],
+        "details": "A flaw was found in python-pip in the way it handled Unicode separators in git references. A remote attacker could possibly use this issue to install a different revision on a repository. The highest threat from this vulnerability is to data integrity. This is fixed in python-pip version 21.1.",
+        "fixed_in": [
+          "21.1"
+        ],
+        "id": "GHSA-5xp3-jfq3-5q8x",
+        "link": "https://osv.dev/vulnerability/GHSA-5xp3-jfq3-5q8x",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2013-1888",
+          "PYSEC-2013-9"
+        ],
+        "details": "pip before 1.3 allows local users to overwrite arbitrary files via a symlink attack on a file in the /tmp/pip-build temporary directory.",
+        "fixed_in": [
+          "1.3"
+        ],
+        "id": "GHSA-4gv5-qhvr-36vv",
+        "link": "https://osv.dev/vulnerability/GHSA-4gv5-qhvr-36vv",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2013-1629",
+          "PYSEC-2013-8"
+        ],
+        "details": "pip before 1.3 uses HTTP to retrieve packages from the PyPI repository, and does not perform integrity checks on package contents, which allows man-in-the-middle attackers to execute arbitrary code via a crafted response to a \"pip install\" operation.",
+        "fixed_in": [
+          "1.3"
+        ],
+        "id": "GHSA-g3p5-fjj9-h8gj",
+        "link": "https://osv.dev/vulnerability/GHSA-g3p5-fjj9-h8gj",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2013-5123",
+          "PYSEC-2019-160"
+        ],
+        "details": "The mirroring support (-M, --use-mirrors) in Python Pip before 1.5 uses insecure DNS querying and authenticity checks which allows attackers to perform man-in-the-middle attacks.",
+        "fixed_in": [
+          "1.5"
+        ],
+        "id": "GHSA-c5h8-cq4v-cvfm",
+        "link": "https://osv.dev/vulnerability/GHSA-c5h8-cq4v-cvfm",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2023-5752",
+          "PYSEC-2023-228"
+        ],
+        "details": "When installing a package from a Mercurial VCS URL, e.g. `pip install hg+...`, with pip prior to v23.3, the specified Mercurial revision could be used to inject arbitrary configuration options to the `hg clone` call (e.g. `--config`). Controlling the Mercurial configuration can modify how and which repository is installed. This vulnerability does not affect users who aren't installing from Mercurial.",
+        "fixed_in": [
+          "23.3"
+        ],
+        "id": "GHSA-mq26-g339-26xf",
+        "link": "https://osv.dev/vulnerability/GHSA-mq26-g339-26xf",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2023-5752",
+          "GHSA-mq26-g339-26xf"
+        ],
+        "details": "When installing a package from a Mercurial VCS URL  (ie \"pip install \nhg+...\") with pip prior to v23.3, the specified Mercurial revision could\n be used to inject arbitrary configuration options to the \"hg clone\" \ncall (ie \"--config\"). Controlling the Mercurial configuration can modify\n how and which repository is installed. This vulnerability does not \naffect users who aren't installing from Mercurial.\n",
+        "fixed_in": [
+          "23.3"
+        ],
+        "id": "PYSEC-2023-228",
+        "link": "https://osv.dev/vulnerability/PYSEC-2023-228",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2025-8869",
+          "PYSEC-2026-1795"
+        ],
+        "details": "When extracting a tar archive pip may not check symbolic links point into the extraction directory if the tarfile module doesn't implement PEP 706. Note that upgrading pip to a \"fixed\" version for this vulnerability doesn't fix all known vulnerabilities that are remediated by using a Python version that implements PEP 706. Note that this is a vulnerability in pip's fallback implementation of tar extraction for Python versions that don't implement PEP 706 and therefore are not secure to all vulnerabilities in the Python 'tarfile' module. If you're using a Python version that implements PEP 706 then pip doesn't use the \"vulnerable\" fallback code. Mitigations include upgrading to a version of pip that includes the fix, upgrading to a Python version that implements PEP 706 (Python >=3.9.17, >=3.10.12, >=3.11.4, or >=3.12), applying the linked patch, or inspecting source distributions (sdists) before installation as is already a best-practice.",
+        "fixed_in": [
+          "25.3"
+        ],
+        "id": "GHSA-4xh5-x5gv-qwph",
+        "link": "https://osv.dev/vulnerability/GHSA-4xh5-x5gv-qwph",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-1703",
+          "PYSEC-2026-1796"
+        ],
+        "details": "When pip is installing and extracting a maliciously crafted wheel archive, files may be extracted outside the installation directory. The path traversal is limited to prefixes of the installation directory, thus isn't able to inject or overwrite executable files in typical situations.",
+        "fixed_in": [
+          "26.0"
+        ],
+        "id": "GHSA-6vgw-5pg2-w6jp",
+        "link": "https://osv.dev/vulnerability/GHSA-6vgw-5pg2-w6jp",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-3219",
+          "PYSEC-2026-2875"
+        ],
+        "details": "pip handles concatenated tar and ZIP files as ZIP files regardless of filename or whether a file is both a tar and ZIP file. This behavior could result in confusing installation behavior, such as installing \"incorrect\" files according to the filename of the archive. New behavior only proceeds with installation if the file identifies uniquely as a ZIP or tar archive, not as both.",
+        "fixed_in": [
+          "26.1"
+        ],
+        "id": "GHSA-58qw-9mgm-455v",
+        "link": "https://osv.dev/vulnerability/GHSA-58qw-9mgm-455v",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-6357",
+          "PYSEC-2026-2876"
+        ],
+        "details": "pip prior to version 26.1 would run self-update check functionality after installing wheel files which required importing well-known Python modules names. These module imports were intentionally deferred to increase startup time of the pip CLI. The patch changes self-update functionality to run before wheels are installed to prevent newly-installed modules from being imported shortly after the installation of a wheel package. Users should still review package contents prior to installation.",
+        "fixed_in": [
+          "26.1"
+        ],
+        "id": "GHSA-jp4c-xjxw-mgf9",
+        "link": "https://osv.dev/vulnerability/GHSA-jp4c-xjxw-mgf9",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-8643",
+          "GHSA-wf93-45jw-7689"
+        ],
+        "details": "pip would treat console_scripts and gui_scripts as paths instead of file names without sanitizing the resolved absolute path to the installation directory, leading to entry points being installed outside the installation directory.",
+        "fixed_in": [
+          "26.1.2"
+        ],
+        "id": "PYSEC-2026-196",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-196",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2025-8869",
+          "GHSA-4xh5-x5gv-qwph"
+        ],
+        "details": "When extracting a tar archive pip may not check symbolic links point into the extraction directory if the tarfile module doesn't implement PEP 706. Note that upgrading pip to a \"fixed\" version for this vulnerability doesn't fix all known vulnerabilities that are remediated by using a Python version that implements PEP 706. Note that this is a vulnerability in pip's fallback implementation of tar extraction for Python versions that don't implement PEP 706 and therefore are not secure to all vulnerabilities in the Python 'tarfile' module. If you're using a Python version that implements PEP 706 then pip doesn't use the \"vulnerable\" fallback code. Mitigations include upgrading to a version of pip that includes the fix, upgrading to a Python version that implements PEP 706 (Python >=3.9.17, >=3.10.12, >=3.11.4, or >=3.12), applying the linked patch, or inspecting source distributions (sdists) before installation as is already a best-practice.",
+        "fixed_in": [
+          "25.3"
+        ],
+        "id": "PYSEC-2026-1795",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1795",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-1703",
+          "GHSA-6vgw-5pg2-w6jp"
+        ],
+        "details": "When pip is installing and extracting a maliciously crafted wheel archive, files may be extracted outside the installation directory. The path traversal is limited to prefixes of the installation directory, thus isn't able to inject or overwrite executable files in typical situations.",
+        "fixed_in": [
+          "26.0"
+        ],
+        "id": "PYSEC-2026-1796",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1796",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-8643",
+          "PYSEC-2026-196"
+        ],
+        "details": "pip would treat console_scripts and gui_scripts as paths instead of file names without sanitizing the resolved absolute path to the installation directory, leading to entry points being installed outside the installation directory.",
+        "fixed_in": [
+          "26.1.2"
+        ],
+        "id": "GHSA-wf93-45jw-7689",
+        "link": "https://osv.dev/vulnerability/GHSA-wf93-45jw-7689",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-3219",
+          "GHSA-58qw-9mgm-455v"
+        ],
+        "details": "pip handles concatenated tar and ZIP files as ZIP files regardless of filename or whether a file is both a tar and ZIP file. This behavior could result in confusing installation behavior, such as installing \"incorrect\" files according to the filename of the archive. New behavior only proceeds with installation if the file identifies uniquely as a ZIP or tar archive, not as both.",
+        "fixed_in": [
+          "26.1"
+        ],
+        "id": "PYSEC-2026-2875",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-2875",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-6357",
+          "GHSA-jp4c-xjxw-mgf9"
+        ],
+        "details": "pip prior to version 26.1 would run self-update check functionality after installing wheel files which required importing well-known Python modules names. These module imports were intentionally deferred to increase startup time of the pip CLI. The patch changes self-update functionality to run before wheels are installed to prevent newly-installed modules from being imported shortly after the installation of a wheel package. Users should still review package contents prior to installation.",
+        "fixed_in": [
+          "26.1"
+        ],
+        "id": "PYSEC-2026-2876",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-2876",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-13346",
+          "GHSA-qwm4-qh6w-59xr"
+        ],
+        "details": "pip would incorrectly handle doubly-encoded package URLs from indexes allowing for files to be installed to arbitrary locations on disk even when installing wheels.\n\n\n\n\nThis vulnerability requires downloading or installing a package from a malicious package index to succeed, malicious packages alone are not able to exploit this vulnerability. Note that this vulnerability only materially impacts users running `pip download` with the `--only-binary` option as installing source distributions from an untrusted index is already an unsafe operation that executes code during install time.",
+        "fixed_in": [
+          "26.2"
+        ],
+        "id": "PYSEC-2026-3721",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-3721",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-13346",
+          "PYSEC-2026-3721"
+        ],
+        "details": "pip would incorrectly handle doubly-encoded package URLs from indexes allowing for files to be installed to arbitrary locations on disk even when installing wheels.\n\nThis vulnerability requires downloading or installing a package from a malicious package index to succeed, malicious packages alone are not able to exploit this vulnerability. Note that this vulnerability only materially impacts users running `pip download` with the `--only-binary` option as installing source distributions from an untrusted index is already an unsafe operation that executes code during install time.",
+        "fixed_in": [
+          "26.2.0"
+        ],
+        "id": "GHSA-qwm4-qh6w-59xr",
+        "link": "https://osv.dev/vulnerability/GHSA-qwm4-qh6w-59xr",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "package": "smart-open",
+  "version": "1.8.1",
+  "status_code": 200,
+  "timestamp": "2026-09-22T19:03:58.249753+00:00",
+  "payload": {
+    "info": {
+      "author": "Radim Rehurek",
+      "author_email": "me@radimrehurek.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 4 - Beta",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Database :: Front-Ends",
+        "Topic :: System :: Distributed Computing"
+      ],
+      "description": "======================================================\nsmart_open \u2014 utils for streaming large files in Python\n======================================================\n\n|License|_ |Travis|_\n\n.. |License| image:: https://img.shields.io/pypi/l/smart_open.svg\n.. |Travis| image:: https://travis-ci.org/RaRe-Technologies/smart_open.svg?branch=master\n.. _Travis: https://travis-ci.org/RaRe-Technologies/smart_open\n.. _License: https://github.com/RaRe-Technologies/smart_open/blob/master/LICENSE\n\nWhat?\n=====\n\n``smart_open`` is a Python 2 & Python 3 library for **efficient streaming of very large files** from/to S3, HDFS, WebHDFS, HTTP, or local storage. It supports transparent, on-the-fly (de-)compression for a variety of different formats.\n\n``smart_open`` is a drop-in replacement for Python's built-in ``open()``: it can do anything ``open`` can (100% compatible, falls back to native ``open`` wherever possible), plus lots of nifty extra stuff on top.\n\n``smart_open`` is well-tested, well-documented, and has a simple, Pythonic API:\n\n\n.. _doctools_before_examples:\n\n.. code-block:: python\n\n  >>> from smart_open import open\n  >>>\n  >>> # stream lines from an S3 object\n  >>> for line in open('s3://commoncrawl/robots.txt'):\n  ...    print(repr(line))\n  ...    break\n  'User-Agent: *\\n'\n\n  >>> # stream from/to compressed files, with transparent (de)compression:\n  >>> for line in open('smart_open/tests/test_data/1984.txt.gz', encoding='utf-8'):\n  ...    print(repr(line))\n  'It was a bright cold day in April, and the clocks were striking thirteen.\\n'\n  'Winston Smith, his chin nuzzled into his breast in an effort to escape the vile\\n'\n  'wind, slipped quickly through the glass doors of Victory Mansions, though not\\n'\n  'quickly enough to prevent a swirl of gritty dust from entering along with him.\\n'\n\n  >>> # can use context managers too:\n  >>> with open('smart_open/tests/test_data/1984.txt.gz') as fin:\n  ...    with open('smart_open/tests/test_data/1984.txt.bz2', 'w') as fout:\n  ...        for line in fin:\n  ...           fout.write(line)\n\n  >>> # can use any IOBase operations, like seek\n  >>> with open('s3://commoncrawl/robots.txt', 'rb') as fin:\n  ...     for line in fin:\n  ...         print(repr(line.decode('utf-8')))\n  ...         break\n  ...     offset = fin.seek(0)  # seek to the beginning\n  ...     print(fin.read(4))\n  'User-Agent: *\\n'\n  b'User'\n\n  >>> # stream from HTTP\n  >>> for line in open('http://example.com/index.html'):\n  ...     print(repr(line))\n  ...     break\n  '<!doctype html>\\n'\n\nOther examples of URLs that ``smart_open`` accepts::\n\n    s3://my_bucket/my_key\n    s3://my_key:my_secret@my_bucket/my_key\n    s3://my_key:my_secret@my_server:my_port@my_bucket/my_key\n    hdfs:///path/file\n    hdfs://path/file\n    webhdfs://host:port/path/file\n    ./local/path/file\n    ~/local/path/file\n    local/path/file\n    ./local/path/file.gz\n    file:///home/user/file\n    file:///home/user/file.bz2\n    [ssh|scp|sftp]://username@host//path/file\n    [ssh|scp|sftp]://username@host/path/file\n    file:///home/user/file.xz\n\n.. _doctools_after_examples:\n\nFor detailed API info, see the online help:\n\n.. code-block:: python\n\n    help('smart_open')\n\nor click `here <https://github.com/RaRe-Technologies/smart_open/blob/master/help.txt>`__ to view the help in your browser.\n\nMore examples:\n\n.. code-block:: python\n\n    >>> import boto3\n    >>>\n    >>> # stream content *into* S3 (write mode) using a custom session\n    >>> url = 's3://smart-open-py37-benchmark-results/test.txt'\n    >>> lines = [b'first line\\n', b'second line\\n', b'third line\\n']\n    >>> transport_params = {'session': boto3.Session(profile_name='smart_open')}\n    >>> with open(url, 'wb', transport_params=transport_params) as fout:\n    ...     for line in lines:\n    ...         bytes_written = fout.write(line)\n\n.. code-block:: python\n\n    # stream from HDFS\n    for line in open('hdfs://user/hadoop/my_file.txt', encoding='utf8'):\n        print(line)\n\n    # stream from WebHDFS\n    for line in open('webhdfs://host:port/user/hadoop/my_file.txt'):\n        print(line)\n\n    # stream content *into* HDFS (write mode):\n    with open('hdfs://host:port/user/hadoop/my_file.txt', 'wb') as fout:\n        fout.write(b'hello world')\n\n    # stream content *into* WebHDFS (write mode):\n    with open('webhdfs://host:port/user/hadoop/my_file.txt', 'wb') as fout:\n        fout.write(b'hello world')\n\n    # stream from a completely custom s3 server, like s3proxy:\n    for line in open('s3u://user:secret@host:port@mybucket/mykey.txt'):\n        print(line)\n\n    # Stream to Digital Ocean Spaces bucket providing credentials from boto profile\n    transport_params = {\n        'session': boto3.Session(profile_name='digitalocean'),\n        'resource_kwargs': {\n            'endpoint_url': 'https://ams3.digitaloceanspaces.com',\n        }\n    }\n    with open('s3://bucket/key.txt', 'wb', transport_params=transport_params) as fout:\n        fout.write(b'here we stand')\n\nWhy?\n----\n\nWorking with large S3 files using Amazon's default Python library, `boto <http://docs.pythonboto.org/en/latest/>`_ and `boto3 <https://boto3.readthedocs.io/en/latest/>`_, is a pain.\nIts ``key.set_contents_from_string()`` and ``key.get_contents_as_string()`` methods only work for small files (loaded in RAM, no streaming).\nThere are nasty hidden gotchas when using ``boto``'s multipart upload functionality that is needed for large files, and a lot of boilerplate.\n\n``smart_open`` shields you from that. It builds on boto3 but offers a cleaner, Pythonic API. The result is less code for you to write and fewer bugs to make.\n\nInstallation\n------------\n::\n\n    pip install smart_open\n\nOr, if you prefer to install from the `source tar.gz <http://pypi.python.org/pypi/smart_open>`_::\n\n    python setup.py test  # run unit tests\n    python setup.py install\n\nTo run the unit tests (optional), you'll also need to install `mock <https://pypi.python.org/pypi/mock>`_ , `moto <https://github.com/spulec/moto>`_ and `responses <https://github.com/getsentry/responses>`_ (``pip install mock moto responses``).\nThe tests are also run automatically with `Travis CI <https://travis-ci.org/RaRe-Technologies/smart_open>`_ on every commit push & pull request.\n\nSupported Compression Formats\n-----------------------------\n\n``smart_open`` allows reading and writing gzip, bzip2 and xz files.\nThey are transparently handled over HTTP, S3, and other protocols, too, based on the extension of the file being opened.\nYou can easily add support for other file extensions and compression formats:\n\n.. code-block:: python\n\n    def _handle_lzma(file_obj, mode):\n        import lzma\n        return lzma.LZMAFile(filename=file_obj, mode=mode, format=lzma.FORMAT_ALONE)\n\n    from smart_open import open, register_compressor\n    register_compressor('.lzma', _handle_lzma)\n    with open('file.lzma', ...) as fin:\n        pass\n\nTransport-specific Options\n--------------------------\n\n``smart_open`` supports a wide range of transport options out of the box, including:\n\n- S3\n- HTTP, HTTPS (read-only)\n- SSH, SCP and SFTP\n- WebHDFS\n\nEach option involves setting up its own set of parameters.\nFor example, for accessing S3, you often need to set up authentication, like API keys or a profile name.\n``smart_open``'s ``open`` function accepts a keyword argument ``transport_params`` which accepts additional parameters for the transport layer.\nHere are some examples of using this parameter:\n\n.. code-block:: python\n\n  >>> import boto3\n  >>> fin = open('s3://commoncrawl/robots.txt', transport_params=dict(session=boto3.Session()))\n  >>> fin = open('s3://commoncrawl/robots.txt', transport_params=dict(buffer_size=1024))\n\nFor the full list of keyword arguments supported by each transport option, see the documentation:\n\n.. code-block:: python\n\n  help('smart_open.open')\n\nS3 Credentials\n--------------\n\n``smart_open`` uses the ``boto3`` library to talk to S3.\n``boto3`` has several `mechanisms <https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html>`__ for determining the credentials to use.\nBy default, ``smart_open`` will defer to ``boto3`` and let the latter take care of the credentials.\nThere are several ways to override this behavior.\n\nThe first is to pass a ``boto3.Session`` object as a transport parameter to the ``open`` function.\nYou can customize the credentials when constructing the session.\n``smart_open`` will then use the session when talking to S3.\n\n.. code-block:: python\n\n    session = boto3.Session(\n        aws_access_key_id=ACCESS_KEY,\n        aws_secret_access_key=SECRET_KEY,\n        aws_session_token=SESSION_TOKEN,\n    )\n    fin = open('s3://bucket/key', transport_params=dict(session=session), ...)\n\nYour second option is to specify the credentials within the S3 URL itself:\n\n.. code-block:: python\n\n    fin = open('s3://aws_access_key_id:aws_secret_access_key@bucket/key', ...)\n\n*Important*: The two methods above are **mutually exclusive**. If you pass an AWS session *and* the URL contains credentials, ``smart_open`` will ignore the latter.\n\nIterating Over an S3 Bucket's Contents\n--------------------------------------\n\nSince going over all (or select) keys in an S3 bucket is a very common operation, there's also an extra function ``smart_open.s3_iter_bucket()`` that does this efficiently, **processing the bucket keys in parallel** (using multiprocessing):\n\n.. code-block:: python\n\n  >>> from smart_open import s3_iter_bucket\n  >>> # get data corresponding to 2010 and later under \"silo-open-data/annual/monthly_rain\"\n  >>> # we use workers=1 for reproducibility; you should use as many workers as you have cores\n  >>> bucket = 'silo-open-data'\n  >>> prefix = 'annual/monthly_rain/'\n  >>> for key, content in s3_iter_bucket(bucket, prefix=prefix, accept_key=lambda key: '/201' in key, workers=1, key_limit=3):\n  ...     print(key, round(len(content) / 2**20))\n  annual/monthly_rain/2010.monthly_rain.nc 14\n  annual/monthly_rain/2011.monthly_rain.nc 14\n  annual/monthly_rain/2012.monthly_rain.nc 14\n\nComments, bug reports\n---------------------\n\n``smart_open`` lives on `Github <https://github.com/RaRe-Technologies/smart_open>`_. You can file\nissues or pull requests there. Suggestions, pull requests and improvements welcome!\n\n----------------\n\n``smart_open`` is open source software released under the `MIT license <https://github.com/piskvorky/smart_open/blob/master/LICENSE>`_.\nCopyright (c) 2015-now `Radim \u0158eh\u016f\u0159ek <https://radimrehurek.com>`_.",
+      "description_content_type": "",
+      "docs_url": null,
+      "download_url": "http://pypi.python.org/pypi/smart_open",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/piskvorky/smart_open",
+      "keywords": "file streaming,s3,hdfs",
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "Radim Rehurek",
+      "maintainer_email": "me@radimrehurek.com",
+      "name": "smart-open",
+      "package_url": "https://pypi.org/project/smart-open/",
+      "platform": "any",
+      "project_url": "https://pypi.org/project/smart-open/",
+      "project_urls": {
+        "Download": "http://pypi.python.org/pypi/smart_open",
+        "Homepage": "https://github.com/piskvorky/smart_open"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/smart-open/1.8.1/",
+      "requires_dist": null,
+      "requires_python": "",
+      "summary": "Utils for streaming large files (S3, HDFS, gzip, bz2...)",
+      "version": "1.8.1",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 39023854,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "ddelange"
+        },
+        {
+          "role": "Owner",
+          "user": "mpenkov"
+        },
+        {
+          "role": "Owner",
+          "user": "piskvorky"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "279039f18b9258cd76e98df581213a2b7a393b426821e920f1e820e525f54ed4",
+          "md5": "8c247f86ae7150b4dce06768a5d0b4db",
+          "sha256": "b154d2118b7493935f9ede71b6b48fd3bfcb94f7e423877e57b48af429af6828"
+        },
+        "downloads": -1,
+        "filename": "smart_open-1.8.1.tar.gz",
+        "has_sig": false,
+        "md5_digest": "8c247f86ae7150b4dce06768a5d0b4db",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 48083,
+        "upload_time": "2019-04-09T13:22:20",
+        "upload_time_iso_8601": "2019-04-09T13:22:20.398781Z",
+        "url": "https://files.pythonhosted.org/packages/27/90/39f18b9258cd76e98df581213a2b7a393b426821e920f1e820e525f54ed4/smart_open-1.8.1.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

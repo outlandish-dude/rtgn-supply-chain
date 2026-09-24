@@ -1,0 +1,143 @@
+{
+  "package": "celery",
+  "version": "1.0.6",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:51:11.776281+00:00",
+  "payload": {
+    "info": {
+      "author": "Ask Solem",
+      "author_email": "askh@opera.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 5 - Production/Stable",
+        "Environment :: No Input/Output (Daemon)",
+        "Framework :: Django",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Operating System :: POSIX",
+        "Programming Language :: Python",
+        "Topic :: Communications",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: System :: Distributed Computing"
+      ],
+      "description": "=================================\n celery - Distributed Task Queue\n=================================\n\n.. image:: http://cloud.github.com/downloads/ask/celery/celery_favicon_128.png\n\n:Version: 1.0.6\n:Web: http://celeryproject.org/\n:Download: http://pypi.python.org/pypi/celery/\n:Source: http://github.com/ask/celery/\n:Keywords: task queue, job queue, asynchronous, rabbitmq, amqp, redis,\n  django, python, webhooks, queue, distributed\n\n--\n\nCelery is a task queue/job queue based on distributed message passing.\nIt is focused on real-time operation, but supports scheduling as well.\n\nThe execution units, called tasks, are executed concurrently on a single or\nmore worker servers. Tasks can execute asynchronously (in the background) or synchronously\n(wait until ready).\n\nCelery is already used in production to process millions of tasks a day.\n\nCelery was originally created for use with Django, but is now usable\nfrom any Python project. It can\nalso `operate with other languages via webhooks`_.\n\nThe recommended message broker is `RabbitMQ`_, but support for Redis and\ndatabases is also available.\n\n.. _`operate with other languages via webhooks`:\n    http://ask.github.com/celery/userguide/remote-tasks.html\n\nOverview\n========\n\nThis is a high level overview of the architecture.\n\n.. image:: http://cloud.github.com/downloads/ask/celery/Celery-Overview-v4.jpg\n\nThe broker pushes tasks to the worker servers.\nA worker server is a networked machine running ``celeryd``. This can be one or\nmore machines, depending on the workload.\n\nThe result of the task can be stored for later retrieval (called its\n\"tombstone\").\n\nExample\n=======\n\nYou probably want to see some code by now, so here's an example task\nadding two numbers:\n::\n\n    from celery.decorators import task\n\n    @task\n    def add(x, y):\n        return x + y\n\nYou can execute the task in the background, or wait for it to finish::\n\n    >>> result = add.delay(4, 4)\n    >>> result.wait() # wait for and return the result\n    8\n\nSimple!\n\nFeatures\n========\n\n    +-----------------+----------------------------------------------------+\n    | Messaging       | Supported brokers include `RabbitMQ`_, `Stomp`_,   |\n    |                 | `Redis`_, and most common SQL databases.           |\n    +-----------------+----------------------------------------------------+\n    | Robust          | Using `RabbitMQ`, celery survives most error       |\n    |                 | scenarios, and your tasks will never be lost.      |\n    +-----------------+----------------------------------------------------+\n    | Distributed     | Runs on one or more machines. Supports             |\n    |                 | `clustering`_ when used in combination with        |\n    |                 | `RabbitMQ`_. You can set up new workers without    |\n    |                 | central configuration (e.g. use your dads laptop   |\n    |                 | while the queue is temporarily overloaded).        |\n    +-----------------+----------------------------------------------------+\n    | Concurrency     | Tasks are executed in parallel using the           |\n    |                 | ``multiprocessing`` module.                        |\n    +-----------------+----------------------------------------------------+\n    | Scheduling      | Supports recurring tasks like cron, or specifying  |\n    |                 | an exact date or countdown for when after the task |\n    |                 | should be executed.                                |\n    +-----------------+----------------------------------------------------+\n    | Performance     | Able to execute tasks while the user waits.        |\n    +-----------------+----------------------------------------------------+\n    | Return Values   | Task return values can be saved to the selected    |\n    |                 | result store backend. You can wait for the result, |\n    |                 | retrieve it later, or ignore it.                   |\n    +-----------------+----------------------------------------------------+\n    | Result Stores   | Database, `MongoDB`_, `Redis`_, `Tokyo Tyrant`,    |\n    |                 | `AMQP`_ (high performance).                        |\n    +-----------------+----------------------------------------------------+\n    | Webhooks        | Your tasks can also be HTTP callbacks, enabling    |\n    |                 | cross-language communication.                      |\n    +-----------------+----------------------------------------------------+\n    | Rate limiting   | Supports rate limiting by using the token bucket   |\n    |                 | algorithm, which accounts for bursts of traffic.   |\n    |                 | Rate limits can be set for each task type, or      |\n    |                 | globally for all.                                  |\n    +-----------------+----------------------------------------------------+\n    | Routing         | Using AMQP you can route tasks arbitrarily to      |\n    |                 | different workers.                                 |\n    +-----------------+----------------------------------------------------+\n    | Remote-control  | You can rate limit and delete (revoke) tasks       |\n    |                 | remotely.                                          |\n    +-----------------+----------------------------------------------------+\n    | Monitoring      | You can capture everything happening with the      |\n    |                 | workers in real-time by subscribing to events.     |\n    |                 | A real-time web monitor is in development.         |\n    +-----------------+----------------------------------------------------+\n    | Serialization   | Supports Pickle, JSON, YAML, or easily defined     |\n    |                 | custom schemes. One task invocation can have a     |\n    |                 | different scheme than another.                     |\n    +-----------------+----------------------------------------------------+\n    | Tracebacks      | Errors and tracebacks are stored and can be        |\n    |                 | investigated after the fact.                       |\n    +-----------------+----------------------------------------------------+\n    | UUID            | Every task has an UUID (Universally Unique         |\n    |                 | Identifier), which is the task id used to query    |\n    |                 | task status and return value.                      |\n    +-----------------+----------------------------------------------------+\n    | Retries         | Tasks can be retried if they fail, with            |\n    |                 | configurable maximum number of retries, and delays |\n    |                 | between each retry.                                |\n    +-----------------+----------------------------------------------------+\n    | Task Sets       | A Task set is a task consisting of several         |\n    |                 | sub-tasks. You can find out how many, or if all    |\n    |                 | of the sub-tasks has been executed, and even       |\n    |                 | retrieve the results in order. Progress bars,      |\n    |                 | anyone?                                            |\n    +-----------------+----------------------------------------------------+\n    | Made for Web    | You can query status and results via URLs,         |\n    |                 | enabling the ability to poll task status using     |\n    |                 | Ajax.                                              |\n    +-----------------+----------------------------------------------------+\n    | Error e-mails   | Can be configured to send e-mails to the           |\n    |                 | administrators when tasks fails.                   |\n    +-----------------+----------------------------------------------------+\n    | Supervised      | Pool workers are supervised and automatically      |\n    |                 | replaced if they crash.                            |\n    +-----------------+----------------------------------------------------+\n\n\n.. _`RabbitMQ`: http://www.rabbitmq.com/\n.. _`clustering`: http://www.rabbitmq.com/clustering.html\n.. _`AMQP`: http://www.amqp.org/\n.. _`Stomp`: http://stomp.codehaus.org/\n.. _`MongoDB`: http://www.mongodb.org/\n.. _`Redis`: http://code.google.com/p/redis/\n.. _`Tokyo Tyrant`: http://tokyocabinet.sourceforge.net/\n\nDocumentation\n=============\n\nThe `latest documentation`_ with user guides, tutorials and API reference\nis hosted at Github.\n\n.. _`latest documentation`: http://ask.github.com/celery/\n\nInstallation\n=============\n\nYou can install ``celery`` either via the Python Package Index (PyPI)\nor from source.\n\nTo install using ``pip``,::\n\n    $ pip install celery\n\nTo install using ``easy_install``,::\n\n    $ easy_install celery\n\nDownloading and installing from source\n--------------------------------------\n\nDownload the latest version of ``celery`` from\nhttp://pypi.python.org/pypi/celery/\n\nYou can install it by doing the following,::\n\n    $ tar xvfz celery-0.0.0.tar.gz\n    $ cd celery-0.0.0\n    $ python setup.py build\n    # python setup.py install # as root\n\nUsing the development version\n------------------------------\n\nYou can clone the repository by doing the following::\n\n    $ git clone git://github.com/ask/celery.git\n\n\nGetting Help\n============\n\nMailing list\n------------\n\nFor discussions about the usage, development, and future of celery,\nplease join the `celery-users`_ mailing list. \n\n.. _`celery-users`: http://groups.google.com/group/celery-users/\n\nIRC\n---\n\nCome chat with us on IRC. The `#celery`_ channel is located at the `Freenode`_\nnetwork.\n\n.. _`#celery`: irc://irc.freenode.net/celery\n.. _`Freenode`: http://freenode.net\n\n\nBug tracker\n===========\n\nIf you have any suggestions, bug reports or annoyances please report them\nto our issue tracker at http://github.com/ask/celery/issues/\n\nWiki\n====\n\nhttp://wiki.github.com/ask/celery/\n\nContributing\n============\n\nDevelopment of ``celery`` happens at Github: http://github.com/ask/celery\n\nYou are highly encouraged to participate in the development\nof ``celery``. If you don't like Github (for some reason) you're welcome\nto send regular patches.\n\nLicense\n=======\n\nThis software is licensed under the ``New BSD License``. See the ``LICENSE``\nfile in the top distribution directory for the full license text.\n\n.. # vim: syntax=rst expandtab tabstop=4 shiftwidth=4 shiftround",
+      "description_content_type": null,
+      "docs_url": "https://pythonhosted.org/celery/",
+      "download_url": "UNKNOWN",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "http://github.com/ask/celery/",
+      "keywords": null,
+      "license": "BSD",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "celery",
+      "package_url": "https://pypi.org/project/celery/",
+      "platform": "any",
+      "project_url": "https://pypi.org/project/celery/",
+      "project_urls": {
+        "Download": "UNKNOWN",
+        "Homepage": "http://github.com/ask/celery/"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/celery/1.0.6/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "Distributed Task Queue",
+      "version": "1.0.6",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41322481,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "Nusnus"
+        },
+        {
+          "role": "Owner",
+          "user": "auvipy"
+        },
+        {
+          "role": "Maintainer",
+          "user": "ask"
+        },
+        {
+          "role": "Maintainer",
+          "user": "mher"
+        },
+        {
+          "role": "Maintainer",
+          "user": "smorin"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "97d85b798239afd16b5712ea360698ca6bbffd28214947d36eb125b49e341e17",
+          "md5": "88ae6a25b0f63b79a9a654b8694a93c6",
+          "sha256": "eda05043686b3c554c66112ceabca79e0f162467afefaf951671510491c59071"
+        },
+        "downloads": -1,
+        "filename": "celery-1.0.6.tar.gz",
+        "has_sig": false,
+        "md5_digest": "88ae6a25b0f63b79a9a654b8694a93c6",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 1502650,
+        "upload_time": "2010-06-30T10:03:18",
+        "upload_time_iso_8601": "2010-06-30T10:03:18.768517Z",
+        "url": "https://files.pythonhosted.org/packages/97/d8/5b798239afd16b5712ea360698ca6bbffd28214947d36eb125b49e341e17/celery-1.0.6.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "aliases": [
+          "CVE-2021-23727",
+          "SNYK-PYTHON-CELERY-2314953",
+          "GHSA-q4xr-rc97-m4xx"
+        ],
+        "details": "This affects the package celery before 5.2.2. It by default trusts the messages and metadata stored in backends (result stores). When reading task metadata from the backend, the data is deserialized. Given that an attacker can gain access to, or somehow manipulate the metadata within a celery backend, they could trigger a stored command injection vulnerability and potentially gain further access to the system.",
+        "fixed_in": [
+          "5.2.2"
+        ],
+        "id": "PYSEC-2021-858",
+        "link": "https://osv.dev/vulnerability/PYSEC-2021-858",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2021-23727",
+          "PYSEC-2021-858",
+          "SNYK-PYTHON-CELERY-2314953"
+        ],
+        "details": "This affects the package celery before 5.2.2. It by default trusts the messages and metadata stored in backends (result stores). When reading task metadata from the backend, the data is deserialized. Given that an attacker can gain access to, or somehow manipulate the metadata within a celery backend, they could trigger a stored command injection vulnerability and potentially gain further access to the system.",
+        "fixed_in": [
+          "5.2.2"
+        ],
+        "id": "GHSA-q4xr-rc97-m4xx",
+        "link": "https://osv.dev/vulnerability/GHSA-q4xr-rc97-m4xx",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      }
+    ]
+  }
+}

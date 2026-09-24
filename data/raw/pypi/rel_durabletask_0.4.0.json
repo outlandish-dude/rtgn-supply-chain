@@ -1,0 +1,120 @@
+{
+  "package": "durabletask",
+  "version": "0.4.0",
+  "status_code": 200,
+  "url": "https://pypi.org/pypi/durabletask/0.4.0/json",
+  "timestamp": "2026-09-22T05:45:51.402681+00:00",
+  "payload": {
+    "info": {
+      "author": null,
+      "author_email": null,
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 3 - Alpha",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3"
+      ],
+      "description": "# Durable Task SDK for Python\n\n[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)\n[![Build Validation](https://github.com/microsoft/durabletask-python/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/microsoft/durabletask-python/actions/workflows/pr-validation.yml)\n[![PyPI version](https://badge.fury.io/py/durabletask.svg)](https://badge.fury.io/py/durabletask)\n\nThis repo contains a Python SDK for use with the [Azure Durable Task Scheduler](https://techcommunity.microsoft.com/blog/appsonazureblog/announcing-limited-early-access-of-the-durable-task-scheduler-for-azure-durable-/4286526) and the [Durable Task Framework for Go](https://github.com/microsoft/durabletask-go). With this SDK, you can define, schedule, and manage durable orchestrations using ordinary Python code.\n\n\u26a0\ufe0f **This SDK is currently under active development and is not yet ready for production use.** \u26a0\ufe0f\n\n> Note that this SDK is **not** currently compatible with [Azure Durable Functions](https://docs.microsoft.com/azure/azure-functions/durable/durable-functions-overview). If you are looking for a Python SDK for Azure Durable Functions, please see [this repo](https://github.com/Azure/azure-functions-durable-python).\n\n## Supported patterns\n\nThe following orchestration patterns are currently supported.\n\n### Function chaining\n\nAn orchestration can chain a sequence of function calls using the following syntax:\n\n```python\n# simple activity function that returns a greeting\ndef hello(ctx: task.ActivityContext, name: str) -> str:\n    return f'Hello {name}!'\n\n# orchestrator function that sequences the activity calls\ndef sequence(ctx: task.OrchestrationContext, _):\n    result1 = yield ctx.call_activity(hello, input='Tokyo')\n    result2 = yield ctx.call_activity(hello, input='Seattle')\n    result3 = yield ctx.call_activity(hello, input='London')\n\n    return [result1, result2, result3]\n```\n\nYou can find the full sample [here](./examples/activity_sequence.py).\n\n### Fan-out/fan-in\n\nAn orchestration can fan-out a dynamic number of function calls in parallel and then fan-in the results using the following syntax:\n\n```python\n# activity function for getting the list of work items\ndef get_work_items(ctx: task.ActivityContext, _) -> List[str]:\n    # ...\n\n# activity function for processing a single work item\ndef process_work_item(ctx: task.ActivityContext, item: str) -> int:\n    # ...\n\n# orchestrator function that fans-out the work items and then fans-in the results\ndef orchestrator(ctx: task.OrchestrationContext, _):\n    # the number of work-items is unknown in advance\n    work_items = yield ctx.call_activity(get_work_items)\n\n    # fan-out: schedule the work items in parallel and wait for all of them to complete\n    tasks = [ctx.call_activity(process_work_item, input=item) for item in work_items]\n    results = yield task.when_all(tasks)\n\n    # fan-in: summarize and return the results\n    return {'work_items': work_items, 'results': results, 'total': sum(results)}\n```\n\nYou can find the full sample [here](./examples/fanout_fanin.py).\n\n### Human interaction and durable timers\n\nAn orchestration can wait for a user-defined event, such as a human approval event, before proceding to the next step. In addition, the orchestration can create a timer with an arbitrary duration that triggers some alternate action if the external event hasn't been received:\n\n```python\ndef purchase_order_workflow(ctx: task.OrchestrationContext, order: Order):\n    \"\"\"Orchestrator function that represents a purchase order workflow\"\"\"\n    # Orders under $1000 are auto-approved\n    if order.Cost < 1000:\n        return \"Auto-approved\"\n\n    # Orders of $1000 or more require manager approval\n    yield ctx.call_activity(send_approval_request, input=order)\n\n    # Approvals must be received within 24 hours or they will be canceled.\n    approval_event = ctx.wait_for_external_event(\"approval_received\")\n    timeout_event = ctx.create_timer(timedelta(hours=24))\n    winner = yield task.when_any([approval_event, timeout_event])\n    if winner == timeout_event:\n        return \"Canceled\"\n\n    # The order was approved\n    yield ctx.call_activity(place_order, input=order)\n    approval_details = approval_event.get_result()\n    return f\"Approved by '{approval_details.approver}'\"\n```\n\nAs an aside, you'll also notice that the example orchestration above works with custom business objects. Support for custom business objects includes support for custom classes, custom data classes, and named tuples. Serialization and deserialization of these objects is handled automatically by the SDK.\n\nYou can find the full sample [here](./examples/human_interaction.py).\n\n## Feature overview\n\nThe following features are currently supported:\n\n### Orchestrations\n\nOrchestrations are implemented using ordinary Python functions that take an `OrchestrationContext` as their first parameter. The `OrchestrationContext` provides APIs for starting child orchestrations, scheduling activities, and waiting for external events, among other things. Orchestrations are fault-tolerant and durable, meaning that they can automatically recover from failures and rebuild their local execution state. Orchestrator functions must be deterministic, meaning that they must always produce the same output given the same input.\n\n### Activities\n\nActivities are implemented using ordinary Python functions that take an `ActivityContext` as their first parameter. Activity functions are scheduled by orchestrations and have at-least-once execution guarantees, meaning that they will be executed at least once but may be executed multiple times in the event of a transient failure. Activity functions are where the real \"work\" of any orchestration is done.\n\n### Durable timers\n\nOrchestrations can schedule durable timers using the `create_timer` API. These timers are durable, meaning that they will survive orchestrator restarts and will fire even if the orchestrator is not actively in memory. Durable timers can be of any duration, from milliseconds to months.\n\n### Sub-orchestrations\n\nOrchestrations can start child orchestrations using the `call_sub_orchestrator` API. Child orchestrations are useful for encapsulating complex logic and for breaking up large orchestrations into smaller, more manageable pieces.\n\n### External events\n\nOrchestrations can wait for external events using the `wait_for_external_event` API. External events are useful for implementing human interaction patterns, such as waiting for a user to approve an order before continuing.\n\n### Continue-as-new (TODO)\n\nOrchestrations can be continued as new using the `continue_as_new` API. This API allows an orchestration to restart itself from scratch, optionally with a new input.\n\n### Suspend, resume, and terminate\n\nOrchestrations can be suspended using the `suspend_orchestration` client API and will remain suspended until resumed using the `resume_orchestration` client API. A suspended orchestration will stop processing new events, but will continue to buffer any that happen to arrive until resumed, ensuring that no data is lost. An orchestration can also be terminated using the `terminate_orchestration` client API. Terminated orchestrations will stop processing new events and will discard any buffered events.\n\n### Retry policies (TODO)\n\nOrchestrations can specify retry policies for activities and sub-orchestrations. These policies control how many times and how frequently an activity or sub-orchestration will be retried in the event of a transient error.\n\n## Getting Started\n\n### Prerequisites\n\n- Python 3.9\n- A Durable Task-compatible sidecar, like [Dapr Workflow](https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/)\n\n### Installing the Durable Task Python client SDK\n\nInstallation is currently only supported from source. Ensure pip, setuptools, and wheel are up-to-date.\n\n```sh\npython3 -m pip install --upgrade pip setuptools wheel\n```\n\nTo install this package from source, clone this repository and run the following command from the project root:\n\n```sh\npython3 -m pip install .\n```\n\n### Run the samples\n\nSee the [examples](./examples) directory for a list of sample orchestrations and instructions on how to run them.\n\n## Development\n\nThe following is more information about how to develop this project. Note that development commands require that `make` is installed on your local machine. If you're using Windows, you can install `make` using [Chocolatey](https://chocolatey.org/) or use WSL.\n\n### Generating protobufs\n\n```sh\npip3 install -r dev-requirements.txt\nmake gen-proto\n```\n\nThis will download the `orchestrator_service.proto` from the `microsoft/durabletask-protobuf` repo and compile it using `grpcio-tools`. The version of the source proto file that was downloaded can be found in the file `durabletask/internal/PROTO_SOURCE_COMMIT_HASH`.\n\n### Running unit tests\n\nUnit tests can be run using the following command from the project root. Unit tests _don't_ require a sidecar process to be running.\n\n```sh\nmake test-unit\n```\n\n### Running E2E tests\n\nThe E2E (end-to-end) tests require a sidecar process to be running. You can use the Dapr sidecar for this or run a Durable Task test sidecar using the following command:\n\n```sh\ngo install github.com/microsoft/durabletask-go@main\ndurabletask-go --port 4001\n```\n\nTo run the E2E tests, run the following command from the project root:\n\n```sh\nmake test-e2e\n```\n\n## Contributing\n\nThis project welcomes contributions and suggestions.  Most contributions require you to agree to a\nContributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us\nthe rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.\n\nWhen you submit a pull request, a CLA bot will automatically determine whether you need to provide\na CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions\nprovided by the bot. You will only need to do this once across all repos using our CLA.\n\nThis project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).\nFor more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or\ncontact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.\n\n## Trademarks\n\nThis project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft \ntrademarks or logos is subject to and must follow \n[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).\nUse of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.\nAny use of third-party trademarks or logos are subject to those third-party's policies.\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": [
+        "License-File"
+      ],
+      "home_page": null,
+      "keywords": "durable, task, workflow",
+      "license": "MIT License\n        \n            Copyright (c) Microsoft Corporation.\n        \n            Permission is hereby granted, free of charge, to any person obtaining a copy\n            of this software and associated documentation files (the \"Software\"), to deal\n            in the Software without restriction, including without limitation the rights\n            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n            copies of the Software, and to permit persons to whom the Software is\n            furnished to do so, subject to the following conditions:\n        \n            The above copyright notice and this permission notice shall be included in all\n            copies or substantial portions of the Software.\n        \n            THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n            SOFTWARE\n        ",
+      "license_expression": null,
+      "license_files": [
+        "LICENSE"
+      ],
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "durabletask",
+      "package_url": "https://pypi.org/project/durabletask/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/durabletask/",
+      "project_urls": {
+        "changelog": "https://github.com/microsoft/durabletask-python/blob/main/CHANGELOG.md",
+        "repository": "https://github.com/microsoft/durabletask-python"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/durabletask/0.4.0/",
+      "requires_dist": [
+        "grpcio",
+        "protobuf",
+        "asyncio",
+        "packaging"
+      ],
+      "requires_python": ">=3.9",
+      "summary": "A Durable Task Client SDK for Python",
+      "version": "0.4.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 40734447,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "microsoft"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "eee6b7c3b91601db3309c52f7212f163fc1615d3dddabe816ff09ae8de7bfec9"
+        },
+        "digests": {
+          "blake2b_256": "503cb4b5bb885e1d04a2fd91e3323da2eede2a8b6e2d5a595f2d8ff468d07834",
+          "md5": "e5f195c0d438363b06ccca6d1514b237",
+          "sha256": "e23a5f947216143c2ff8613d6a4e5e586ba75d0dce2bcbd9dbf2b9af5fdd3b57"
+        },
+        "downloads": -1,
+        "filename": "durabletask-0.4.0-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "e5f195c0d438363b06ccca6d1514b237",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.9",
+        "size": 52110,
+        "upload_time": "2025-08-15T21:52:54",
+        "upload_time_iso_8601": "2025-08-15T21:52:54.572760Z",
+        "url": "https://files.pythonhosted.org/packages/50/3c/b4b5bb885e1d04a2fd91e3323da2eede2a8b6e2d5a595f2d8ff468d07834/durabletask-0.4.0-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "feeae42dbac17d5f5385678f92895c93d7912ae145c7b39775957044f219f682",
+          "md5": "bf041e3eff2d7a44ef4430d654a0a1bc",
+          "sha256": "72c31d423a17e8d753663bc236bd95c1c4681df574e4ec64138156fc6f9ddbfc"
+        },
+        "downloads": -1,
+        "filename": "durabletask-0.4.0.tar.gz",
+        "has_sig": false,
+        "md5_digest": "bf041e3eff2d7a44ef4430d654a0a1bc",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.9",
+        "size": 53043,
+        "upload_time": "2025-08-15T21:52:55",
+        "upload_time_iso_8601": "2025-08-15T21:52:55.459742Z",
+        "url": "https://files.pythonhosted.org/packages/fe/ea/e42dbac17d5f5385678f92895c93d7912ae145c7b39775957044f219f682/durabletask-0.4.0.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

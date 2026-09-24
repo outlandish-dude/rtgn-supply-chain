@@ -1,0 +1,143 @@
+{
+  "package": "celery",
+  "version": "0.8.2",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:51:09.033469+00:00",
+  "payload": {
+    "info": {
+      "author": "Ask Solem",
+      "author_email": "askh@opera.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 5 - Production/Stable",
+        "Environment :: No Input/Output (Daemon)",
+        "Framework :: Django",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Operating System :: POSIX",
+        "Programming Language :: Python",
+        "Topic :: Communications",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: System :: Distributed Computing"
+      ],
+      "description": "=================================\n celery - Distributed Task Queue\n=================================\n\n:Version: 0.8.2\n\nIntroduction\n============\n\nCelery is a distributed task queue.\n\nIt was first created for Django, but is now usable from Python.\nIt can also operate with other languages via HTTP+JSON.\n\nThis introduction is written for someone who wants to use\nCelery from within a Django project. For information about using it from\npure Python see `Can I use Celery without Django?`_, for calling out to other\nlanguages see `Executing tasks on a remote web server`_.\n\n.. _`Can I use Celery without Django?`: http://bit.ly/WPa6n\n\n.. _`Executing tasks on a remote web server`: http://bit.ly/CgXSc\n\nIt is used for executing tasks *asynchronously*, routed to one or more\nworker servers, running concurrently using multiprocessing.\n\nIt is designed to solve certain problems related to running websites\ndemanding high-availability and performance.\n\nIt is perfect for filling caches, posting updates to twitter, mass\ndownloading data like syndication feeds or web scraping. Use-cases are\nplentiful. Implementing these features asynchronously using ``celery`` is\neasy and fun, and the performance improvements can make it more than\nworthwhile.\n\nOverview\n========\n\nThis is a high level overview of the architecture.\n\n.. image:: http://cloud.github.com/downloads/ask/celery/Celery-Overview-v4.jpg\n\nThe broker is an AMQP server pushing tasks to the worker servers.\nA worker server is a networked machine running ``celeryd``. This can be one or\nmore machines, depending on the workload. See `A look inside the worker`_ to\nsee how the worker server works.\n\nThe result of the task can be stored for later retrieval (called its\n\"tombstone\").\n\nFeatures\n========\n\n    * Uses AMQP messaging (RabbitMQ, ZeroMQ, Qpid) to route tasks to the\n      worker servers. Experimental support for STOMP (ActiveMQ) is also \n      available.\n\n    * You can run as many worker servers as you want, and still\n      be *guaranteed that the task is only executed once.*\n\n    * Tasks are executed *concurrently* using the Python 2.6\n      ```multiprocessing`` module (also available as a back-port\n      to older python versions)\n\n    * Supports *periodic tasks*, which makes it a (better) replacement\n      for cronjobs.\n\n    * When a task has been executed, the return value can be stored using\n      either a MySQL/Oracle/PostgreSQL/SQLite database, Memcached,\n      `MongoDB`_, `Redis`_ or `Tokyo Tyrant`_ back-end. For high-performance\n      you can also use AMQP messages to publish results.\n\n    * If the task raises an exception, the exception instance is stored,\n      instead of the return value.\n\n    * All tasks has a Universally Unique Identifier (UUID), which is the\n      task id, used for querying task status and return values.\n\n    * Tasks can be retried if they fail, with a configurable maximum number\n      of retries.\n\n    * Tasks can be configured to run at a specific time and date in the\n      future (ETA) or you can set a countdown in seconds for when the\n      task should be executed.\n\n    * Supports *task-sets*, which is a task consisting of several sub-tasks.\n      You can find out how many, or if all of the sub-tasks has been executed.\n      Excellent for progress-bar like functionality.\n\n    * Has a ``map`` like function that uses tasks,\n      called ``celery.task.dmap``.\n\n    * However, you rarely want to wait for these results in a web-environment.\n      You'd rather want to use Ajax to poll the task status, which is\n      available from a URL like ``celery/<task_id>/status/``. This view\n      returns a JSON-serialized data structure containing the task status,\n      and the return value if completed, or exception on failure.\n\n    * The worker can collect statistics, like, how many tasks has been\n      executed by type, and the time it took to process them. Very useful\n      for monitoring and profiling.\n\n    * Pool workers are supervised, so if for some reason a worker crashes\n        it is automatically replaced by a new worker.\n\n    * Can be configured to send e-mails to the administrators when a task\n      fails.\n\n.. _`MongoDB`: http://www.mongodb.org/\n.. _`Redis`: http://code.google.com/p/redis/\n.. _`Tokyo Tyrant`: http://tokyocabinet.sourceforge.net/\n\nAPI Reference Documentation\n===========================\n\nThe `API Reference`_ is hosted at Github\n(http://ask.github.com/celery)\n\n.. _`API Reference`: http://ask.github.com/celery/\n\nInstallation\n=============\n\nYou can install ``celery`` either via the Python Package Index (PyPI)\nor from source.\n\nTo install using ``pip``,::\n\n    $ pip install celery\n\nTo install using ``easy_install``,::\n\n    $ easy_install celery\n\nDownloading and installing from source\n--------------------------------------\n\nDownload the latest version of ``celery`` from\nhttp://pypi.python.org/pypi/celery/\n\nYou can install it by doing the following,::\n\n    $ tar xvfz celery-0.0.0.tar.gz\n    $ cd celery-0.0.0\n    $ python setup.py build\n    # python setup.py install # as root\n\nUsing the development version\n------------------------------\n\nYou can clone the repository by doing the following::\n\n    $ git clone git://github.com/ask/celery.git\n\n\nUsage\n=====\n\nInstalling RabbitMQ\n-------------------\n\nSee `Installing RabbitMQ`_ over at RabbitMQ's website. For Mac OS X\nsee `Installing RabbitMQ on OS X`_.\n\n.. _`Installing RabbitMQ`: http://www.rabbitmq.com/install.html\n.. _`Installing RabbitMQ on OS X`:\n    http://playtype.net/past/2008/10/9/installing_rabbitmq_on_osx/\n\n\nSetting up RabbitMQ\n-------------------\n\nTo use celery we need to create a RabbitMQ user, a virtual host and\nallow that user access to that virtual host::\n\n    $ rabbitmqctl add_user myuser mypassword\n\n    $ rabbitmqctl add_vhost myvhost\n\nFrom RabbitMQ version 1.6.0 and onward you have to use the new ACL features\nto allow access::\n\n    $ rabbitmqctl set_permissions -p myvhost myuser \"\" \".*\" \".*\"\n\nSee the RabbitMQ `Admin Guide`_ for more information about `access control`_.\n\n.. _`Admin Guide`: http://www.rabbitmq.com/admin-guide.html\n\n.. _`access control`: http://www.rabbitmq.com/admin-guide.html#access-control\n\n\nIf you are still using version 1.5.0 or below, please use ``map_user_vhost``::\n\n    $ rabbitmqctl map_user_vhost myuser myvhost\n\n\nConfiguring your Django project to use Celery\n---------------------------------------------\n\nYou only need three simple steps to use celery with your Django project.\n\n    1. Add ``celery`` to ``INSTALLED_APPS``.\n\n    2. Create the celery database tables::\n\n            $ python manage.py syncdb\n\n    3. Configure celery to use the AMQP user and virtual host we created\n        before, by adding the following to your ``settings.py``::\n\n            BROKER_HOST = \"localhost\"\n            BROKER_PORT = 5672\n            BROKER_USER = \"myuser\"\n            BROKER_PASSWORD = \"mypassword\"\n            BROKER_VHOST = \"myvhost\"\n\n\nThat's it.\n\nThere are more options available, like how many processes you want to process\nwork in parallel (the ``CELERY_CONCURRENCY`` setting), and the backend used\nfor storing task statuses. But for now, this should do. For all of the options\navailable, please consult the `API Reference`_\n\n**Note**: If you're using SQLite as the Django database back-end,\n``celeryd`` will only be able to process one task at a time, this is\nbecause SQLite doesn't allow concurrent writes.\n\nRunning the celery worker server\n--------------------------------\n\nTo test this we'll be running the worker server in the foreground, so we can\nsee what's going on without consulting the logfile::\n\n    $ python manage.py celeryd\n\n\nHowever, in production you probably want to run the worker in the\nbackground, as a daemon:: \n\n    $ python manage.py celeryd --detach\n\n\nFor a complete listing of the command line arguments available, with a short\ndescription, you can use the help command::\n\n    $ python manage.py help celeryd\n\n\nDefining and executing tasks\n----------------------------\n\n**Please note** All of these tasks has to be stored in a real module, they can't\nbe defined in the python shell or ipython/bpython. This is because the celery\nworker server needs access to the task function to be able to run it.\nSo while it looks like we use the python shell to define the tasks in these\nexamples, you can't do it this way. Put them in the ``tasks`` module of your\nDjango application. The worker server will automatically load any ``tasks.py``\nfile for all of the applications listed in ``settings.INSTALLED_APPS``.\nExecuting tasks using ``delay`` and ``apply_async`` can be done from the\npython shell, but keep in mind that since arguments are pickled, you can't\nuse custom classes defined in the shell session.\n\nWhile you can use regular functions, the recommended way is to define\na task class. This way you can cleanly upgrade the task to use the more\nadvanced features of celery later.\n\nThis is a task that basically does nothing but take some arguments,\nand return a value:\n::\n\n    from celery.task import Task\n    from celery.registry import tasks\n    class MyTask(Task):\n\n        def run(self, some_arg, **kwargs):\n            logger = self.get_logger(**kwargs)\n            logger.info(\"Did something: %s\" % some_arg)\n            return 42\n    tasks.register(MyTask)\n\nAs you can see the worker is sending some keyword arguments to this task,\nthis is the default keyword arguments. A task can choose not to take these,\nor only list the ones it want (the worker will do the right thing).\nThe current default keyword arguments are:\n\n    * logfile\n\n        The currently used log file, can be passed on to ``self.get_logger``\n        to gain access to the workers log file via a ``logger.Logging``\n        instance.\n\n    * loglevel\n\n        The current loglevel used.\n\n    * task_id\n\n        The unique id of the executing task.\n\n    * task_name\n\n        Name of the executing task.\n\n    * task_retries\n\n        How many times the current task has been retried.\n        (an integer starting a ``0``).\n\nNow if we want to execute this task, we can use the\ndelay method (``celery.task.Base.Task.delay``) of the task class\n(this is a handy shortcut to the ``apply_async`` method which gives\nyou greater control of the task execution).\n\n    >>> from myapp.tasks import MyTask\n    >>> MyTask.delay(some_arg=\"foo\")\n\nAt this point, the task has been sent to the message broker. The message\nbroker will hold on to the task until a celery worker server has successfully\npicked it up.\n\n*Note* If everything is just hanging when you execute ``delay``, please check\nthat RabbitMQ is running, and that the user/password has access to the virtual\nhost you configured earlier.\n\nRight now we have to check the celery worker logfiles to know what happened with\nthe task. This is because we didn't keep the ``AsyncResult`` object returned\nby ``delay``.\n\nThe ``AsyncResult`` lets us find the state of the task, wait for the task to\nfinish and get its return value (or exception if the task failed).\n\nSo, let's execute the task again, but this time we'll keep track of the task:\n\n    >>> result = MyTask.delay(\"hello\")\n    >>> result.ready() # returns True if the task has finished processing.\n    False\n    >>> result.result # task is not ready, so no return value yet.\n    None\n    >>> result.get()   # Waits until the task is done and return the retval.\n    42\n    >>> result.result\n    42\n    >>> result.successful() # returns True if the task didn't end in failure.\n    True\n\n\nIf the task raises an exception, the return value of ``result.successful()``\nwill be ``False``, and ``result.result`` will contain the exception instance\nraised by the task.\n\nWorker auto-discovery of tasks\n------------------------------\n\n``celeryd`` has an auto-discovery feature like the Django Admin, that\nautomatically loads any ``tasks.py`` module in the applications listed\nin ``settings.INSTALLED_APPS``. This autodiscovery is used by the celery\nworker to find registered tasks for your Django project.\n\nPeriodic Tasks\n---------------\n\nPeriodic tasks are tasks that are run every ``n`` seconds. \nHere's an example of a periodic task:\n::\n\n    from celery.task import PeriodicTask\n    from celery.registry import tasks\n    from datetime import timedelta\n\n    class MyPeriodicTask(PeriodicTask):\n        run_every = timedelta(seconds=30)\n\n        def run(self, **kwargs):\n            logger = self.get_logger(**kwargs)\n            logger.info(\"Running periodic task!\")\n    >>> tasks.register(MyPeriodicTask)\n\nA look inside the worker\n========================\n\n.. image:: http://cloud.github.com/downloads/ask/celery/InsideTheWorker-v2.jpg\n\nGetting Help\n============\n\nMailing list\n------------\n\nFor discussions about the usage, development, and future of celery,\nplease join the `celery-users`_ mailing list. \n\n.. _`celery-users`: http://groups.google.com/group/celery-users/\n\nIRC\n---\n\nCome chat with us on IRC. The `#celery`_ channel is located at the `Freenode`_\nnetwork.\n\n.. _`#celery`: irc://irc.freenode.net/celery\n.. _`Freenode`: http://freenode.net\n\n\nBug tracker\n===========\n\nIf you have any suggestions, bug reports or annoyances please report them\nto our issue tracker at http://github.com/ask/celery/issues/\n\nContributing\n============\n\nDevelopment of ``celery`` happens at Github: http://github.com/ask/celery\n\nYou are highly encouraged to participate in the development\nof ``celery``. If you don't like Github (for some reason) you're welcome\nto send regular patches.\n\nLicense\n=======\n\nThis software is licensed under the ``New BSD License``. See the ``LICENSE``\nfile in the top distribution directory for the full license text.\n\n.. # vim: syntax=rst expandtab tabstop=4 shiftwidth=4 shiftround",
+      "description_content_type": null,
+      "docs_url": "https://pythonhosted.org/celery/",
+      "download_url": "UNKNOWN",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "http://github.com/ask/celery/",
+      "keywords": null,
+      "license": "BSD",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "celery",
+      "package_url": "https://pypi.org/project/celery/",
+      "platform": "any",
+      "project_url": "https://pypi.org/project/celery/",
+      "project_urls": {
+        "Download": "UNKNOWN",
+        "Homepage": "http://github.com/ask/celery/"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/celery/0.8.2/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "Distributed Task Queue",
+      "version": "0.8.2",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41322481,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "Nusnus"
+        },
+        {
+          "role": "Owner",
+          "user": "auvipy"
+        },
+        {
+          "role": "Maintainer",
+          "user": "ask"
+        },
+        {
+          "role": "Maintainer",
+          "user": "mher"
+        },
+        {
+          "role": "Maintainer",
+          "user": "smorin"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "2fcaa2a748e4827e7709717bc6fca7be018a4cb61e877d5ed41050c0476d5d72",
+          "md5": "1d434f9a3a69f8200196b00f69fa5bb0",
+          "sha256": "373fdafdb4c02a67bde9012ed74df7495e458919b09c895e78ec420437ab00fb"
+        },
+        "downloads": -1,
+        "filename": "celery-0.8.2.tar.gz",
+        "has_sig": false,
+        "md5_digest": "1d434f9a3a69f8200196b00f69fa5bb0",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 735863,
+        "upload_time": "2009-11-20T15:45:22",
+        "upload_time_iso_8601": "2009-11-20T15:45:22.002794Z",
+        "url": "https://files.pythonhosted.org/packages/2f/ca/a2a748e4827e7709717bc6fca7be018a4cb61e877d5ed41050c0476d5d72/celery-0.8.2.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "aliases": [
+          "CVE-2021-23727",
+          "SNYK-PYTHON-CELERY-2314953",
+          "GHSA-q4xr-rc97-m4xx"
+        ],
+        "details": "This affects the package celery before 5.2.2. It by default trusts the messages and metadata stored in backends (result stores). When reading task metadata from the backend, the data is deserialized. Given that an attacker can gain access to, or somehow manipulate the metadata within a celery backend, they could trigger a stored command injection vulnerability and potentially gain further access to the system.",
+        "fixed_in": [
+          "5.2.2"
+        ],
+        "id": "PYSEC-2021-858",
+        "link": "https://osv.dev/vulnerability/PYSEC-2021-858",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2021-23727",
+          "PYSEC-2021-858",
+          "SNYK-PYTHON-CELERY-2314953"
+        ],
+        "details": "This affects the package celery before 5.2.2. It by default trusts the messages and metadata stored in backends (result stores). When reading task metadata from the backend, the data is deserialized. Given that an attacker can gain access to, or somehow manipulate the metadata within a celery backend, they could trigger a stored command injection vulnerability and potentially gain further access to the system.",
+        "fixed_in": [
+          "5.2.2"
+        ],
+        "id": "GHSA-q4xr-rc97-m4xx",
+        "link": "https://osv.dev/vulnerability/GHSA-q4xr-rc97-m4xx",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      }
+    ]
+  }
+}

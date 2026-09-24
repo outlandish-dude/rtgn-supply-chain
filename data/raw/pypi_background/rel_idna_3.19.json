@@ -1,0 +1,137 @@
+{
+  "package": "idna",
+  "version": "3.19",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:38:45.466997+00:00",
+  "payload": {
+    "info": {
+      "author": null,
+      "author_email": "Kim Davies <kim+pypi@gumleaf.org>",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Intended Audience :: System Administrators",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy",
+        "Topic :: Internet :: Name Service (DNS)",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Utilities"
+      ],
+      "description": "# Internationalized Domain Names in Applications (IDNA)\n\nSupport for [Internationalized Domain Names in Applications\n(IDNA)](https://tools.ietf.org/html/rfc5891) and [Unicode IDNA\nCompatibility Processing](https://unicode.org/reports/tr46/). It\nsupersedes the standard library's `encodings.idna`, which only\nimplements the 2003 specification, offering broader script coverage and\nlimiting domains with known security vulnerabilities.\n\n## Usage\n\nPackage may be installed from [PyPI](https://pypi.org/project/idna/) via\nthe typical methods (e.g. `python3 -m pip install idna`)\n\nFor typical usage, the `encode` and `decode` functions will take a\ndomain name argument and perform a conversion to ASCII-compatible encoding\n(known as A-labels), or to Unicode strings (known as U-labels)\nrespectively.\n\n```pycon\n>>> import idna\n>>> idna.encode('\u30c9\u30e1\u30a4\u30f3.\u30c6\u30b9\u30c8')\nb'xn--eckwd4c7c.xn--zckzah'\n>>> print(idna.decode('xn--eckwd4c7c.xn--zckzah'))\n\u30c9\u30e1\u30a4\u30f3.\u30c6\u30b9\u30c8\n```\n\nConversions can be applied at a per-label basis using the `ulabel` or\n`alabel` functions for specialized use cases.\n\n\n### Compatibility Mapping (UTS #46)\n\nThis library provides support for [Unicode IDNA Compatibility\nProcessing](https://unicode.org/reports/tr46/) which normalizes input from\ndifferent potential ways a user may input a domain prior to performing the IDNA\nconversion operations. This functionality, known as a\n[mapping](https://tools.ietf.org/html/rfc5895), is considered by the\nspecification to be a local user-interface issue distinct from IDNA\nconversion functionality.\n\nFor example, \"K\u00f6nigsg\u00e4\u00dfchen\" is not a permissible label as capital letters\nare not allowed. UTS #46 will convert this into lower case prior to applying\nthe IDNA conversion.\n\n```pycon\n>>> import idna\n>>> idna.encode('K\u00f6nigsg\u00e4\u00dfchen')\n...\nidna.core.InvalidCodepoint: Codepoint U+004B at position 1 of 'K\u00f6nigsg\u00e4\u00dfchen' not allowed\n>>> idna.encode('K\u00f6nigsg\u00e4\u00dfchen', uts46=True)\nb'xn--knigsgchen-b4a3dun'\n>>> idna.decode('xn--knigsgchen-b4a3dun')\n'k\u00f6nigsg\u00e4\u00dfchen'\n```\n\nWhen performing a decode operation for display purposes, `decode()`\naccepts a `display=True` argument that leaves any `xn--` label that\nfails to decode unchanged. This is useful for user interface display\nwhere a domain is in use, the A-label form can be presented when it\nis not a valid IDN.\n\n\n## Exceptions\n\nAll errors raised during conversion derive from the `idna.IDNAError`\nbase class. The more specific exceptions are:\n\n* `idna.IDNABidiError` \u2014 raised when a label contains an illegal\n  combination of left-to-right and right-to-left characters.\n* `idna.InvalidCodepoint` \u2014 raised when a label contains a codepoint\n  that is INVALID for IDNA.\n* `idna.InvalidCodepointContext` \u2014 raised when a CONTEXTO or CONTEXTJ\n  codepoint appears in a position whose contextual requirements are\n  not satisfied.\n\nExceptions carry machine-readable attributes so that applications\ndo not need to parse the message: `code` is a short, stable identifier\nfor the rule that failed (listed below); and, when the failure can be\nattributed to a particular character, `text` (the label, or domain for\nUTS #46 processing, being validated), `codepoint` (the offending\ncodepoint as an integer) and `position` (its 1-based index within\n`text`, as quoted in the message) are set. Each is `None` when it does\nnot apply. Message wording is not part of the API and may change.\n\n```pycon\n>>> try:\n...     idna.encode('K\u00f6nigsg\u00e4\u00dfchen')\n... except idna.IDNAError as err:\n...     print(err.code, err.codepoint, err.position, err.text)\ndisallowed_codepoint 75 1 K\u00f6nigsg\u00e4\u00dfchen\n```\n\n| `code` | Meaning |\n|---|---|\n| `input_too_long` | Input exceeds the library's defensive length limit and was not processed |\n| `label_too_long` | A label exceeds 63 octets |\n| `domain_too_long` | The domain exceeds 253 octets |\n| `empty_label` | A label is empty (e.g. consecutive dots) |\n| `empty_domain` | The domain is empty |\n| `not_nfc` | The label is not in Unicode Normalization Form C |\n| `hyphen_3_4` | The label has hyphens in the 3rd and 4th positions |\n| `hyphen_start_end` | The label starts or ends with a hyphen |\n| `leading_combiner` | The label starts with a combining mark |\n| `disallowed_codepoint` | A codepoint is DISALLOWED or UNASSIGNED under IDNA 2008 |\n| `contextj` | A CONTEXTJ codepoint (joiner) appears in an invalid context |\n| `contexto` | A CONTEXTO codepoint appears in an invalid context |\n| `unknown_codepoint` | A codepoint next to a joiner is unknown to this Python's Unicode database |\n| `bidi_rule_1` \u2026 `bidi_rule_6` | The corresponding rule of RFC 5893 (the Bidi Rule) is violated |\n| `bidi_unknown_direction` | A codepoint's directionality is unknown to this Python's Unicode database |\n| `invalid_alabel` | An `xn--` label is malformed or is not valid Punycode |\n| `non_canonical_alabel` | An `xn--` label is not the canonical Punycode encoding of its U-label (a \"fake A-label\") |\n| `invalid_ascii` | Byte input is not ASCII |\n| `invalid_utf8` | Byte input is not UTF-8 |\n| `uts46_disallowed` | A codepoint is disallowed by the UTS #46 mapping table |\n| `uts46_std3` | An ASCII character is rejected by the UTS #46 STD3 rules |\n| `unsupported_errors` | The codec was given an `errors` handler other than `strict` |\n\n\n## Command-line tool\n\nThe package supports command-line usage to convert domain names\nbetween their Unicode and ASCII-compatible forms. It can be run either\nas a module (`python3 -m idna`) or, once installed (such as with `uv\ntool` or `pipx`), via the `idna` script:\n\n```bash\n$ uv tool install idna\n$ idna xn--e1afmkfd.xn--p1ai\n\u043f\u0440\u0438\u043c\u0435\u0440.\u0440\u0444\n$ idna \u043f\u0440\u0438\u043c\u0435\u0440.\u0440\u0444\nxn--e1afmkfd.xn--p1ai\n```\n\nMode can be specified with `-e`/`--encode` or `-d`/`--decode`, otherwise\nit will be chosen automatically based on the first input. Multiple\ndomains can be supplied either as arguments or through standard input.\nUTS #46 mapping is applied by default, which lets the tool accept\ninputs that aren't strictly valid IDNA 2008 by normalising them first,\npass `--strict` to disable UTS #46.\n\nConversion failures are reported on stderr together with the\noffending input; processing continues with the remaining domains and\nthe tool exits with a non-zero status if any conversion failed.\n\n\n## Additional Notes\n\n* **Python version support**. This library supports Python 3.9 and higher.\n  As this library serves as a low-level toolkit for a variety of\n  applications, we strive to support all versions of Python that are\n  not beyond end-of-life. Free-threaded Python is also supported,\n  as the library holds no mutable global state the functions can be\n  called concurrently from multiple threads.\n\n* **Unicode version**. The IDNA and UTS #46 lookup tables are generated\n  from a specific Unicode release. Some Unicode data depends on the\n  running Python's `unicodedata` module, so on an older Python a\n  character new to Unicode may be rejected as unknown even if this\n  library knows about it.\n\n* **Emoji**. It is an occasional request to support emoji domains in\n  this library. Encoding of symbols like emoji is expressly prohibited by\n  the IDNA technical standard, and emoji domains are broadly phased\n  out across the domain industry due to associated security risks.\n\n* **Regenerating lookup tables**. The IDNA and UTS #46 functionality\n  relies upon pre-calculated lookup tables, generated using the\n  `idna-data` script in [`tools/`](tools/README.md).\n\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": null,
+      "keywords": null,
+      "license": null,
+      "license_expression": "BSD-3-Clause",
+      "license_files": [
+        "LICENSE.md"
+      ],
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "idna",
+      "package_url": "https://pypi.org/project/idna/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/idna/",
+      "project_urls": {
+        "Changelog": "https://github.com/kjd/idna/blob/master/HISTORY.md",
+        "Issue tracker": "https://github.com/kjd/idna/issues",
+        "Source": "https://github.com/kjd/idna"
+      },
+      "provides_extra": [
+        "all"
+      ],
+      "release_url": "https://pypi.org/project/idna/3.19/",
+      "requires_dist": [
+        "ruff>=0.16.0; extra == \"all\"",
+        "mypy>=1.11.2; extra == \"all\"",
+        "ty>=0.0.37; extra == \"all\"",
+        "pytest>=8.3.2; extra == \"all\"",
+        "hypothesis>=6.141.1; extra == \"all\"",
+        "coverage>=7.10.0; extra == \"all\""
+      ],
+      "requires_python": ">=3.9",
+      "summary": "Internationalized Domain Names in Applications (IDNA)",
+      "version": "3.19",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41170495,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "kjd"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "4d113161aca8582e8d28fddf3ea50f19b607209c2b3e4364379a163454680084"
+        },
+        "digests": {
+          "blake2b_256": "57b00e52c878c53f245edd3a11020f20979b3f490f245af532c7cae3027754b5",
+          "md5": "fd35a08db9d6bc5e4208c6258312e9cd",
+          "sha256": "815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4"
+        },
+        "downloads": -1,
+        "filename": "idna-3.19-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "fd35a08db9d6bc5e4208c6258312e9cd",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.9",
+        "size": 68550,
+        "upload_time": "2026-08-18T05:14:22",
+        "upload_time_iso_8601": "2026-08-18T05:14:22.343598Z",
+        "url": "https://files.pythonhosted.org/packages/57/b0/0e52c878c53f245edd3a11020f20979b3f490f245af532c7cae3027754b5/idna-3.19-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "5ff7abb373e5757eaec4b922b92f97ec8d6d7e057cf06778247604fbc4e7c3f3",
+          "md5": "c00c894c13c6267c2066c75521f77a76",
+          "sha256": "5e0811a4383b21dc5838069f801c4fb62113b7447663d2530d2bd6e77b49bf15"
+        },
+        "downloads": -1,
+        "filename": "idna-3.19.tar.gz",
+        "has_sig": false,
+        "md5_digest": "c00c894c13c6267c2066c75521f77a76",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.9",
+        "size": 215237,
+        "upload_time": "2026-08-18T05:14:24",
+        "upload_time_iso_8601": "2026-08-18T05:14:24.270231Z",
+        "url": "https://files.pythonhosted.org/packages/5f/f7/abb373e5757eaec4b922b92f97ec8d6d7e057cf06778247604fbc4e7c3f3/idna-3.19.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

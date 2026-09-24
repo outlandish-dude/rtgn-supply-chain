@@ -1,0 +1,730 @@
+{
+  "package": "pyfluidsynth",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:12:52.880658+00:00",
+  "payload": {
+    "info": {
+      "author": null,
+      "author_email": "Nathan Whitehead <nwhitehe@gmail.com>",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14"
+      ],
+      "description": "# pyFluidSynth\n\n_Python bindings for FluidSynth_\n\nThis package contains Python bindings for FluidSynth.  FluidSynth is a software\nsynthesizer for generating music.  It works like a MIDI synthesizer.  You load\npatches, set parameters, then send NOTEON and NOTEOFF events to play notes.\nInstruments are defined in SoundFonts, generally files with the extension SF2.\nFluidSynth can either be used to play audio itself, or you can call a function\nthat returns chunks of audio data and output the data to the soundcard yourself.\nFluidSynth works on all major platforms, so pyFluidSynth should also.\n\n![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nwhitehead/pyfluidsynth/ci.yml) | ![PyPI - Version](https://img.shields.io/pypi/v/pyFluidSynth) | ![PyPI - Python Versions](https://img.shields.io/pypi/pyversions/pyFluidSynth) | \n\n\n## Requirements\n\n[FluidSynth](http://www.fluidsynth.org/) (2.0.0 or later)\n* [Windows/Android FluidSynth Releases](https://github.com/FluidSynth/fluidsynth/releases)\n* [MacOS/Linux Distributions](https://github.com/FluidSynth/fluidsynth/wiki/Download#distributions)\n* [Building from Source](https://github.com/FluidSynth/fluidsynth/wiki/BuildingWithCMake)\n\n(optional) [NumPy](http://numpy.org/) for some features\n\nNOTE: If you don't need all the features of FluidSynth you may be interested in\n[tinysoundfont-pybind](https://github.com/nwhitehead/tinysoundfont-pybind) which\nis a self-contained Python package that includes\n[TinySoundFont](https://github.com/schellingb/TinySoundFont) for SoundFont\nplayback and is permissively licensed.\n\n\n## Installation\n\nTo use the latest official release:\n\n    pip install pyfluidsynth\n\nIf you also want to use [PyAudio](https://people.csail.mit.edu/hubert/pyaudio):\n\n    pip install \"pyfluidsynth[pyaudio]\"\n\n\n## Pre-release Versions\n\nTo use pre-release versions of this package, clone this repository, go to the\nrepository directory, then do:\n\n    pip install --editable .\n\n\n## Example\n\nHere is a program that plays a chord for a second.\n\n```python\nimport time\nimport fluidsynth\n\nfs = fluidsynth.Synth()\nfs.start()\n\nsfid = fs.sfload(\"example.sf2\")\nfs.program_select(0, sfid, 0, 0)\n\nfs.noteon(0, 60, 30)\nfs.noteon(0, 67, 30)\nfs.noteon(0, 76, 30)\n\ntime.sleep(1.0)\n\nfs.noteoff(0, 60)\nfs.noteoff(0, 67)\nfs.noteoff(0, 76)\n\ntime.sleep(1.0)\n\nfs.delete()\n```\n\nFirst a Synth object is created to control playback.\nThe `start()` method starts audio output in a separate thread.\n\nTo get sound, you need to choose an instrument.  First load a\nSoundFont with `sfload()`, then select a bank and preset with\n`program_select()`.\n\n```python\nprogram_select(track, soundfontid, banknum, presetnum)\n```\n\nTo start a note, use the noteon() method.\n\n```python\nnoteon(track, midinum, velocity)\n```\n\nTo stop a note, use noteoff().\n\n```python\nnoteoff(track, midinum)\n```\n\n\n## Managing Audio\n\nYou can also manage audio IO yourself and just use FluidSynth to\ncalculate the samples for the music.  You might do this, for example,\nin a game with WAV sound effects and algorithmically generated music.\nTo do this, create the Synth object but don't call `start()`.  To\ngenerate the next chunk of audio, call `get_samples()`.\n\n```python\nget_samples(len)\n```\n\nThe length you pass will be the number of audio samples. Unless\nspecified otherwise, FluidSynth assumes an output rate of 44100 Hz.\nThe return value will be a Numpy array of samples.  By default\nFluidSynth generates stereo sound, so the return array will be\nlength `2 * len`.\n\nTo join arrays together, use `numpy.append()`.\n\nTo convert an array of samples into a string of bytes suitable for sending\nto the soundcard, use `fluidsynth.raw_audio_string(samples)`.\n\nHere is an example that generates a chord then plays the data using\nPyAudio.\n\n```python\n#!/usr/bin/env -S uv run --script\n\n# /// script\n# requires-python = \">=3.10\"\n# dependencies = [\n#     \"numpy\",\n#     \"pyaudio\",\n#     \"pyfluidsynth\",\n# ]\n# ///\n\nimport time\n\nimport numpy\nimport pyaudio\n\nimport fluidsynth\n\npa = pyaudio.PyAudio()\nstrm = pa.open(\n    format = pyaudio.paInt16,\n    channels = 2, \n    rate = 44100, \n    output = True)\n\ns = []\n\nfl = fluidsynth.Synth()\n\n# Initial silence is 1 second\ns = numpy.append(s, fl.get_samples(44100 * 1))\n\nsfid = fl.sfload(\"example.sf2\")\nfl.program_select(0, sfid, 0, 0)\n\nfl.noteon(0, 60, 30)\nfl.noteon(0, 67, 30)\nfl.noteon(0, 76, 30)\n\n# Chord is held for 2 seconds\ns = numpy.append(s, fl.get_samples(44100 * 2))\n\nfl.noteoff(0, 60)\nfl.noteoff(0, 67)\nfl.noteoff(0, 76)\n\n# Decay of chord is held for 1 second\ns = numpy.append(s, fl.get_samples(44100 * 1))\n\nfl.delete()\n\nsamps = fluidsynth.raw_audio_string(s)\n\nprint(len(samps))\nprint('Starting playback')\nstrm.write(samps)\n```\n\n## Using the Sequencer\n\nYou can create a sequencer as follows:\n```python\nimport fluidsynth\n\nseq = fluidsynth.Sequencer()\n```\nThis will by default create a sequencer that will advance at \na rate of 1000 ticks per second. To change the rate at which\nthe sequencer advances, you can give it the optional `time_scale`\nparameter. As a clock source, it will use your system clock. In\norder to manually advance the sequencer, you can give it the\nparameter `use_system_timer=False`. You will then have to advance\nit using `sequencer.process`.\n\nIn order to make the sequencer aware of your synthesizer, you have to\nregister it:\n```python\nfs = fluidsynth.Synth()\n# init and start the synthesizer as described above\u2026\n\nsynth_id = seq.register_fluidsynth(fs)\n```\nYou have to keep `synth_id` and use it as a `target` for the midi events\nyou want to schedule. Now, you can sequence actual notes:\n```python\nseq.note_on(time=500, absolute=False, channel=0, key=60, velocity=80, dest=synth_id)\n```\nIf you use relative timing like above, the sequencer will\nschedule the event the specified time from the current position.\nOtherwise, if `absolute` is `True` (the default), you have to use\nabsolute track positions (in ticks). So the following code snippet\nwill do the same as the one above:\n```python\ncurrent_time = seq.get_tick()\nseq.note_on(current_time + 500, 0, 60, 80, dest=synth_id)\n```\nYou can also register your own callback functions to be called at\ncertain ticks:\n```python\ndef seq_callback(time, event, seq, data):\n    print('callback called!')\n\ncallback_id = sequencer.register_client(\"myCallback\", seq_callback)\n\nsequencer.timer(current_time + 2000, dest=callback_id)\n```\nNote that event and seq are low-level objects, not actual Python objects.\n\nYou can find a complete example (inspired by [this one from the fluidsynth library](http://www.fluidsynth.org/api/index.html#Sequencer)) in the test folder.\n\n\n## Bugs and Limitations\n\nNot all functions in FluidSynth are bound.\n\nNot much error checking, FluidSynth will segfault/crash if you call\nthe functions incorrectly sometimes.\n\n\n## Authors\n\nThis project was originally created by Nathan Whitehead `nwhitehe@gmail.com` but is the work of many. See [CONTRIBUTORS](./CONTRIBUTORS.md).\n\n\n## License\n\nReleased under the LGPL v2.1 or any later\nversion (this is the same as FluidSynth).\n\nCopyright 2008--2024, Nathan Whitehead and contributors.\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": [
+        "License-File"
+      ],
+      "home_page": null,
+      "keywords": null,
+      "license": null,
+      "license_expression": "MIT",
+      "license_files": [
+        "LICENSE"
+      ],
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "pyfluidsynth",
+      "package_url": "https://pypi.org/project/pyfluidsynth/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/pyfluidsynth/",
+      "project_urls": {
+        "Homepage": "https://github.com/nwhitehead/pyfluidsynth"
+      },
+      "provides_extra": [
+        "pyaudio",
+        "test"
+      ],
+      "release_url": "https://pypi.org/project/pyfluidsynth/1.4.0/",
+      "requires_dist": [
+        "numpy",
+        "pyaudio; extra == \"pyaudio\"",
+        "pytest>=9.0; extra == \"test\""
+      ],
+      "requires_python": ">=3.10",
+      "summary": "Python bindings for FluidSynth, a MIDI synthesizer that uses SoundFont instruments",
+      "version": "1.4.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 37558759,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "ChristianRomberg"
+        },
+        {
+          "role": "Owner",
+          "user": "NathanWhitehead"
+        },
+        {
+          "role": "Owner",
+          "user": "bspaans"
+        },
+        {
+          "role": "Owner",
+          "user": "cclauss"
+        }
+      ]
+    },
+    "releases": {
+      "1.1": [
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "32557370909687f518c95e1a4d1c1efb9657d05fa2d2d769c36249ea9d7ba95f",
+            "md5": "c05a48c589e0f98bc4c32b7769d6f3a2",
+            "sha256": "a05cde4751ca5ce61a2fa6b4fd32339f6c5c41b8b048074b432e18d4fd1c4c96"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.1.tar.gz",
+          "has_sig": false,
+          "md5_digest": "c05a48c589e0f98bc4c32b7769d6f3a2",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 6473,
+          "upload_time": "2008-07-16T22:42:59",
+          "upload_time_iso_8601": "2008-07-16T22:42:59Z",
+          "url": "https://files.pythonhosted.org/packages/32/55/7370909687f518c95e1a4d1c1efb9657d05fa2d2d769c36249ea9d7ba95f/pyFluidSynth-1.1.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.2": [
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "eaeefbcb28f5005c53ec1efb236c62f92b09d619f9ec5205afe486b8f6bdcbd5",
+            "md5": "2e29aa86eb020f5ff54057164a011a38",
+            "sha256": "667e8ea330ded008805fe27111fe89c2eeb6f73a61d842969abdbae4728db8aa"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.tar.gz",
+          "has_sig": false,
+          "md5_digest": "2e29aa86eb020f5ff54057164a011a38",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 7969,
+          "upload_time": "2008-07-23T06:11:12",
+          "upload_time_iso_8601": "2008-07-23T06:11:12Z",
+          "url": "https://files.pythonhosted.org/packages/ea/ee/fbcb28f5005c53ec1efb236c62f92b09d619f9ec5205afe486b8f6bdcbd5/pyFluidSynth-1.2.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.2.1": [
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "e85094e1e4f6babfba000b3092b1416041bf194911bdd55b5b3332281cf8ed10",
+            "md5": "202977616821d5adb8019116bfbf2895",
+            "sha256": "4d64653801e5c30532f7127c994d2b9c732d1b3e419837116f198fc5a0423817"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.1.tar.gz",
+          "has_sig": false,
+          "md5_digest": "202977616821d5adb8019116bfbf2895",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 11372,
+          "upload_time": "2008-07-23T06:24:14",
+          "upload_time_iso_8601": "2008-07-23T06:24:14Z",
+          "url": "https://files.pythonhosted.org/packages/e8/50/94e1e4f6babfba000b3092b1416041bf194911bdd55b5b3332281cf8ed10/pyFluidSynth-1.2.1.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.2.2": [
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "9eb286ca5a2f62e1680993a39790bf67baeb0a83a5c153e3914fdc1443a09048",
+            "md5": "cbb6c9ce38f19dbd5eb95774549c81bb",
+            "sha256": "59e026cb4352b4a3e25f37155c02f59cf097671b9bb5dd18383d7157ac5040b4"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.2.tar.gz",
+          "has_sig": false,
+          "md5_digest": "cbb6c9ce38f19dbd5eb95774549c81bb",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 11352,
+          "upload_time": "2009-01-15T13:43:04",
+          "upload_time_iso_8601": "2009-01-15T13:43:04Z",
+          "url": "https://files.pythonhosted.org/packages/9e/b2/86ca5a2f62e1680993a39790bf67baeb0a83a5c153e3914fdc1443a09048/pyFluidSynth-1.2.2.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "db9fea3184a307d61047517dd4b294ba75671fa09431cbdc30206208e52f9070",
+            "md5": "f6a71a69f1194b11473fad35cda802c2",
+            "sha256": "d62588666bd0e3502daa896e1c911e7311b58dbbe7499caa197808667ecbbf13"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.2.win32.exe",
+          "has_sig": false,
+          "md5_digest": "f6a71a69f1194b11473fad35cda802c2",
+          "packagetype": "bdist_wininst",
+          "python_version": "any",
+          "requires_python": null,
+          "size": 66360,
+          "upload_time": "2009-01-15T13:43:05",
+          "upload_time_iso_8601": "2009-01-15T13:43:05Z",
+          "url": "https://files.pythonhosted.org/packages/db/9f/ea3184a307d61047517dd4b294ba75671fa09431cbdc30206208e52f9070/pyFluidSynth-1.2.2.win32.exe",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.2.3": [
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "9fc008524261ae0b3d033f95ade471eca933b51ff4dfc445797d7ab0ddfe233c",
+            "md5": "032d1e7e675b098511d8d7cd1ae2ea65",
+            "sha256": "6b068dd4027ce582232fca28fc897f1699180d3c0c0b1c9f658f0b0fe9da6280"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.3.tar.gz",
+          "has_sig": false,
+          "md5_digest": "032d1e7e675b098511d8d7cd1ae2ea65",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 11574,
+          "upload_time": "2009-01-15T14:42:57",
+          "upload_time_iso_8601": "2009-01-15T14:42:57Z",
+          "url": "https://files.pythonhosted.org/packages/9f/c0/08524261ae0b3d033f95ade471eca933b51ff4dfc445797d7ab0ddfe233c/pyFluidSynth-1.2.3.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "43d5ee2c7063dc28d3cba0fad49a2a0192f882e787de93bec6df45dc05e4b01c",
+            "md5": "3cf2012ce30de8c867a8dcdaf00c0bc7",
+            "sha256": "e2b2ee01333d1ba5a2b73fd960ef5df6deeb24874f699da60897b1dda3e043d1"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.3.win32.exe",
+          "has_sig": false,
+          "md5_digest": "3cf2012ce30de8c867a8dcdaf00c0bc7",
+          "packagetype": "bdist_wininst",
+          "python_version": "any",
+          "requires_python": null,
+          "size": 66480,
+          "upload_time": "2009-01-15T14:42:58",
+          "upload_time_iso_8601": "2009-01-15T14:42:58Z",
+          "url": "https://files.pythonhosted.org/packages/43/d5/ee2c7063dc28d3cba0fad49a2a0192f882e787de93bec6df45dc05e4b01c/pyFluidSynth-1.2.3.win32.exe",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.2.4": [
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "7441a014b072c6831469ada22036fd189bd210c8d972966fed3755ed158402ea",
+            "md5": "60079310701d0b9298b65a8b6728ffcc",
+            "sha256": "7e97edd290ed3553ba52db95690fd3295c2f73d66d9f4dbeeaf02472c701508b"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.4.tar.gz",
+          "has_sig": false,
+          "md5_digest": "60079310701d0b9298b65a8b6728ffcc",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 11772,
+          "upload_time": "2009-03-02T07:50:39",
+          "upload_time_iso_8601": "2009-03-02T07:50:39.143946Z",
+          "url": "https://files.pythonhosted.org/packages/74/41/a014b072c6831469ada22036fd189bd210c8d972966fed3755ed158402ea/pyFluidSynth-1.2.4.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "d1e096e6931d81f0ddd3978b001e50510629a2684e0a0795b5dc2e771f994917",
+            "md5": "7e068890d9b13aa51a2a34f90aacc815",
+            "sha256": "c7fb45f63fe886b9e18f1c416eaa6a2eb74953bb67cc872249e23d650b8e8dc6"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.4.win32.exe",
+          "has_sig": false,
+          "md5_digest": "7e068890d9b13aa51a2a34f90aacc815",
+          "packagetype": "bdist_wininst",
+          "python_version": "any",
+          "requires_python": null,
+          "size": 66574,
+          "upload_time": "2009-03-02T07:50:40",
+          "upload_time_iso_8601": "2009-03-02T07:50:40.219178Z",
+          "url": "https://files.pythonhosted.org/packages/d1/e0/96e6931d81f0ddd3978b001e50510629a2684e0a0795b5dc2e771f994917/pyFluidSynth-1.2.4.win32.exe",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.2.5": [
+        {
+          "comment_text": "",
+          "core-metadata": {
+            "sha256": "cda4716f682acf6eb187c589d5405de5b0da7556584a8196f5905336a3a1520e"
+          },
+          "digests": {
+            "blake2b_256": "43eb6b10b586d727a9706b5f2320121defdcb1cb9a2e301104549c7cca4a313e",
+            "md5": "b28e5b264d4f744af094463460e74f5a",
+            "sha256": "49dcd181b9628326950ac35924f4328e1d12397f86917ff90979edff3666cd42"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.5-py2-none-any.whl",
+          "has_sig": false,
+          "md5_digest": "b28e5b264d4f744af094463460e74f5a",
+          "packagetype": "bdist_wheel",
+          "python_version": "py2",
+          "requires_python": null,
+          "size": 8623,
+          "upload_time": "2018-07-17T13:19:46",
+          "upload_time_iso_8601": "2018-07-17T13:19:46.542150Z",
+          "url": "https://files.pythonhosted.org/packages/43/eb/6b10b586d727a9706b5f2320121defdcb1cb9a2e301104549c7cca4a313e/pyFluidSynth-1.2.5-py2-none-any.whl",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": "",
+          "core-metadata": {
+            "sha256": "412813f449dc93e0ff73d34680e9d184ca51d5cb5a183a5094889857f6552f5e"
+          },
+          "digests": {
+            "blake2b_256": "b6457f06ef269e14fb58b3a082beff9399662cc6b522692eb0be9786b23055e0",
+            "md5": "eba3e96550e0265ee88e00b41a23c5d3",
+            "sha256": "9a002fd432759493b2b070fd08a1d3397b367601715adf3c3ce9c13afcdebb26"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.5-py3-none-any.whl",
+          "has_sig": false,
+          "md5_digest": "eba3e96550e0265ee88e00b41a23c5d3",
+          "packagetype": "bdist_wheel",
+          "python_version": "py3",
+          "requires_python": null,
+          "size": 8623,
+          "upload_time": "2018-07-17T13:19:27",
+          "upload_time_iso_8601": "2018-07-17T13:19:27.664461Z",
+          "url": "https://files.pythonhosted.org/packages/b6/45/7f06ef269e14fb58b3a082beff9399662cc6b522692eb0be9786b23055e0/pyFluidSynth-1.2.5-py3-none-any.whl",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "e30fe25f5e7259f25a13f137b19d8c67c9338a1714acf6c02f4f1938b0c4ce6b",
+            "md5": "2a09ccb0b18a334ee664d210dc52b34b",
+            "sha256": "8f62a4421d01b4e36cacc6f674d67435184e0bdc3df472d2a6b7538e75fe44ef"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.2.5.tar.gz",
+          "has_sig": false,
+          "md5_digest": "2a09ccb0b18a334ee664d210dc52b34b",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 15123,
+          "upload_time": "2018-07-17T13:19:28",
+          "upload_time_iso_8601": "2018-07-17T13:19:28.991786Z",
+          "url": "https://files.pythonhosted.org/packages/e3/0f/e25f5e7259f25a13f137b19d8c67c9338a1714acf6c02f4f1938b0c4ce6b/pyFluidSynth-1.2.5.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.3.0": [
+        {
+          "comment_text": "",
+          "core-metadata": {
+            "sha256": "ab99ad2cba5be292a743f544f22f9683aa6f9e3c637c7d31972110d33001d998"
+          },
+          "digests": {
+            "blake2b_256": "d982f44dd62e78c53a61c7bebca401d92646b0556595ff9049130c545f4d57d9",
+            "md5": "6706a09fb283fa2cc33d78f97fab08df",
+            "sha256": "7473eec5744b609c59e7685fcb2f24efe3769225db3ca2e6851a56f7586cb82e"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.3.0-py3-none-any.whl",
+          "has_sig": false,
+          "md5_digest": "6706a09fb283fa2cc33d78f97fab08df",
+          "packagetype": "bdist_wheel",
+          "python_version": "py3",
+          "requires_python": null,
+          "size": 18190,
+          "upload_time": "2020-11-07T08:49:48",
+          "upload_time_iso_8601": "2020-11-07T08:49:48.000854Z",
+          "url": "https://files.pythonhosted.org/packages/d9/82/f44dd62e78c53a61c7bebca401d92646b0556595ff9049130c545f4d57d9/pyFluidSynth-1.3.0-py3-none-any.whl",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "52b0239ec6c909d3902108824bd2fe6859b7cd51bf7a5fbe125df826fd991944",
+            "md5": "a10fc1179318d219f77ae725069226e9",
+            "sha256": "7d4fba5ee90459599fea1de811db695f07c8fa870e93c2151d47046ea181dd9e"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.3.0.tar.gz",
+          "has_sig": false,
+          "md5_digest": "a10fc1179318d219f77ae725069226e9",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 19152,
+          "upload_time": "2020-11-07T08:49:49",
+          "upload_time_iso_8601": "2020-11-07T08:49:49.492888Z",
+          "url": "https://files.pythonhosted.org/packages/52/b0/239ec6c909d3902108824bd2fe6859b7cd51bf7a5fbe125df826fd991944/pyFluidSynth-1.3.0.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.3.1": [
+        {
+          "comment_text": "",
+          "core-metadata": {
+            "sha256": "06089202363d1b628af4a483402f8012fc1a437b5dd3062fe1087e5ccaea3591"
+          },
+          "digests": {
+            "blake2b_256": "638a96958db77ad212c90c7c5677eb7fe475bd525c747cb47d7c1d3669f56d40",
+            "md5": "894eef2f3b2d657598bcf81c89d1bee2",
+            "sha256": "236a1423eb35a1da472bea3ff49e811beb2baddf21d8faa3645ce434d223625f"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.3.1-py3-none-any.whl",
+          "has_sig": false,
+          "md5_digest": "894eef2f3b2d657598bcf81c89d1bee2",
+          "packagetype": "bdist_wheel",
+          "python_version": "py3",
+          "requires_python": null,
+          "size": 19070,
+          "upload_time": "2022-07-21T07:32:32",
+          "upload_time_iso_8601": "2022-07-21T07:32:32.324394Z",
+          "url": "https://files.pythonhosted.org/packages/63/8a/96958db77ad212c90c7c5677eb7fe475bd525c747cb47d7c1d3669f56d40/pyFluidSynth-1.3.1-py3-none-any.whl",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "29b86a53f6bd8147d73e8d2d630d89dfcd9e3d899e5f8fcd4b4f3ffb3c410b7d",
+            "md5": "0a79277097995cf4bde4d5507229e97f",
+            "sha256": "8889d18ef064df8f3157ecbf6843769fd57e82b2647967a92ddad781e189afad"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.3.1.tar.gz",
+          "has_sig": false,
+          "md5_digest": "0a79277097995cf4bde4d5507229e97f",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 26254,
+          "upload_time": "2022-07-21T07:32:34",
+          "upload_time_iso_8601": "2022-07-21T07:32:34.458583Z",
+          "url": "https://files.pythonhosted.org/packages/29/b8/6a53f6bd8147d73e8d2d630d89dfcd9e3d899e5f8fcd4b4f3ffb3c410b7d/pyFluidSynth-1.3.1.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.3.2": [
+        {
+          "comment_text": "",
+          "core-metadata": {
+            "sha256": "3577d42299a13bef024be31dd489911608e4befe4a0927c857ee6ddb05f3e7d4"
+          },
+          "digests": {
+            "blake2b_256": "8df49a4effb9b2ca1c9f45c899eb34190ee1cff84a2dc4fe0bf2ce94f817579f",
+            "md5": "8fb7af2b7a5f35b3ec40800eebc5253d",
+            "sha256": "874d875bc66d8f90047b32f8daaf7c9dd34e6248182d02dc5cd54c08ad1492ac"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.3.2-py3-none-any.whl",
+          "has_sig": false,
+          "md5_digest": "8fb7af2b7a5f35b3ec40800eebc5253d",
+          "packagetype": "bdist_wheel",
+          "python_version": "py3",
+          "requires_python": null,
+          "size": 19116,
+          "upload_time": "2023-02-11T16:10:11",
+          "upload_time_iso_8601": "2023-02-11T16:10:11.021591Z",
+          "url": "https://files.pythonhosted.org/packages/8d/f4/9a4effb9b2ca1c9f45c899eb34190ee1cff84a2dc4fe0bf2ce94f817579f/pyFluidSynth-1.3.2-py3-none-any.whl",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "88c9bbeebb572d52fb5b94a5d6f8f08ec72a8da86cf29892c33cb2f317063d48",
+            "md5": "76fe514d66467ca026d65b2097673501",
+            "sha256": "fa2e68397578506eb3e2b406ba0b8e3f4987a3b57b7c96594703a724a07555f4"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.3.2.tar.gz",
+          "has_sig": false,
+          "md5_digest": "76fe514d66467ca026d65b2097673501",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 26404,
+          "upload_time": "2023-02-11T16:10:13",
+          "upload_time_iso_8601": "2023-02-11T16:10:13.735465Z",
+          "url": "https://files.pythonhosted.org/packages/88/c9/bbeebb572d52fb5b94a5d6f8f08ec72a8da86cf29892c33cb2f317063d48/pyFluidSynth-1.3.2.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.3.3": [
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "aa476cc16e4836de9d372c0adac7bdcf8fee7cfd1b12fff718de50e2b8fe3327",
+            "md5": "93098f8fc086fb793b8723f066003f91",
+            "sha256": "d50d4b55073e7580b2a3ca470992b6c51c279dba1c5512dc85135595f42d6881"
+          },
+          "downloads": -1,
+          "filename": "pyFluidSynth-1.3.3.tar.gz",
+          "has_sig": false,
+          "md5_digest": "93098f8fc086fb793b8723f066003f91",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 26589,
+          "upload_time": "2024-02-18T21:02:40",
+          "upload_time_iso_8601": "2024-02-18T21:02:40.841788Z",
+          "url": "https://files.pythonhosted.org/packages/aa/47/6cc16e4836de9d372c0adac7bdcf8fee7cfd1b12fff718de50e2b8fe3327/pyFluidSynth-1.3.3.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.3.4": [
+        {
+          "comment_text": "",
+          "core-metadata": {
+            "sha256": "a8b339530876d79c0d500c9fa68a286ed96615761a1e4611c0ec66b1e126f811"
+          },
+          "digests": {
+            "blake2b_256": "c4914f6b28ac379da306dde66ba6ac170c4a6e7e1506cadc84a9359fe3f237ba",
+            "md5": "d1374ff2f96155e7587ae9cb11a4291c",
+            "sha256": "c6990329db7cfb35f5e65d523dd4f0c971d928e70df3a6bceec8864827edf246"
+          },
+          "downloads": -1,
+          "filename": "pyfluidsynth-1.3.4-py3-none-any.whl",
+          "has_sig": false,
+          "md5_digest": "d1374ff2f96155e7587ae9cb11a4291c",
+          "packagetype": "bdist_wheel",
+          "python_version": "py3",
+          "requires_python": null,
+          "size": 22446,
+          "upload_time": "2024-11-03T21:56:20",
+          "upload_time_iso_8601": "2024-11-03T21:56:20.898706Z",
+          "url": "https://files.pythonhosted.org/packages/c4/91/4f6b28ac379da306dde66ba6ac170c4a6e7e1506cadc84a9359fe3f237ba/pyfluidsynth-1.3.4-py3-none-any.whl",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": "",
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "7370fbdd07c84d98c3d4382f4e51bdaa2cf1424a30c41f655ff43c1b2c1d3441",
+            "md5": "632c55eabf7dd12a8b839b75ca468660",
+            "sha256": "ca741c262b72e48963149c73bf8ae80e45c84c23c9bdf803a26ba324cbb2d5b2"
+          },
+          "downloads": -1,
+          "filename": "pyfluidsynth-1.3.4.tar.gz",
+          "has_sig": false,
+          "md5_digest": "632c55eabf7dd12a8b839b75ca468660",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": null,
+          "size": 30772,
+          "upload_time": "2024-11-03T21:56:22",
+          "upload_time_iso_8601": "2024-11-03T21:56:22.617942Z",
+          "url": "https://files.pythonhosted.org/packages/73/70/fbdd07c84d98c3d4382f4e51bdaa2cf1424a30c41f655ff43c1b2c1d3441/pyfluidsynth-1.3.4.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.3.6": [
+        {
+          "comment_text": null,
+          "core-metadata": {
+            "sha256": "f7ec388f603fd1d33fa531639724d14074b3e59d39d5a348727656082486e7da"
+          },
+          "digests": {
+            "blake2b_256": "14f7da4a8492d792e838049a856eb22a57f81fe5f66a2a14b84fd12a64462710",
+            "md5": "031be7c48b8f9ef8956d323fb2f28aec",
+            "sha256": "bb6dc531b1c886f03c9e94f8783816706ea502bfae1be1e51ba068ba85ca6268"
+          },
+          "downloads": -1,
+          "filename": "pyfluidsynth-1.3.6-py3-none-any.whl",
+          "has_sig": false,
+          "md5_digest": "031be7c48b8f9ef8956d323fb2f28aec",
+          "packagetype": "bdist_wheel",
+          "python_version": "py3",
+          "requires_python": ">=3.9",
+          "size": 23776,
+          "upload_time": "2026-05-25T17:12:54",
+          "upload_time_iso_8601": "2026-05-25T17:12:54.480223Z",
+          "url": "https://files.pythonhosted.org/packages/14/f7/da4a8492d792e838049a856eb22a57f81fe5f66a2a14b84fd12a64462710/pyfluidsynth-1.3.6-py3-none-any.whl",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": null,
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "bdb07b70ec2b166ecff86c165fe0cfb838e0760f14e4de68f24585e34f85550b",
+            "md5": "d8d87c45cb3e4c60e1b15510a71e807f",
+            "sha256": "cbadcd707c9d57a81476fba4e49074fda070d2ac482117f4dfb38cb30aa2f0dd"
+          },
+          "downloads": -1,
+          "filename": "pyfluidsynth-1.3.6.tar.gz",
+          "has_sig": false,
+          "md5_digest": "d8d87c45cb3e4c60e1b15510a71e807f",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": ">=3.9",
+          "size": 34786,
+          "upload_time": "2026-05-25T17:12:55",
+          "upload_time_iso_8601": "2026-05-25T17:12:55.719803Z",
+          "url": "https://files.pythonhosted.org/packages/bd/b0/7b70ec2b166ecff86c165fe0cfb838e0760f14e4de68f24585e34f85550b/pyfluidsynth-1.3.6.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ],
+      "1.4.0": [
+        {
+          "comment_text": null,
+          "core-metadata": {
+            "sha256": "f0968764f8b72178965e57a8b745d921fc2db2c7dd5a6fb4e52aaa5d5934420d"
+          },
+          "digests": {
+            "blake2b_256": "40b67387ecf46c01df39ed36d9700312a11d8455efe04803b8472a333ff9d51b",
+            "md5": "3a49149367320f869d240f2c9e44707d",
+            "sha256": "93f0a0e8d5b34f974010473f9985fc52e1379e8f316892afeb2de1d759439ca3"
+          },
+          "downloads": -1,
+          "filename": "pyfluidsynth-1.4.0-py3-none-any.whl",
+          "has_sig": false,
+          "md5_digest": "3a49149367320f869d240f2c9e44707d",
+          "packagetype": "bdist_wheel",
+          "python_version": "py3",
+          "requires_python": ">=3.10",
+          "size": 23933,
+          "upload_time": "2026-05-30T16:17:50",
+          "upload_time_iso_8601": "2026-05-30T16:17:50.528979Z",
+          "url": "https://files.pythonhosted.org/packages/40/b6/7387ecf46c01df39ed36d9700312a11d8455efe04803b8472a333ff9d51b/pyfluidsynth-1.4.0-py3-none-any.whl",
+          "yanked": false,
+          "yanked_reason": null
+        },
+        {
+          "comment_text": null,
+          "core-metadata": false,
+          "digests": {
+            "blake2b_256": "a34000985fe453bf85cfe1d586f236b97f84401e8ac203588e51840955ed835a",
+            "md5": "79f7cdbddbc66e977c7fbb8311b93439",
+            "sha256": "6a9e1dbaf469fd11f45184f37ec28e198b1d6495ad74f61dc4a57726b2b1ba31"
+          },
+          "downloads": -1,
+          "filename": "pyfluidsynth-1.4.0.tar.gz",
+          "has_sig": false,
+          "md5_digest": "79f7cdbddbc66e977c7fbb8311b93439",
+          "packagetype": "sdist",
+          "python_version": "source",
+          "requires_python": ">=3.10",
+          "size": 35128,
+          "upload_time": "2026-05-30T16:17:51",
+          "upload_time_iso_8601": "2026-05-30T16:17:51.451276Z",
+          "url": "https://files.pythonhosted.org/packages/a3/40/00985fe453bf85cfe1d586f236b97f84401e8ac203588e51840955ed835a/pyfluidsynth-1.4.0.tar.gz",
+          "yanked": false,
+          "yanked_reason": null
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "f0968764f8b72178965e57a8b745d921fc2db2c7dd5a6fb4e52aaa5d5934420d"
+        },
+        "digests": {
+          "blake2b_256": "40b67387ecf46c01df39ed36d9700312a11d8455efe04803b8472a333ff9d51b",
+          "md5": "3a49149367320f869d240f2c9e44707d",
+          "sha256": "93f0a0e8d5b34f974010473f9985fc52e1379e8f316892afeb2de1d759439ca3"
+        },
+        "downloads": -1,
+        "filename": "pyfluidsynth-1.4.0-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "3a49149367320f869d240f2c9e44707d",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.10",
+        "size": 23933,
+        "upload_time": "2026-05-30T16:17:50",
+        "upload_time_iso_8601": "2026-05-30T16:17:50.528979Z",
+        "url": "https://files.pythonhosted.org/packages/40/b6/7387ecf46c01df39ed36d9700312a11d8455efe04803b8472a333ff9d51b/pyfluidsynth-1.4.0-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "a34000985fe453bf85cfe1d586f236b97f84401e8ac203588e51840955ed835a",
+          "md5": "79f7cdbddbc66e977c7fbb8311b93439",
+          "sha256": "6a9e1dbaf469fd11f45184f37ec28e198b1d6495ad74f61dc4a57726b2b1ba31"
+        },
+        "downloads": -1,
+        "filename": "pyfluidsynth-1.4.0.tar.gz",
+        "has_sig": false,
+        "md5_digest": "79f7cdbddbc66e977c7fbb8311b93439",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.10",
+        "size": 35128,
+        "upload_time": "2026-05-30T16:17:51",
+        "upload_time_iso_8601": "2026-05-30T16:17:51.451276Z",
+        "url": "https://files.pythonhosted.org/packages/a3/40/00985fe453bf85cfe1d586f236b97f84401e8ac203588e51840955ed835a/pyfluidsynth-1.4.0.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "package": "fastapi-toolkit",
+  "version": "0.1.1",
+  "status_code": 200,
+  "url": "https://pypi.org/pypi/fastapi-toolkit/0.1.1/json",
+  "timestamp": "2026-09-22T05:48:16.446271+00:00",
+  "payload": {
+    "info": {
+      "author": null,
+      "author_email": "Timophey Akulich <tima.akulich@gmail.com>",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 4 - Beta",
+        "Environment :: Web Environment",
+        "Framework :: FastAPI",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Typing :: Typed"
+      ],
+      "description": "# fastapi-toolkit\n\n[![PyPI version](https://badge.fury.io/py/fastapi-toolkit.svg)](https://badge.fury.io/py/fastapi-toolkit)\n[![Python](https://img.shields.io/pypi/pyversions/fastapi-toolkit.svg)](https://pypi.org/project/fastapi-toolkit/)\n[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)\n\nCommon toolkit for **FastAPI** + **SQLAlchemy 2.0** projects: async DB sessions, base CRUD, settings with AWS Secrets Manager.\n\n## Features\n\n- **Async database sessions** \u2014 multi-database support with context-managed sessions\n- **Base CRUD** \u2014 generic async CRUD operations (list, get, create, update, delete, get_or_create)\n- **Declarative base model** \u2014 SQLAlchemy declarative base with automatic table naming\n- **Settings management** \u2014 pydantic-settings with cached AWS Secrets Manager integration\n- **Type-safe** \u2014 full type hints with `py.typed` marker\n\n## Installation\n\n```bash\npip install fastapi-toolkit\n```\n\nWith AWS Secrets Manager support:\n\n```bash\npip install fastapi-toolkit[aws]\n```\n\n## Quick Start\n\n### Database Setup\n\n```python\nfrom fastapi_toolkit import init_db, async_session\n\n# Initialize on app startup\ninit_db(\"postgresql+asyncpg://user:pass@localhost/mydb\")\n\n# Use sessions\nasync with async_session() as session:\n    result = await session.execute(...)\n```\n\n### Models\n\n```python\nfrom sqlalchemy import String\nfrom sqlalchemy.orm import Mapped, mapped_column\nfrom fastapi_toolkit import BaseModel\n\n\nclass User(BaseModel):\n    __table_name__ = \"users\"\n\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(100))\n    email: Mapped[str] = mapped_column(String(200))\n```\n\n### CRUD\n\n```python\nfrom fastapi_toolkit import BaseCRUD\n\nuser_crud = BaseCRUD(User)\n\n# List\nusers = await user_crud.list()\n\n# Get by condition\nuser = await user_crud.get(User.id == 1)\n\n# Create\nuser = await user_crud.create(name=\"Alice\", email=\"alice@example.com\")\n\n# Update\nawait user_crud.update(User.id == 1, name=\"Bob\")\n\n# Delete\nawait user_crud.delete(User.id == 1)\n\n# Get or create\nuser, created = await user_crud.get_or_create(\n    User.email == \"alice@example.com\",\n    name=\"Alice\",\n    email=\"alice@example.com\",\n)\n```\n\n### Settings with AWS Secrets Manager\n\n```python\nfrom fastapi_toolkit import BaseSettings, SecretSettings, EscapedSecretStr\n\n\nclass MySecrets(SecretSettings):\n    db_password: EscapedSecretStr = None\n    api_key: str = \"\"\n\n\nclass Settings(BaseSettings[MySecrets]):\n    project: str = \"myapp\"\n    environment: str = \"dev\"\n    region: str = \"us-east-1\"\n    secret_model: type = MySecrets\n\n\nsettings = Settings()\n\n# Secrets are loaded from AWS Secrets Manager, cached with TTL\nsecrets = await settings.get_secret()\n```\n\n### Multi-Database Support\n\n```python\nfrom fastapi_toolkit import init_db, BaseCRUD\n\n# Initialize multiple databases\ninit_db(\"postgresql+asyncpg://localhost/primary\", database=\"default\")\ninit_db(\"postgresql+asyncpg://localhost/analytics\", database=\"analytics\")\n\n\n# Use specific database in CRUD\nclass AnalyticsCRUD(BaseCRUD):\n    database = \"analytics\"\n\nanalytics_crud = AnalyticsCRUD(Event)\n```\n\n## API Reference\n\n### `init_db(database_dsn, database=\"default\", engine_kwargs=None, session_maker_kwargs=None)`\n\nInitialize an async database engine and session factory.\n\n### `async_session(exists_session=None, database=\"default\")`\n\nAsync context manager for database sessions. Reuses existing session if provided.\n\n### `BaseCRUD(model)`\n\nGeneric async CRUD class with methods:\n\n| Method | Description |\n|--------|-------------|\n| `list(condition, joins, order_by, limit, offset, fields, unique, session)` | List records with filtering and pagination |\n| `count(condition, joins, session)` | Count matching records |\n| `get(condition, joins, session)` | Get single record |\n| `create(session, commit, **kwargs)` | Create a record |\n| `bulk_create(items, session, commit)` | Bulk create records |\n| `update(condition, session, commit, **kwargs)` | Update matching records |\n| `delete(condition, session, commit)` | Delete matching records |\n| `get_or_create(condition, session, commit, **defaults)` | Get existing or create new |\n\n### `BaseSettings[T]`\n\nPydantic settings with cached AWS Secrets Manager:\n\n| Property / Method | Description |\n|-------------------|-------------|\n| `secret_name` | Auto-generated secret name: `{environment}/{project}` |\n| `await get_secret()` | Load and cache secret (non-blocking) |\n\n## Development\n\n```bash\n# Clone the repository\ngit clone https://github.com/timaakulich/fastapi-toolkit.git\ncd fastapi-toolkit\n\n# Install dev dependencies\npip install -e \".[dev]\"\n\n# Run linter\nruff check .\n\n# Run type checker\nmypy fastapi_toolkit\n```\n\n## Contributing\n\nContributions are welcome! Please feel free to submit a Pull Request.\n\n1. Fork the repository\n2. Create your feature branch (`git checkout -b feature/amazing-feature`)\n3. Commit your changes (`git commit -m 'Add amazing feature'`)\n4. Push to the branch (`git push origin feature/amazing-feature`)\n5. Open a Pull Request\n\n## License\n\nThis project is licensed under the MIT License \u2014 see the [LICENSE](LICENSE) file for details.\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": null,
+      "keywords": "async, crud, fastapi, sqlalchemy, toolkit",
+      "license": null,
+      "license_expression": "MIT",
+      "license_files": [
+        "LICENSE"
+      ],
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "fastapi-toolkit",
+      "package_url": "https://pypi.org/project/fastapi-toolkit/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/fastapi-toolkit/",
+      "project_urls": {
+        "Issues": "https://github.com/timaakulich/fastapi-toolkit/issues",
+        "Repository": "https://github.com/timaakulich/fastapi-toolkit"
+      },
+      "provides_extra": [
+        "aws",
+        "dev"
+      ],
+      "release_url": "https://pypi.org/project/fastapi-toolkit/0.1.1/",
+      "requires_dist": [
+        "loguru>=0.7.0",
+        "pydantic-settings>=2.0.0",
+        "pydantic>=2.0.0",
+        "sqlalchemy[asyncio]>=2.0.0",
+        "botocore>=1.30.0; extra == \"aws\"",
+        "aiosqlite>=0.20.0; extra == \"dev\"",
+        "pytest-asyncio>=0.23.0; extra == \"dev\"",
+        "pytest>=8.0.0; extra == \"dev\"",
+        "ruff>=0.4.0; extra == \"dev\""
+      ],
+      "requires_python": ">=3.10",
+      "summary": "Common toolkit for FastAPI + SQLAlchemy projects: async DB sessions, base CRUD, settings with AWS Secrets Manager",
+      "version": "0.1.1",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 36836657,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "tima.akulich"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "78354998ef13d65732ff25f948dd95e9f6c507d8f9e65bd4d605a256e4bdb688"
+        },
+        "digests": {
+          "blake2b_256": "6fcca64cbbad034e79a82f7c530237ee47f3545929640af485384f15a95d5b01",
+          "md5": "0dbe00f0eea7d5fd20b6898bda4b5760",
+          "sha256": "d59c11eee6c4e0886eac9b844333b650546d4df59f9b026f1ac0172863e2edab"
+        },
+        "downloads": -1,
+        "filename": "fastapi_toolkit-0.1.1-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "0dbe00f0eea7d5fd20b6898bda4b5760",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.10",
+        "size": 12379,
+        "upload_time": "2026-03-19T15:33:48",
+        "upload_time_iso_8601": "2026-03-19T15:33:48.690117Z",
+        "url": "https://files.pythonhosted.org/packages/6f/cc/a64cbbad034e79a82f7c530237ee47f3545929640af485384f15a95d5b01/fastapi_toolkit-0.1.1-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "b39153e226e750252c69e0876845772dc0b1658b499046156a63fbe152e98761",
+          "md5": "a745ad2cc3efe563ad4f02f59389b16c",
+          "sha256": "ea9be33f68f50fcd4babbdde7ac9d615e8932e7f3216d5b801ef9204d3f02bf4"
+        },
+        "downloads": -1,
+        "filename": "fastapi_toolkit-0.1.1.tar.gz",
+        "has_sig": false,
+        "md5_digest": "a745ad2cc3efe563ad4f02f59389b16c",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.10",
+        "size": 8936,
+        "upload_time": "2026-03-19T15:33:49",
+        "upload_time_iso_8601": "2026-03-19T15:33:49.838846Z",
+        "url": "https://files.pythonhosted.org/packages/b3/91/53e226e750252c69e0876845772dc0b1658b499046156a63fbe152e98761/fastapi_toolkit-0.1.1.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

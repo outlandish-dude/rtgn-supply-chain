@@ -1,0 +1,135 @@
+{
+  "package": "pyfluidsynth",
+  "version": "1.3.6",
+  "status_code": 200,
+  "timestamp": "2026-09-22T19:03:32.573224+00:00",
+  "payload": {
+    "info": {
+      "author": null,
+      "author_email": "Nathan Whitehead <nwhitehe@gmail.com>",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Programming Language :: Python :: 3.9"
+      ],
+      "description": "# pyFluidSynth\n\n_Python bindings for FluidSynth_\n\nThis package contains Python bindings for FluidSynth.  FluidSynth is a software\nsynthesizer for generating music.  It works like a MIDI synthesizer.  You load\npatches, set parameters, then send NOTEON and NOTEOFF events to play notes.\nInstruments are defined in SoundFonts, generally files with the extension SF2.\nFluidSynth can either be used to play audio itself, or you can call a function\nthat returns chunks of audio data and output the data to the soundcard yourself.\nFluidSynth works on all major platforms, so pyFluidSynth should also.\n\n![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nwhitehead/pyfluidsynth/ci.yml) | ![PyPI - Version](https://img.shields.io/pypi/v/pyFluidSynth) | ![PyPI - Python Versions](https://img.shields.io/pypi/pyversions/pyFluidSynth) | \n\n\n## Requirements\n\n[FluidSynth](http://www.fluidsynth.org/) (2.0.0 or later)\n* [Windows/Android FluidSynth Releases](https://github.com/FluidSynth/fluidsynth/releases)\n* [MacOS/Linux Distributions](https://github.com/FluidSynth/fluidsynth/wiki/Download#distributions)\n* [Building from Source](https://github.com/FluidSynth/fluidsynth/wiki/BuildingWithCMake)\n\n(optional) [NumPy](http://numpy.org/) 1.0 or later for some features\n\nNOTE: If you don't need all the features of FluidSynth you may be interested in\n[tinysoundfont-pybind](https://github.com/nwhitehead/tinysoundfont-pybind) which\nis a self-contained Python package that includes\n[TinySoundFont](https://github.com/schellingb/TinySoundFont) for SoundFont\nplayback and is permissively licensed.\n\n\n## Installation\n\nTo use the latest official release:\n\n    pip install pyfluidsynth\n\n\n## Pre-release Versions\n\nTo use pre-release versions of this package, clone this repository, go to the\nrepository directory, then do:\n\n    pip install --editable .\n\n\n## Example\n\nHere is a program that plays a chord for a second.\n\n```python\nimport time\nimport fluidsynth\n\nfs = fluidsynth.Synth()\nfs.start()\n\nsfid = fs.sfload(\"example.sf2\")\nfs.program_select(0, sfid, 0, 0)\n\nfs.noteon(0, 60, 30)\nfs.noteon(0, 67, 30)\nfs.noteon(0, 76, 30)\n\ntime.sleep(1.0)\n\nfs.noteoff(0, 60)\nfs.noteoff(0, 67)\nfs.noteoff(0, 76)\n\ntime.sleep(1.0)\n\nfs.delete()\n```\n\nFirst a Synth object is created to control playback.\nThe `start()` method starts audio output in a separate thread.\n\nTo get sound, you need to choose an instrument.  First load a\nSoundFont with `sfload()`, then select a bank and preset with\n`program_select()`.\n\n```python\nprogram_select(track, soundfontid, banknum, presetnum)\n```\n\nTo start a note, use the noteon() method.\n\n```python\nnoteon(track, midinum, velocity)\n```\n\nTo stop a note, use noteoff().\n\n```python\nnoteoff(track, midinum)\n```\n\n\n## Managing Audio\n\nYou can also manage audio IO yourself and just use FluidSynth to\ncalculate the samples for the music.  You might do this, for example,\nin a game with WAV sound effects and algorithmically generated music.\nTo do this, create the Synth object but don't call `start()`.  To\ngenerate the next chunk of audio, call `get_samples()`.\n\n```python\nget_samples(len)\n```\n\nThe length you pass will be the number of audio samples. Unless\nspecified otherwise, FluidSynth assumes an output rate of 44100 Hz.\nThe return value will be a Numpy array of samples.  By default\nFluidSynth generates stereo sound, so the return array will be\nlength `2 * len`.\n\nTo join arrays together, use `numpy.append()`.\n\nTo convert an array of samples into a string of bytes suitable for sending\nto the soundcard, use `fluidsynth.raw_audio_string(samples)`.\n\nHere is an example that generates a chord then plays the data using\nPyAudio.\n\n```python\nimport time\nimport numpy\nimport pyaudio\nimport fluidsynth\n\npa = pyaudio.PyAudio()\nstrm = pa.open(\n    format = pyaudio.paInt16,\n    channels = 2, \n    rate = 44100, \n    output = True)\n\ns = []\n\nfl = fluidsynth.Synth()\n\n# Initial silence is 1 second\ns = numpy.append(s, fl.get_samples(44100 * 1))\n\nsfid = fl.sfload(\"example.sf2\")\nfl.program_select(0, sfid, 0, 0)\n\nfl.noteon(0, 60, 30)\nfl.noteon(0, 67, 30)\nfl.noteon(0, 76, 30)\n\n# Chord is held for 2 seconds\ns = numpy.append(s, fl.get_samples(44100 * 2))\n\nfl.noteoff(0, 60)\nfl.noteoff(0, 67)\nfl.noteoff(0, 76)\n\n# Decay of chord is held for 1 second\ns = numpy.append(s, fl.get_samples(44100 * 1))\n\nfl.delete()\n\nsamps = fluidsynth.raw_audio_string(s)\n\nprint(len(samps))\nprint('Starting playback')\nstrm.write(samps)\n```\n\n## Using the Sequencer\n\nYou can create a sequencer as follows:\n```python\nimport fluidsynth\n\nseq = fluidsynth.Sequencer()\n```\nThis will by default create a sequencer that will advance at \na rate of 1000 ticks per second. To change the rate at which\nthe sequencer advances, you can give it the optional `time_scale`\nparameter. As a clock source, it will use your system clock. In\norder to manually advance the sequencer, you can give it the\nparameter `use_system_timer=False`. You will then have to advance\nit using `sequencer.process`.\n\nIn order to make the sequencer aware of your synthesizer, you have to\nregister it:\n```python\nfs = fluidsynth.Synth()\n# init and start the synthesizer as described above\u2026\n\nsynth_id = seq.register_fluidsynth(fs)\n```\nYou have to keep `synth_id` and use it as a `target` for the midi events\nyou want to schedule. Now, you can sequence actual notes:\n```python\nseq.note_on(time=500, absolute=False, channel=0, key=60, velocity=80, dest=synth_id)\n```\nIf you use relative timing like above, the sequencer will\nschedule the event the specified time from the current position.\nOtherwise, if `absolute` is `True` (the default), you have to use\nabsolute track positions (in ticks). So the following code snippet\nwill do the same as the one above:\n```python\ncurrent_time = seq.get_tick()\nseq.note_on(current_time + 500, 0, 60, 80, dest=synth_id)\n```\nYou can also register your own callback functions to be called at\ncertain ticks:\n```python\ndef seq_callback(time, event, seq, data):\n    print('callback called!')\n\ncallback_id = sequencer.register_client(\"myCallback\", seq_callback)\n\nsequencer.timer(current_time + 2000, dest=callback_id)\n```\nNote that event and seq are low-level objects, not actual Python objects.\n\nYou can find a complete example (inspired by [this one from the fluidsynth library](http://www.fluidsynth.org/api/index.html#Sequencer)) in the test folder.\n\n\n## Bugs and Limitations\n\nNot all functions in FluidSynth are bound.\n\nNot much error checking, FluidSynth will segfault/crash if you call\nthe functions incorrectly sometimes.\n\n\n## Authors\n\nThis project was originally created by Nathan Whitehead `nwhitehe@gmail.com` but is the work of many. See [CONTRIBUTORS](./CONTRIBUTORS.md).\n\n\n## License\n\nReleased under the LGPL v2.1 or any later\nversion (this is the same as FluidSynth).\n\nCopyright 2008--2024, Nathan Whitehead and contributors.\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": [
+        "License-File"
+      ],
+      "home_page": null,
+      "keywords": null,
+      "license": null,
+      "license_expression": null,
+      "license_files": [
+        "LICENSE"
+      ],
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "pyfluidsynth",
+      "package_url": "https://pypi.org/project/pyfluidsynth/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/pyfluidsynth/",
+      "project_urls": {
+        "Homepage": "https://github.com/nwhitehead/pyfluidsynth"
+      },
+      "provides_extra": [
+        "test"
+      ],
+      "release_url": "https://pypi.org/project/pyfluidsynth/1.3.6/",
+      "requires_dist": [
+        "numpy",
+        "pyaudio",
+        "pytest>=8.0; extra == \"test\""
+      ],
+      "requires_python": ">=3.9",
+      "summary": "Python bindings for FluidSynth, a MIDI synthesizer that uses SoundFont instruments",
+      "version": "1.3.6",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 37558759,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "ChristianRomberg"
+        },
+        {
+          "role": "Owner",
+          "user": "NathanWhitehead"
+        },
+        {
+          "role": "Owner",
+          "user": "bspaans"
+        },
+        {
+          "role": "Owner",
+          "user": "cclauss"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "f7ec388f603fd1d33fa531639724d14074b3e59d39d5a348727656082486e7da"
+        },
+        "digests": {
+          "blake2b_256": "14f7da4a8492d792e838049a856eb22a57f81fe5f66a2a14b84fd12a64462710",
+          "md5": "031be7c48b8f9ef8956d323fb2f28aec",
+          "sha256": "bb6dc531b1c886f03c9e94f8783816706ea502bfae1be1e51ba068ba85ca6268"
+        },
+        "downloads": -1,
+        "filename": "pyfluidsynth-1.3.6-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "031be7c48b8f9ef8956d323fb2f28aec",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.9",
+        "size": 23776,
+        "upload_time": "2026-05-25T17:12:54",
+        "upload_time_iso_8601": "2026-05-25T17:12:54.480223Z",
+        "url": "https://files.pythonhosted.org/packages/14/f7/da4a8492d792e838049a856eb22a57f81fe5f66a2a14b84fd12a64462710/pyfluidsynth-1.3.6-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "bdb07b70ec2b166ecff86c165fe0cfb838e0760f14e4de68f24585e34f85550b",
+          "md5": "d8d87c45cb3e4c60e1b15510a71e807f",
+          "sha256": "cbadcd707c9d57a81476fba4e49074fda070d2ac482117f4dfb38cb30aa2f0dd"
+        },
+        "downloads": -1,
+        "filename": "pyfluidsynth-1.3.6.tar.gz",
+        "has_sig": false,
+        "md5_digest": "d8d87c45cb3e4c60e1b15510a71e807f",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.9",
+        "size": 34786,
+        "upload_time": "2026-05-25T17:12:55",
+        "upload_time_iso_8601": "2026-05-25T17:12:55.719803Z",
+        "url": "https://files.pythonhosted.org/packages/bd/b0/7b70ec2b166ecff86c165fe0cfb838e0760f14e4de68f24585e34f85550b/pyfluidsynth-1.3.6.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

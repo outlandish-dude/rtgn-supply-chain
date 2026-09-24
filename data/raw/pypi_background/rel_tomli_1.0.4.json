@@ -1,0 +1,127 @@
+{
+  "package": "tomli",
+  "version": "1.0.4",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:54:36.202222+00:00",
+  "payload": {
+    "info": {
+      "author": "",
+      "author_email": "Taneli Hukkinen <hukkin@users.noreply.github.com>",
+      "bugtrack_url": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Typing :: Typed"
+      ],
+      "description": "[![Build Status](https://github.com/hukkin/tomli/workflows/Tests/badge.svg?branch=master)](https://github.com/hukkin/tomli/actions?query=workflow%3ATests+branch%3Amaster+event%3Apush)\n[![codecov.io](https://codecov.io/gh/hukkin/tomli/branch/master/graph/badge.svg)](https://codecov.io/gh/hukkin/tomli)\n[![PyPI version](https://img.shields.io/pypi/v/tomli)](https://pypi.org/project/tomli)\n\n# Tomli\n\n> A lil' TOML parser\n\n**Table of Contents**  *generated with [mdformat-toc](https://github.com/hukkin/mdformat-toc)*\n\n<!-- mdformat-toc start --slug=github --maxlevel=6 --minlevel=2 -->\n\n- [Intro](#intro)\n- [Installation](#installation)\n- [Usage](#usage)\n  - [Parse a TOML string](#parse-a-toml-string)\n  - [Parse a TOML file](#parse-a-toml-file)\n  - [Handle invalid TOML](#handle-invalid-toml)\n  - [Construct `decimal.Decimal`s from TOML floats](#construct-decimaldecimals-from-toml-floats)\n- [FAQ](#faq)\n  - [Why this parser?](#why-this-parser)\n  - [Is comment preserving round-trip parsing supported?](#is-comment-preserving-round-trip-parsing-supported)\n  - [Is there a `dumps`, `write` or `encode` function?](#is-there-a-dumps-write-or-encode-function)\n  - [How do TOML types map into Python types?](#how-do-toml-types-map-into-python-types)\n- [Performance](#performance)\n\n<!-- mdformat-toc end -->\n\n## Intro<a name=\"intro\"></a>\n\nTomli is a Python library for parsing [TOML](https://toml.io).\nTomli is fully compatible with [TOML v1.0.0](https://toml.io/en/v1.0.0).\n\n## Installation<a name=\"installation\"></a>\n\n```bash\npip install tomli\n```\n\n## Usage<a name=\"usage\"></a>\n\n### Parse a TOML string<a name=\"parse-a-toml-string\"></a>\n\n```python\nimport tomli\n\ntoml_str = \"\"\"\n           gretzky = 99\n\n           [kurri]\n           jari = 17\n           \"\"\"\n\ntoml_dict = tomli.loads(toml_str)\nassert toml_dict == {\"gretzky\": 99, \"kurri\": {\"jari\": 17}}\n```\n\n### Parse a TOML file<a name=\"parse-a-toml-file\"></a>\n\n```python\nimport tomli\n\nwith open(\"path_to_file/conf.toml\", encoding=\"utf-8\") as f:\n    toml_dict = tomli.load(f)\n```\n\n### Handle invalid TOML<a name=\"handle-invalid-toml\"></a>\n\n```python\nimport tomli\n\ntry:\n    toml_dict = tomli.loads(\"]] this is invalid TOML [[\")\nexcept tomli.TOMLDecodeError:\n    print(\"Yep, definitely not valid.\")\n```\n\nNote that while the `TOMLDecodeError` type is public API, error messages of raised instances of it are not.\nError messages should not be assumed to stay constant across Tomli versions.\n\n### Construct `decimal.Decimal`s from TOML floats<a name=\"construct-decimaldecimals-from-toml-floats\"></a>\n\n```python\nfrom decimal import Decimal\nimport tomli\n\ntoml_dict = tomli.loads(\"precision-matters = 0.982492\", parse_float=Decimal)\nassert isinstance(toml_dict[\"precision-matters\"], Decimal)\n```\n\nNote that you may replace `decimal.Decimal` with any callable that converts a TOML float from string to any Python type (except `list` or `dict`).\nThe `decimal.Decimal` type is, however, the most typical replacement when float inaccuracies can not be tolerated.\n\n## FAQ<a name=\"faq\"></a>\n\n### Why this parser?<a name=\"why-this-parser\"></a>\n\n- it's lil'\n- pure Python with zero dependencies\n- the fastest pure Python parser [\\*](#performance):\n  13x as fast as [tomlkit](https://pypi.org/project/tomlkit/),\n  2.2x as fast as [toml](https://pypi.org/project/toml/)\n- outputs [basic data types](#how-do-toml-types-map-into-python-types) only\n- 100% spec compliant: passes all tests in\n  [a test set](https://github.com/toml-lang/compliance/pull/8)\n  soon to be merged to the official\n  [compliance tests for TOML](https://github.com/toml-lang/compliance)\n  repository\n- thoroughly tested: 100% branch coverage\n\n### Is comment preserving round-trip parsing supported?<a name=\"is-comment-preserving-round-trip-parsing-supported\"></a>\n\nNo.\n\nThe `tomli.loads` function returns a plain `dict` that is populated with builtin types and types from the standard library only.\nPreserving comments requires a custom type to be returned so will not be supported,\nat least not by the `tomli.loads` and `tomli.load` functions.\n\nLook into [TOML Kit](https://github.com/sdispater/tomlkit) if preservation of style is what you need.\n\n### Is there a `dumps`, `write` or `encode` function?<a name=\"is-there-a-dumps-write-or-encode-function\"></a>\n\n[Tomli-W](https://github.com/hukkin/tomli-w) is the write-only counterpart of Tomli, providing `dump` and `dumps` functions.\n\nThe core library does not include write capability, as most TOML use cases are read-only, and Tomli intends to be minimal.\n\n### How do TOML types map into Python types?<a name=\"how-do-toml-types-map-into-python-types\"></a>\n\n| TOML type        | Python type         | Details                                                      |\n| ---------------- | ------------------- | ------------------------------------------------------------ |\n| Document Root    | `dict`              |                                                              |\n| Key              | `str`               |                                                              |\n| String           | `str`               |                                                              |\n| Integer          | `int`               |                                                              |\n| Float            | `float`             |                                                              |\n| Boolean          | `bool`              |                                                              |\n| Offset Date-Time | `datetime.datetime` | `tzinfo` attribute set to an instance of `datetime.timezone` |\n| Local Date-Time  | `datetime.datetime` | `tzinfo` attribute set to `None`                             |\n| Local Date       | `datetime.date`     |                                                              |\n| Local Time       | `datetime.time`     |                                                              |\n| Array            | `list`              |                                                              |\n| Table            | `dict`              |                                                              |\n| Inline Table     | `dict`              |                                                              |\n\n## Performance<a name=\"performance\"></a>\n\nThe `benchmark/` folder in this repository contains a performance benchmark for comparing the various Python TOML parsers.\nThe benchmark can be run with `tox -e benchmark-pypi`.\nRunning the benchmark on my personal computer output the following:\n\n```console\nfoo@bar:~/dev/tomli$ tox -e benchmark-pypi\nbenchmark-pypi installed: attrs==19.3.0,click==7.1.2,pytomlpp==1.0.2,qtoml==0.3.0,rtoml==0.7.0,toml==0.10.2,tomli==1.0.3,tomlkit==0.7.2\nbenchmark-pypi run-test-pre: PYTHONHASHSEED='2382238748'\nbenchmark-pypi run-test: commands[0] | python -c 'import datetime; print(datetime.date.today())'\n2021-06-28\nbenchmark-pypi run-test: commands[1] | python --version\nPython 3.8.5\nbenchmark-pypi run-test: commands[2] | python benchmark/run.py\nParsing data.toml 5000 times:\n------------------------------------------------------\n    parser |  exec time | performance (more is better)\n-----------+------------+-----------------------------\n     rtoml |     0.89 s | baseline (100%)\n  pytomlpp |     1.08 s | 82.17%\n     tomli |     4.07 s | 21.86%\n      toml |     9.05 s | 9.84%\n     qtoml |     11.3 s | 7.87%\n   tomlkit |       55 s | 1.62%\n```\n\nThe parsers are ordered from fastest to slowest, using the fastest parser as baseline.\nTomli performed the best out of all pure Python TOML parsers,\nlosing only to pytomlpp (wraps C++) and rtoml (wraps Rust).\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "",
+      "keywords": "toml",
+      "license": "",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "tomli",
+      "package_url": "https://pypi.org/project/tomli/",
+      "platform": "",
+      "project_url": "https://pypi.org/project/tomli/",
+      "project_urls": {
+        "Changelog": "https://github.com/hukkin/tomli/blob/master/CHANGELOG.md",
+        "Homepage": "https://github.com/hukkin/tomli"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/tomli/1.0.4/",
+      "requires_dist": null,
+      "requires_python": ">=3.6",
+      "summary": "A lil' TOML parser",
+      "version": "1.0.4",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 35482183,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "hukkin"
+        },
+        {
+          "role": "Maintainer",
+          "user": "encukou"
+        },
+        {
+          "role": "Maintainer",
+          "user": "hauntsaninja"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "fcca47ad1fbc2c98922ab999556871b48d5dd983d0c55de5108c458425121f84"
+        },
+        "digests": {
+          "blake2b_256": "ec81e0741c4f4dfde87348987869e66de74d13378aa7c0fe97dd1eba2a69f74c",
+          "md5": "40fc9ef641a5afc30a1852c936b70dbc",
+          "sha256": "0713b16ff91df8638a6a694e295c8159ab35ba93e3424a626dd5226d386057be"
+        },
+        "downloads": -1,
+        "filename": "tomli-1.0.4-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "40fc9ef641a5afc30a1852c936b70dbc",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.6",
+        "size": 11497,
+        "upload_time": "2021-07-04T23:16:30",
+        "upload_time_iso_8601": "2021-07-04T23:16:30.837057Z",
+        "url": "https://files.pythonhosted.org/packages/ec/81/e0741c4f4dfde87348987869e66de74d13378aa7c0fe97dd1eba2a69f74c/tomli-1.0.4-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "5f9e0aa632eb780a5e3ff22e3c125dd10859eaccb49404c64b49ce3d517f7e4c",
+          "md5": "15362d21c4bc0dcd5d7ca77082f74386",
+          "sha256": "be670d0d8d7570fd0ea0113bd7bb1ba3ac6706b4de062cc4c952769355c9c268"
+        },
+        "downloads": -1,
+        "filename": "tomli-1.0.4.tar.gz",
+        "has_sig": false,
+        "md5_digest": "15362d21c4bc0dcd5d7ca77082f74386",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.6",
+        "size": 11684,
+        "upload_time": "2021-07-04T23:16:32",
+        "upload_time_iso_8601": "2021-07-04T23:16:32.344104Z",
+        "url": "https://files.pythonhosted.org/packages/5f/9e/0aa632eb780a5e3ff22e3c125dd10859eaccb49404c64b49ce3d517f7e4c/tomli-1.0.4.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

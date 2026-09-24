@@ -1,0 +1,481 @@
+{
+  "package": "bcrypt",
+  "version": "4.1.1",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:51:01.863284+00:00",
+  "payload": {
+    "info": {
+      "author": "",
+      "author_email": "The Python Cryptographic Authority developers <cryptography-dev@python.org>",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 5 - Production/Stable",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy"
+      ],
+      "description": "bcrypt\n======\n\n.. image:: https://img.shields.io/pypi/v/bcrypt.svg\n    :target: https://pypi.org/project/bcrypt/\n    :alt: Latest Version\n\n.. image:: https://github.com/pyca/bcrypt/workflows/CI/badge.svg?branch=main\n    :target: https://github.com/pyca/bcrypt/actions?query=workflow%3ACI+branch%3Amain\n\nAcceptable password hashing for your software and your servers (but you should\nreally use argon2id or scrypt)\n\n\nInstallation\n============\n\nTo install bcrypt, simply:\n\n.. code:: bash\n\n    $ pip install bcrypt\n\nNote that bcrypt should build very easily on Linux provided you have a C\ncompiler and a Rust compiler (the minimum supported Rust version is 1.56.0).\n\nFor Debian and Ubuntu, the following command will ensure that the required dependencies are installed:\n\n.. code:: bash\n\n    $ sudo apt-get install build-essential cargo\n\nFor Fedora and RHEL-derivatives, the following command will ensure that the required dependencies are installed:\n\n.. code:: bash\n\n    $ sudo yum install gcc cargo\n\nFor Alpine, the following command will ensure that the required dependencies are installed:\n\n.. code:: bash\n\n    $ apk add --update musl-dev gcc cargo\n\n\nAlternatives\n============\n\nWhile bcrypt remains an acceptable choice for password storage, depending on your specific use case you may also want to consider using scrypt (either via `standard library`_ or `cryptography`_) or argon2id via `argon2_cffi`_.\n\nChangelog\n=========\n\n4.1.1\n-----\n\n* Fixed the type signature on the ``kdf`` method.\n\n4.1.0\n-----\n\n* Dropped support for Python 3.6.\n* Bumped MSRV to 1.64. (Note: Rust 1.63 can be used by setting the ``BCRYPT_ALLOW_RUST_163`` environment variable)\n\n4.0.1\n-----\n\n* We now build PyPy ``manylinux`` wheels.\n* Fixed a bug where passing an invalid ``salt`` to ``checkpw`` could result in\n  a ``pyo3_runtime.PanicException``. It now correctly raises a ``ValueError``.\n\n4.0.0\n-----\n\n* ``bcrypt`` is now implemented in Rust. Users building from source will need\n  to have a Rust compiler available. Nothing will change for users downloading\n  wheels.\n* We no longer ship ``manylinux2010`` wheels. Users should upgrade to the latest\n  ``pip`` to ensure this doesn\u2019t cause issues downloading wheels on their\n  platform. We now ship ``manylinux_2_28`` wheels for users on new enough platforms.\n* ``NUL`` bytes are now allowed in inputs.\n\n\n3.2.2\n-----\n\n* Fixed packaging of ``py.typed`` files in wheels so that ``mypy`` works.\n\n3.2.1\n-----\n\n* Added support for compilation on z/OS\n* The next release of ``bcrypt`` with be 4.0 and it will require Rust at\n  compile time, for users building from source. There will be no additional\n  requirement for users who are installing from wheels. Users on most\n  platforms will be able to obtain a wheel by making sure they have an up to\n  date ``pip``. The minimum supported Rust version will be 1.56.0.\n* This will be the final release for which we ship ``manylinux2010`` wheels.\n  Going forward the minimum supported manylinux ABI for our wheels will be\n  ``manylinux2014``. The vast majority of users will continue to receive\n  ``manylinux`` wheels provided they have an up to date ``pip``.\n\n\n3.2.0\n-----\n\n* Added typehints for library functions.\n* Dropped support for Python versions less than 3.6 (2.7, 3.4, 3.5).\n* Shipped ``abi3`` Windows wheels (requires pip >= 20).\n\n3.1.7\n-----\n\n* Set a ``setuptools`` lower bound for PEP517 wheel building.\n* We no longer distribute 32-bit ``manylinux1`` wheels. Continuing to produce\n  them was a maintenance burden.\n\n3.1.6\n-----\n\n* Added support for compilation on Haiku.\n\n3.1.5\n-----\n\n* Added support for compilation on AIX.\n* Dropped Python 2.6 and 3.3 support.\n* Switched to using ``abi3`` wheels for Python 3. If you are not getting a\n  wheel on a compatible platform please upgrade your ``pip`` version.\n\n3.1.4\n-----\n\n* Fixed compilation with mingw and on illumos.\n\n3.1.3\n-----\n* Fixed a compilation issue on Solaris.\n* Added a warning when using too few rounds with ``kdf``.\n\n3.1.2\n-----\n* Fixed a compile issue affecting big endian platforms.\n* Fixed invalid escape sequence warnings on Python 3.6.\n* Fixed building in non-UTF8 environments on Python 2.\n\n3.1.1\n-----\n* Resolved a ``UserWarning`` when used with ``cffi`` 1.8.3.\n\n3.1.0\n-----\n* Added support for ``checkpw``, a convenience method for verifying a password.\n* Ensure that you get a ``$2y$`` hash when you input a ``$2y$`` salt.\n* Fixed a regression where ``$2a`` hashes were vulnerable to a wraparound bug.\n* Fixed compilation under Alpine Linux.\n\n3.0.0\n-----\n* Switched the C backend to code obtained from the OpenBSD project rather than\n  openwall.\n* Added support for ``bcrypt_pbkdf`` via the ``kdf`` function.\n\n2.0.0\n-----\n* Added support for an adjustible prefix when calling ``gensalt``.\n* Switched to CFFI 1.0+\n\nUsage\n-----\n\nPassword Hashing\n~~~~~~~~~~~~~~~~\n\nHashing and then later checking that a password matches the previous hashed\npassword is very simple:\n\n.. code:: pycon\n\n    >>> import bcrypt\n    >>> password = b\"super secret password\"\n    >>> # Hash a password for the first time, with a randomly-generated salt\n    >>> hashed = bcrypt.hashpw(password, bcrypt.gensalt())\n    >>> # Check that an unhashed password matches one that has previously been\n    >>> # hashed\n    >>> if bcrypt.checkpw(password, hashed):\n    ...     print(\"It Matches!\")\n    ... else:\n    ...     print(\"It Does not Match :(\")\n\nKDF\n~~~\n\nAs of 3.0.0 ``bcrypt`` now offers a ``kdf`` function which does ``bcrypt_pbkdf``.\nThis KDF is used in OpenSSH's newer encrypted private key format.\n\n.. code:: pycon\n\n    >>> import bcrypt\n    >>> key = bcrypt.kdf(\n    ...     password=b'password',\n    ...     salt=b'salt',\n    ...     desired_key_bytes=32,\n    ...     rounds=100)\n\n\nAdjustable Work Factor\n~~~~~~~~~~~~~~~~~~~~~~\nOne of bcrypt's features is an adjustable logarithmic work factor. To adjust\nthe work factor merely pass the desired number of rounds to\n``bcrypt.gensalt(rounds=12)`` which defaults to 12):\n\n.. code:: pycon\n\n    >>> import bcrypt\n    >>> password = b\"super secret password\"\n    >>> # Hash a password for the first time, with a certain number of rounds\n    >>> hashed = bcrypt.hashpw(password, bcrypt.gensalt(14))\n    >>> # Check that a unhashed password matches one that has previously been\n    >>> #   hashed\n    >>> if bcrypt.checkpw(password, hashed):\n    ...     print(\"It Matches!\")\n    ... else:\n    ...     print(\"It Does not Match :(\")\n\n\nAdjustable Prefix\n~~~~~~~~~~~~~~~~~\n\nAnother one of bcrypt's features is an adjustable prefix to let you define what\nlibraries you'll remain compatible with. To adjust this, pass either ``2a`` or\n``2b`` (the default) to ``bcrypt.gensalt(prefix=b\"2b\")`` as a bytes object.\n\nAs of 3.0.0 the ``$2y$`` prefix is still supported in ``hashpw`` but deprecated.\n\nMaximum Password Length\n~~~~~~~~~~~~~~~~~~~~~~~\n\nThe bcrypt algorithm only handles passwords up to 72 characters, any characters\nbeyond that are ignored. To work around this, a common approach is to hash a\npassword with a cryptographic hash (such as ``sha256``) and then base64\nencode it to prevent NULL byte problems before hashing the result with\n``bcrypt``:\n\n.. code:: pycon\n\n    >>> password = b\"an incredibly long password\" * 10\n    >>> hashed = bcrypt.hashpw(\n    ...     base64.b64encode(hashlib.sha256(password).digest()),\n    ...     bcrypt.gensalt()\n    ... )\n\nCompatibility\n-------------\n\nThis library should be compatible with py-bcrypt and it will run on Python\n3.6+, and PyPy 3.\n\nC Code\n------\n\nThis library uses code from OpenBSD.\n\nSecurity\n--------\n\n``bcrypt`` follows the `same security policy as cryptography`_, if you\nidentify a vulnerability, we ask you to contact us privately.\n\n.. _`same security policy as cryptography`: https://cryptography.io/en/latest/security.html\n.. _`standard library`: https://docs.python.org/3/library/hashlib.html#hashlib.scrypt\n.. _`argon2_cffi`: https://argon2-cffi.readthedocs.io\n.. _`cryptography`: https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#cryptography.hazmat.primitives.kdf.scrypt.Scrypt\n",
+      "description_content_type": "text/x-rst",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "",
+      "keywords": "",
+      "license": "Apache-2.0",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "bcrypt",
+      "package_url": "https://pypi.org/project/bcrypt/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/bcrypt/",
+      "project_urls": {
+        "homepage": "https://github.com/pyca/bcrypt/"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/bcrypt/4.1.1/",
+      "requires_dist": [
+        "pytest !=3.3.0,>=3.2.1 ; extra == 'tests'",
+        "mypy ; extra == 'typecheck'"
+      ],
+      "requires_python": ">=3.7",
+      "summary": "Modern password hashing for your software and your servers",
+      "version": "4.1.1",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 31463631,
+    "ownership": {
+      "organization": "pyca",
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "reaperhulk"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "7fd143bca3de2563f3385528e6267aa080ec7097858c3743aec5c2ce39ad7b54",
+          "md5": "c5eab15ed57b5d5665e6f8bcac1bda42",
+          "sha256": "196008d91201bbb1aa4e666fee5e610face25d532e433a560cabb33bfdff958b"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-macosx_10_12_universal2.whl",
+        "has_sig": false,
+        "md5_digest": "c5eab15ed57b5d5665e6f8bcac1bda42",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 528324,
+        "upload_time": "2023-11-30T13:56:20",
+        "upload_time_iso_8601": "2023-11-30T13:56:20.715131Z",
+        "url": "https://files.pythonhosted.org/packages/7f/d1/43bca3de2563f3385528e6267aa080ec7097858c3743aec5c2ce39ad7b54/bcrypt-4.1.1-cp37-abi3-macosx_10_12_universal2.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "e8f05425ba170098cebff0a0c42b7e8ea8e5c5600fc4344cd058ef0bafc31a3e",
+          "md5": "2ebaf7008f3a502f5e5694bd9e0a9b57",
+          "sha256": "2e197534c884336f9020c1f3a8efbaab0aa96fc798068cb2da9c671818b7fbb0"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-macosx_13_0_universal2.whl",
+        "has_sig": false,
+        "md5_digest": "2ebaf7008f3a502f5e5694bd9e0a9b57",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 528264,
+        "upload_time": "2023-11-28T17:37:58",
+        "upload_time_iso_8601": "2023-11-28T17:37:58.158747Z",
+        "url": "https://files.pythonhosted.org/packages/e8/f0/5425ba170098cebff0a0c42b7e8ea8e5c5600fc4344cd058ef0bafc31a3e/bcrypt-4.1.1-cp37-abi3-macosx_13_0_universal2.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "038ed69af67a118aaae17a076d41b1b3f4400a66f39900b8cb72a0f918416f65",
+          "md5": "0bf3346d8b3253ea033def22a8987751",
+          "sha256": "d573885b637815a7f3a3cd5f87724d7d0822da64b0ab0aa7f7c78bae534e86dc"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "0bf3346d8b3253ea033def22a8987751",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 696020,
+        "upload_time": "2023-11-28T17:38:00",
+        "upload_time_iso_8601": "2023-11-28T17:38:00.541434Z",
+        "url": "https://files.pythonhosted.org/packages/03/8e/d69af67a118aaae17a076d41b1b3f4400a66f39900b8cb72a0f918416f65/bcrypt-4.1.1-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "a013259124a851d361a2549560f9a3ccd286d17ef936017314a58cf7dffce8f7",
+          "md5": "bd07d8f4170ade6eaeb7d2efee425f3d",
+          "sha256": "bab33473f973e8058d1b2df8d6e095d237c49fbf7a02b527541a86a5d1dc4444"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "bd07d8f4170ade6eaeb7d2efee425f3d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 699155,
+        "upload_time": "2023-11-28T17:38:02",
+        "upload_time_iso_8601": "2023-11-28T17:38:02.777169Z",
+        "url": "https://files.pythonhosted.org/packages/a0/13/259124a851d361a2549560f9a3ccd286d17ef936017314a58cf7dffce8f7/bcrypt-4.1.1-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "c58ae7ba1562bfe80e9c480448f81118ad96087096ac9a36a57674bf8b520d69",
+          "md5": "7fec00325fadea72a9ed06c74adc4064",
+          "sha256": "fb931cd004a7ad36a89789caf18a54c20287ec1cd62161265344b9c4554fdb2e"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-manylinux_2_28_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "7fec00325fadea72a9ed06c74adc4064",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 696265,
+        "upload_time": "2023-11-28T17:38:05",
+        "upload_time_iso_8601": "2023-11-28T17:38:05.226641Z",
+        "url": "https://files.pythonhosted.org/packages/c5/8a/e7ba1562bfe80e9c480448f81118ad96087096ac9a36a57674bf8b520d69/bcrypt-4.1.1-cp37-abi3-manylinux_2_28_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "af8296ffdbe0f56b12db0da8f1a9c869399d22231ed1313a84ea2ddc6381a498",
+          "md5": "a73fcb061de0541f5b36fe6249aaa384",
+          "sha256": "12f40f78dcba4aa7d1354d35acf45fae9488862a4fb695c7eeda5ace6aae273f"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-manylinux_2_28_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "a73fcb061de0541f5b36fe6249aaa384",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 699361,
+        "upload_time": "2023-11-28T17:38:07",
+        "upload_time_iso_8601": "2023-11-28T17:38:07.804969Z",
+        "url": "https://files.pythonhosted.org/packages/af/82/96ffdbe0f56b12db0da8f1a9c869399d22231ed1313a84ea2ddc6381a498/bcrypt-4.1.1-cp37-abi3-manylinux_2_28_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "ffc0da85093fa0babf4fda1e31a1c8aab9026ee9e44539ecf706fe2a4e9391f1",
+          "md5": "5637d6f7177a640f1bbd735434a80b80",
+          "sha256": "2ade10e8613a3b8446214846d3ddbd56cfe9205a7d64742f0b75458c868f7492"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-musllinux_1_1_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "5637d6f7177a640f1bbd735434a80b80",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 725935,
+        "upload_time": "2023-11-28T17:38:09",
+        "upload_time_iso_8601": "2023-11-28T17:38:09.246114Z",
+        "url": "https://files.pythonhosted.org/packages/ff/c0/da85093fa0babf4fda1e31a1c8aab9026ee9e44539ecf706fe2a4e9391f1/bcrypt-4.1.1-cp37-abi3-musllinux_1_1_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "1accebf49d5d211d1ee622923c9196e6eea1274d1eecc8d00611f8b5f6f1d65a",
+          "md5": "96cb38207eaca20f36f873e7336e53a1",
+          "sha256": "f33b385c3e80b5a26b3a5e148e6165f873c1c202423570fdf45fe34e00e5f3e5"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-musllinux_1_1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "96cb38207eaca20f36f873e7336e53a1",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 730160,
+        "upload_time": "2023-11-28T17:38:11",
+        "upload_time_iso_8601": "2023-11-28T17:38:11.696658Z",
+        "url": "https://files.pythonhosted.org/packages/1a/cc/ebf49d5d211d1ee622923c9196e6eea1274d1eecc8d00611f8b5f6f1d65a/bcrypt-4.1.1-cp37-abi3-musllinux_1_1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "8e9b870624ae1deb9cc997b0530fdd45292a6f272f80e024a023d0ea9d5e02e1",
+          "md5": "0bffa1d9906c492cffce40c6e1be873b",
+          "sha256": "755b9d27abcab678e0b8fb4d0abdebeea1f68dd1183b3f518bad8d31fa77d8be"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "0bffa1d9906c492cffce40c6e1be873b",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 732453,
+        "upload_time": "2023-11-28T17:38:13",
+        "upload_time_iso_8601": "2023-11-28T17:38:13.192146Z",
+        "url": "https://files.pythonhosted.org/packages/8e/9b/870624ae1deb9cc997b0530fdd45292a6f272f80e024a023d0ea9d5e02e1/bcrypt-4.1.1-cp37-abi3-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "367c9fdf669fdc4392496818067861b2ec27c2622df4a355f9257360cb19154a",
+          "md5": "f54dbbbf1c8d1da5ca829d065114ca12",
+          "sha256": "a7a7b8a87e51e5e8ca85b9fdaf3a5dc7aaf123365a09be7a27883d54b9a0c403"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "f54dbbbf1c8d1da5ca829d065114ca12",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 750074,
+        "upload_time": "2023-11-28T17:38:15",
+        "upload_time_iso_8601": "2023-11-28T17:38:15.343450Z",
+        "url": "https://files.pythonhosted.org/packages/36/7c/9fdf669fdc4392496818067861b2ec27c2622df4a355f9257360cb19154a/bcrypt-4.1.1-cp37-abi3-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "805dac2c0acff5bee62a46e869f2a7650c2d461703c2054fa73e5118f67de48b"
+        },
+        "digests": {
+          "blake2b_256": "77a9c448d7027a75083a66385a370918eb14752c629a297afbd5a3557f6f8a8c",
+          "md5": "b080f2ced0ba0821c5f061aa69ff83f1",
+          "sha256": "3d6c4e0d6963c52f8142cdea428e875042e7ce8c84812d8e5507bd1e42534e07"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-win32.whl",
+        "has_sig": false,
+        "md5_digest": "b080f2ced0ba0821c5f061aa69ff83f1",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 171224,
+        "upload_time": "2023-11-28T17:38:17",
+        "upload_time_iso_8601": "2023-11-28T17:38:17.790403Z",
+        "url": "https://files.pythonhosted.org/packages/77/a9/c448d7027a75083a66385a370918eb14752c629a297afbd5a3557f6f8a8c/bcrypt-4.1.1-cp37-abi3-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "805dac2c0acff5bee62a46e869f2a7650c2d461703c2054fa73e5118f67de48b"
+        },
+        "digests": {
+          "blake2b_256": "c6d17ea6c7e5c864decc4282ac749d1c39a04363443a7ddcbb28f0f3d3370ff8",
+          "md5": "88bcadd8aa985a23f675cc30ab2ae544",
+          "sha256": "14d41933510717f98aac63378b7956bbe548986e435df173c841d7f2bd0b2de7"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-cp37-abi3-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "88bcadd8aa985a23f675cc30ab2ae544",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp37",
+        "requires_python": ">=3.7",
+        "size": 158239,
+        "upload_time": "2023-11-28T17:38:19",
+        "upload_time_iso_8601": "2023-11-28T17:38:19.040546Z",
+        "url": "https://files.pythonhosted.org/packages/c6/d1/7ea6c7e5c864decc4282ac749d1c39a04363443a7ddcbb28f0f3d3370ff8/bcrypt-4.1.1-cp37-abi3-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "92abd593554eeaa05f5c4fc9dd1761d79a9f44d0f85b23e0db9f7930244a797e",
+          "md5": "7cbde767726dd02e270bd7f8913b80f4",
+          "sha256": "24c2ebd287b5b11016f31d506ca1052d068c3f9dc817160628504690376ff050"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-pp310-pypy310_pp73-manylinux_2_28_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "7cbde767726dd02e270bd7f8913b80f4",
+        "packagetype": "bdist_wheel",
+        "python_version": "pp310",
+        "requires_python": ">=3.7",
+        "size": 695814,
+        "upload_time": "2023-11-28T17:38:20",
+        "upload_time_iso_8601": "2023-11-28T17:38:20.517491Z",
+        "url": "https://files.pythonhosted.org/packages/92/ab/d593554eeaa05f5c4fc9dd1761d79a9f44d0f85b23e0db9f7930244a797e/bcrypt-4.1.1-pp310-pypy310_pp73-manylinux_2_28_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "9d05bab3dba6fae9c245ade63989e818010db0e703a90462505c47239f5fe697",
+          "md5": "178a514c5a49e9083d7d21171b9bb171",
+          "sha256": "476aa8e8aca554260159d4c7a97d6be529c8e177dbc1d443cb6b471e24e82c74"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-pp310-pypy310_pp73-manylinux_2_28_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "178a514c5a49e9083d7d21171b9bb171",
+        "packagetype": "bdist_wheel",
+        "python_version": "pp310",
+        "requires_python": ">=3.7",
+        "size": 698346,
+        "upload_time": "2023-11-28T17:38:22",
+        "upload_time_iso_8601": "2023-11-28T17:38:22.715805Z",
+        "url": "https://files.pythonhosted.org/packages/9d/05/bab3dba6fae9c245ade63989e818010db0e703a90462505c47239f5fe697/bcrypt-4.1.1-pp310-pypy310_pp73-manylinux_2_28_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "216aa6c91ab7386a0d5e40d8fe587616d6f03909fa0869ab7c0228e50eafdeec",
+          "md5": "f2b9698a113547d324f56c3fcaf30342",
+          "sha256": "12611c4b0a8b1c461646228344784a1089bc0c49975680a2f54f516e71e9b79e"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-pp39-pypy39_pp73-manylinux_2_28_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "f2b9698a113547d324f56c3fcaf30342",
+        "packagetype": "bdist_wheel",
+        "python_version": "pp39",
+        "requires_python": ">=3.7",
+        "size": 695797,
+        "upload_time": "2023-11-28T17:38:24",
+        "upload_time_iso_8601": "2023-11-28T17:38:24.801426Z",
+        "url": "https://files.pythonhosted.org/packages/21/6a/a6c91ab7386a0d5e40d8fe587616d6f03909fa0869ab7c0228e50eafdeec/bcrypt-4.1.1-pp39-pypy39_pp73-manylinux_2_28_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "36408380bb4ba9b1a93d7e5046eb661ec7332001616f2193b2ad65c5fe2e68c0"
+        },
+        "digests": {
+          "blake2b_256": "994e7d8e0890d7b723da226e4136b44df044b4c7b3074e82a0fcb1a68450aeed",
+          "md5": "e199427cd35c593fd15c52e9f15ad90b",
+          "sha256": "c6450538a0fc32fb7ce4c6d511448c54c4ff7640b2ed81badf9898dcb9e5b737"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1-pp39-pypy39_pp73-manylinux_2_28_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "e199427cd35c593fd15c52e9f15ad90b",
+        "packagetype": "bdist_wheel",
+        "python_version": "pp39",
+        "requires_python": ">=3.7",
+        "size": 698582,
+        "upload_time": "2023-11-28T17:38:26",
+        "upload_time_iso_8601": "2023-11-28T17:38:26.870862Z",
+        "url": "https://files.pythonhosted.org/packages/99/4e/7d8e0890d7b723da226e4136b44df044b4c7b3074e82a0fcb1a68450aeed/bcrypt-4.1.1-pp39-pypy39_pp73-manylinux_2_28_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "df56be5fda8e6fc05123c8c9f526095e93d0802a0a0b2beaf995ee2cc20aa2f8",
+          "md5": "77b110f937b47619cd2d1a1fd01bc118",
+          "sha256": "df37f5418d4f1cdcff845f60e747a015389fa4e63703c918330865e06ad80007"
+        },
+        "downloads": -1,
+        "filename": "bcrypt-4.1.1.tar.gz",
+        "has_sig": false,
+        "md5_digest": "77b110f937b47619cd2d1a1fd01bc118",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.7",
+        "size": 26080,
+        "upload_time": "2023-11-28T17:38:28",
+        "upload_time_iso_8601": "2023-11-28T17:38:28.551662Z",
+        "url": "https://files.pythonhosted.org/packages/df/56/be5fda8e6fc05123c8c9f526095e93d0802a0a0b2beaf995ee2cc20aa2f8/bcrypt-4.1.1.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

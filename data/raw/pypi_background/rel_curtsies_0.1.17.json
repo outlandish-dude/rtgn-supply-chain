@@ -1,0 +1,97 @@
+{
+  "package": "curtsies",
+  "version": "0.1.17",
+  "status_code": 200,
+  "timestamp": "2026-09-22T19:01:45.973261+00:00",
+  "payload": {
+    "info": {
+      "author": "Thomas Ballinger",
+      "author_email": "thomasballinger@gmail.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 3 - Alpha",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: POSIX",
+        "Programming Language :: Python"
+      ],
+      "description": "[![Build Status](https://travis-ci.org/thomasballinger/curtsies.svg?branch=master)](https://travis-ci.org/thomasballinger/curtsies)\nCurtsies: Terminal interaction w/o curses\n=========================================\n![Curtsies Logo](http://ballingt.com/assets/curtsies-tritone-small.png)\n\nAnnotate portions of strings with terminal colors and formatting!\nRender that text to the terminal, and clean up afterwards!\nGet user keystrokes when they happen!\n\nThis is what using (nearly every feature of) curtsies looks like:\n\n    import random\n\n    from curtsies import FullscreenWindow, Input, FSArray\n    from curtsies.fmtfuncs import red, bold, green, on_blue, yellow\n\n    print yellow('the following code takes over the screen')\n    with FullscreenWindow() as window:\n        print(red(on_blue(bold('Press escape to exit'))))\n        with Input() as input_generator:\n            a = FSArray(window.height, window.width)\n            for c in input_generator:\n                if c == '<ESC>':\n                    break\n                elif c == '<SPACE>':\n                    a = FSArray(window.height, window.width)\n                else:\n                    row = random.choice(range(window.height))\n                    column = random.choice(range(window.width-len(repr(c))))\n                    color = random.choice([red, green, on_blue, yellow])\n                    a[row, column:column+len(repr(c))] = [color(repr(c))]\n                window.render_to_terminal(a)\n\nThere are a few main objects in curtsies you probably want to use:\n\n* [FmtStr](readme.md#fmtstr) objects are colored strings\n* [FSArray](readme.md#fsarray) objects are 2D arrays of colored text\n* [Input](readme.md#input) provides keys as they are pressed by the user\n* [FullscreenWindow](readme.md#fullscreenwindow) sets up a fullscreen environment for rendering arrays of colored text\n* [CursorAwareWindow](readme.md#cursorawarewindow) is a terminal wrapper (like curses) for rendering text to the terminal\n\n`FmtStr`\n=========\n\n![fmtstr example screenshot](http://i.imgur.com/7lFaxsz.png)\n\nYou can use convenience functions instead:\n\n    >>> from fmtstr.fmtfuncs import *\n    >>> blue(on_red('hey')) + \" \" + underline(\"there\")\n\n* `str(FmtStr)` -> escape sequence-laden text that looks cool in an ANSI-compatible terminal\n* `repr(FmtStr)` -> how to create an identical FmtStr\n* `FmtStr[3:10]` -> a new FmtStr\n* `FmtStr.upper()` (any string method) -> a new FmtStr or list of FmtStrs (str.split) or int (str.count)\n\nOther Libraries\n---------------\n\nIf all you need are colored strings, you've got some other great options (other wrappings of\n[ANSI escape codes](http://en.wikipedia.org/wiki/ANSI_escape_code)):\n\n* [Blessings](https://github.com/erikrose/blessings) (`pip install blessings`)\n  As of version 0.1.0, Curtsies uses Blessings for terminal capabilities other\n  than colored output.\n* https://github.com/verigak/colors/ (`pip install colors`)\n* https://github.com/kennethreitz/clint/blob/master/clint/textui/colored.py (`pip install clint`)\n* https://pypi.python.org/pypi/termcolor (`pip install termcolor`)\n\nIn all of these libraries the expression `blue('hi') + ' ' + green('there)`\nor equivalent\nevaluates to a Python string, not a colored string object. If all you plan\nto do with this string is print it, this is fine. But if you need to\ndo more formatting with this colored string later, the length will be\nsomething like 29 instead of 9; structured formatting information is lost.\nMethods like `.ljust()` won't properly format the string for display.\n\n    >>> import blessings\n    >>> t = blessings.Terminal()\n    >>> message = term.red_on_green('Red on green?') + ' ' + term.yellow('Ick!')\n    >>> len(message)\n    41 # ?!\n    >>> message.center(50)\n    u'    \\x1b[31m\\x1b[42mRed on green?\\x1b[m\\x0f \\x1b[33mIck!\\x1b[m\\x0f     '\n\nFmtStrs can be combined and composited to create more complicated FmtStrs,\nuseful for example for building flashy terminal interfaces with overlapping\nwindows/widgets than can change size and depend on each others sizes.\nOne FmtStr can have several kinds of formatting applied to different parts of it.\n\n    >>> from curtsies.fmtfuncs import *\n    >>> blue('asdf') + on_red('adsf')\n    blue(\"asdf\")+on_red(\"adsf\")\n\nDetails\n-------\n\nFmtStrs allow slicing, which returns a new FmtStr object:\n\n    >>> from curtsies.fmtfuncs import *\n    >>> (blue('asdf') + on_red('adsf'))[3:7]\n    blue(\"f\")+on_red(\"ads\")\n\nFmtStrs are *immutable* - but you can create new ones with `splice`:\n\n    >>> from curtsies.fmtfuncs import *\n    >>> f = blue('hey there') + on_red(' Tom!')\n    >>> g.splice('ot', 1, 3)\n    >>> g\n    blue(\"h\")+\"ot\"+blue(\" there\")+on_red(\" Tom!\")\n\nwhich can even change their length:\n\n    >>> f.splice('something longer', 2)\n    blue(\"h\")+\"something longer\"+blue(\"ot\")+blue(\" there\")+on_red(\" Tom!\")\n\n(Thanks to @OufeiDong for fixing this!)\n\nFmtStrs greedily absorb strings, but no formatting is applied\n\n    >>> from curtsies.fmtfuncs import *\n    >>> f = blue(\"The story so far:\") + \"In the beginning...\"\n    >>> type(f)\n    <class curtsies.fmtstr.FmtStr>\n    >>> f\n    blue(\"The story so far:\")+\"In the beginning...\"\n\nIt's easy to turn ANSI terminal formatted strings into FmtStrs:\n\n    >>> from curtsies.fmtfuncs import *\n    >>> from curtsies import FmtStr\n    >>> s = str(blue('tom'))\n    >>> s\n    '\\x1b[34mtom\\x1b[39m'\n    >>> FmtStr.from_str(str(blue('tom')))\n    blue(\"tom\")\n\nUsing str methods on FmtStr objects\n-----------------------------------\n\nAll sorts of string methods can be used on a FmtStr, so you can often\nuse FmtStr objects where you had strings in your program before:\n\n    >>> from curtsies.fmtfuncs import *\n    >>> f = blue(underline('As you like it'))\n    >>> len(f)\n    14 \n    >>> f == underline(blue('As you like it')) + red('')\n    True\n    >>> blue(', ').join(['a', red('b')])\n    \"a\"+blue(\", \")+red(\"b\")\n\nIf FmtStr doesn't implement a method, it tries its best to use the string\nmethod, which often works pretty well:\n\n    >>> from curtsies.fmtfuncs import *\n    >>> f = blue(underline('As you like it'))\n    >>> f.center(20)\n    blue(underline(\"   As you like it   \"))\n    >>> f.count('i')\n    2\n    >>> f.endswith('it')\n    True\n    >>> f.index('you')\n    3\n    >>> f.split(' ')\n    [blue(underline(\"As\")), blue(underline(\"you\")), blue(underline(\"like\")), blue(underline(\"it\"))]\n\nBut formatting information will be lost for attributes which are not the same through the whole string\n\n    >>> from curtsies.fmtfuncs import *\n    >>> f = bold(red('hi')+' '+on_blue('there'))\n    >>> f\n    bold(red('hi'))+bold(' ')+bold(on_blue('there'))\n    >>> f.center(10)\n    bold(\" hi there \")\n\n`FSArray`\n=========\n\n2D array in which each line is a FmtStr.\n\n![fsarray example screenshot](http://i.imgur.com/rvTRPv1.png)\n\nSlicing works like it does with FmtStrs, but in two dimensions.\nFSArrays are *mutable*, so array assignment syntax can be used for natural\ncompositing.\n\n    >>> from curtsies import FSArray, fsarray\n    >>> a = fsarray('-'*10 for _ in range(4))\n    >>> a[1:3, 3:7] = fsarray([green('msg:'),\n    ...                blue(on_green('hey!'))])\n    >>> a.dumb_display()\n    ----------\n    ---msg:---\n    ---hey!---\n    ----------\n\n`fsarray` is a convenience function returning a FSArray constructed from its arguments.\n\n`FullscreenWindow`\n==================\n\nFullscreenWindow will only render arrays the size of the terminal\nor smaller, and leaves no trace on exit (like top or vim). It never\nscrolls the terminal. Changing the terminal size doesn't do anything,\nbut 2d array rendered needs to fit on the screen.\n\n`CursorAwareWindow`\n===================\n\nCursorAwareWindow provides the ability to find the\nlocation of the cursor, and allows scrolling.\nSigwinches can be annotated with how the terminal scroll changed\nChanging the terminal size breaks the cache, because it\nis unknown how the window size change affected scrolling / the cursor.\nLeaving the context of the window deletes everything below the cursor\nat the beginning of the its current line.\n(use scroll_down() from the last rendered line if you want to save all history)\n\n`Input`\n=======\n\nWithin the (context-manager) context of an Input generator, an in-stream\nis put in raw mode or cbreak mode, and keypresses are stored to be reported\nlater.\n\n`Terminal.next()` waits for a keypress.\nTo see what a given keypress is called (what unicode string is returned\nby `Terminal.next()`), try\n`python -m curtsies.terminal` and play around. Key events are unicode\nstrings, but `Terminal.next()` will sometimes return event objects which\ninherit from events.Event. `Terminal` objects are\niterable, so these events can be obtained by looping over the object.\n\n`Input` takes an optional argument for how to name\nkeypress events, which is 'curtsies' by default.\nFor compatibility with curses code, you can use 'curses' names,\nbut note that curses doesn't have nice key names for many key combinations\nso you'll be putting up with names like `u'\\xe1'` for\noption-j and `'\\x86'` for ctrl-option-f.\nPass 'plain' for this parameter to return a simple unicode representation.\n\nThe events returned will be unicode strings representing single keypresses,\nor subclasses of events.Event.\n\nPasteEvent objects representing multple keystrokes in very rapid succession\n(typically because the user pasted in text, but possibly because they typed\ntwo keys simultaneously. How many bytes must occur together to trigger such\nan event is customizable via the paste_threshold argument to the `Input()`\n- by default it's one greater than the maximum possible keypress\nlength in bytes.\n\nIf `sigint_event=True` is passed to `Input()`, SIGINT signals from the\noperating system (which usually raise a KeyboardInterrupt exception)\nwill be returned as `SigIntEvent()`s.\n\nTo set a timeout on the blocking get, treat it like a generator and call\n`.send(timeout)`. The call will return None if no event is available.\n\nExamples\n--------\n\n* [Tic-Tac-Toe](/examples/tictactoeexample.py)\n\n![screenshot](http://i.imgur.com/AucB55B.png)\n\n* [Avoid the X's game](/examples/gameexample.py)\n\n![screenshot](http://i.imgur.com/nv1RQd3.png)\n\n* [Bpython-curtsies uses curtsies](http://ballingt.com/2013/12/21/bpython-curtsies.html)\n\n[![ScreenShot](http://i.imgur.com/r7rZiBS.png)](http://www.youtube.com/watch?v=lwbpC4IJlyA)\n\n* [More examples](/examples)\n\nAuthors\n-------\n* Thomas Ballinger\n* Fei Dong - work on making FmtStr and Chunk immutable\n* Julia Evans - help with Python 3 Conversion\n* Zach Allaun, Mary Rose Cook, Alex Clemmer - early code review of terminal.py\n* Rachel King - several bugfixes on blessings use\n* Amber Wilcox-O'Hearn - paired on a refactoring\n* Darius Bacon - lots of great code review\n* inspired by a conversation with Scott Feeney\n* Lea Albaugh - beautiful Curtsies logo\n* Nick Sweeting - fish-style history search and completion\n",
+      "description_content_type": null,
+      "docs_url": null,
+      "download_url": "UNKNOWN",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/thomasballinger/curtsies",
+      "keywords": null,
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "curtsies",
+      "package_url": "https://pypi.org/project/curtsies/",
+      "platform": "UNKNOWN",
+      "project_url": "https://pypi.org/project/curtsies/",
+      "project_urls": {
+        "Download": "UNKNOWN",
+        "Homepage": "https://github.com/thomasballinger/curtsies"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/curtsies/0.1.17/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "Curses-like terminal wrapper, with colored strings!",
+      "version": "0.1.17",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 29450838,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "ikanobori"
+        },
+        {
+          "role": "Owner",
+          "user": "sebastinas"
+        },
+        {
+          "role": "Owner",
+          "user": "thomasballinger"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "6f73f856a13c4fe9baa32e6945c3fd24220e91fbcebbeee64b0c47428ad5a56b",
+          "md5": "c3303fbae22d96e76945e3ca457dbc09",
+          "sha256": "1c828ecea568d91544d3d8034354cf6107d02217a96974cfff07dcecf83d05bf"
+        },
+        "downloads": -1,
+        "filename": "curtsies-0.1.17.tar.gz",
+        "has_sig": false,
+        "md5_digest": "c3303fbae22d96e76945e3ca457dbc09",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 44200,
+        "upload_time": "2015-01-20T20:36:53",
+        "upload_time_iso_8601": "2015-01-20T20:36:53.560033Z",
+        "url": "https://files.pythonhosted.org/packages/6f/73/f856a13c4fe9baa32e6945c3fd24220e91fbcebbeee64b0c47428ad5a56b/curtsies-0.1.17.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

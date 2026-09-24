@@ -1,0 +1,308 @@
+{
+  "package": "starlette",
+  "version": "0.1.14",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:46:44.320095+00:00",
+  "payload": {
+    "info": {
+      "author": "Tom Christie",
+      "author_email": "tom@tomchristie.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 3 - Alpha",
+        "Environment :: Web Environment",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Internet :: WWW/HTTP"
+      ],
+      "description": "<p align=\"center\">\n  <img width=\"320\" height=\"192\" src=\"https://raw.githubusercontent.com/encode/starlette/master/docs/starlette.png\" alt='starlette'>\n</p>\n<p align=\"center\">\n    <em>\u2728 The little ASGI library that shines. \u2728</em>\n</p>\n<p align=\"center\">\n<a href=\"https://travis-ci.org/encode/starlette\">\n    <img src=\"https://travis-ci.org/encode/starlette.svg?branch=master\" alt=\"Build Status\">\n</a>\n<a href=\"https://codecov.io/gh/encode/starlette\">\n    <img src=\"https://codecov.io/gh/encode/starlette/branch/master/graph/badge.svg\" alt=\"Coverage\">\n</a>\n<a href=\"https://pypi.org/project/starlette/\">\n    <img src=\"https://badge.fury.io/py/starlette.svg\" alt=\"Package version\">\n</a>\n</p>\n\n---\n\nStarlette is a small library for working with [ASGI](https://asgi.readthedocs.io/en/latest/).\n\nIt gives you `Request` and `Response` classes, request routing, static files support,\na test client, and a decorator for writing super-minimal applications.\n\n**Requirements:**\n\nPython 3.6+\n\n**Installation:**\n\n```shell\npip3 install starlette\n```\n\n**Example:**\n\n```python\nfrom starlette import Response\n\n\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        response = Response('Hello, world!', media_type='text/plain')\n        await response(receive, send)\n```\n\nYou can run the application with any ASGI server, including [uvicorn](http://www.uvicorn.org/), [daphne](https://github.com/django/daphne/), or [hypercorn](https://pgjones.gitlab.io/hypercorn/).\n\n<p align=\"center\">&mdash; \u2b50\ufe0f &mdash;</p>\n\n## Responses\n\nStarlette includes a few response classes that handle sending back the\nappropriate ASGI messages on the `send` channel.\n\n### Response\n\nSignature: `Response(content, status_code=200, headers=None, media_type=None)`\n\n* `content` - A string or bytestring.\n* `status_code` - An integer HTTP status code.\n* `headers` - A dictionary of strings.\n* `media_type` - A string giving the media type. eg. \"text/html\"\n\nStarlette will automatically include a Content-Length header. It will also\ninclude a Content-Type header, based on the media_type and appending a charset\nfor text types.\n\nOnce you've instantiated a response, you can send it by calling it as an\nASGI application instance.\n\n```python\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        response = Response('Hello, world!', media_type='text/plain')\n        await response(receive, send)\n```\n\n### HTMLResponse\n\nTakes some text or bytes and returns an HTML response.\n\n```python\nfrom starlette import HTMLResponse\n\n\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        response = HTMLResponse('<html><body><h1>Hello, world!</h1></body></html>')\n        await response(receive, send)\n```\n\n### PlainTextResponse\n\nTakes some text or bytes and returns an plain text response.\n\n```python\nfrom starlette import PlainTextResponse\n\n\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        response = PlainTextResponse('Hello, world!')\n        await response(receive, send)\n```\n\n### JSONResponse\n\nTakes some data and returns an `application/json` encoded response.\n\n```python\nfrom starlette import JSONResponse\n\n\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        response = JSONResponse({'hello': 'world'})\n        await response(receive, send)\n```\n\n### StreamingResponse\n\nTakes an async generator and streams the response body.\n\n```python\nfrom starlette import Request, StreamingResponse\nimport asyncio\n\n\nasync def slow_numbers(minimum, maximum):\n    yield('<html><body><ul>')\n    for number in range(minimum, maximum + 1):\n        yield '<li>%d</li>' % number\n        await asyncio.sleep(0.5)\n    yield('</ul></body></html>')\n\n\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        generator = slow_numbers(1, 10)\n        response = StreamingResponse(generator, media_type='text/html')\n        await response(receive, send)\n```\n\n### FileResponse\n\nAsynchronously streams a file as the response.\n\nTakes a different set of arguments to instantiate than the other response types:\n\n* `path` - The filepath to the file to stream.\n* `headers` - Any custom headers to include, as a dictionary.\n* `media_type` - A string giving the media type. If unset, the filename or path will be used to infer a media type.\n* `filename` - If set, this will be included in the response `Content-Disposition`.\n\nFile responses will include appropriate `Content-Length`, `Last-Modified` and `ETag` headers.\n\n```python\nfrom starlette import FileResponse\n\n\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        response = FileResponse('/statics/favicon.ico')\n        await response(receive, send)\n```\n\n---\n\n## Requests\n\nStarlette includes a `Request` class that gives you a nicer interface onto\nthe incoming request, rather than accessing the ASGI scope and receive channel directly.\n\n### Request\n\nSignature: `Request(scope, receive=None)`\n\n```python\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        request = Request(self.scope, receive)\n        content = '%s %s' % (request.method, request.url.path)\n        response = Response(content, media_type='text/plain')\n        await response(receive, send)\n```\n\nRequests present a mapping interface, so you can use them in the same\nway as a `scope`.\n\nFor instance: `request['path']` will return the ASGI path.\n\nIf you don't need to access the request body you can instantiate a request\nwithout providing an argument to `receive`.\n\n#### Method\n\nThe request method is accessed as `request.method`.\n\n#### URL\n\nThe request URL is accessed as `request.url`.\n\nThe property is actually a subclass of `str`, and also exposes all the\ncomponents that can be parsed out of the URL.\n\nFor example: `request.url.path`, `request.url.port`, `request.url.scheme`.\n\n#### Headers\n\nHeaders are exposed as an immutable, case-insensitive, multi-dict.\n\nFor example: `request.headers['content-type']`\n\n#### Query Parameters\n\nHeaders are exposed as an immutable multi-dict.\n\nFor example: `request.query_params['abc']`\n\n#### Body\n\nThere are a few different interfaces for returning the body of the request:\n\nThe request body as bytes: `await request.body()`\n\nThe request body, parsed as JSON: `await request.json()`\n\nYou can also access the request body as a stream, using the `async for` syntax:\n\n```python\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        request = Request(self.scope, receive)\n        body = b''\n        async for chunk in request.stream():\n            body += chunk\n        response = Response(body, media_type='text/plain')\n        await response(receive, send)\n```\n\nIf you access `.stream()` then the byte chunks are provided without storing\nthe entire body to memory. Any subsequent calls to `.body()` and `.json()` will\nraise an error.\n\n---\n\n## Routing\n\nStarlette includes a `Router` class which is an ASGI application that\ndispatches to other ASGI applications.\n\n```python\nfrom starlette.routing import Router, Path, PathPrefix\nfrom myproject import Homepage, SubMountedApp\n\n\napp = Router([\n    Path('/', app=Homepage, methods=['GET']),\n    PathPrefix('/mount/', app=SubMountedApp)\n])\n```\n\nPaths can use URI templating style to capture path components.\n\n```python\nPath('/users/{username}', app=User, methods=['GET'])\n```\n\nPath components are made available in the scope, as `scope[\"kwargs\"]`.\n\nYou can also use regular expressions for more complicated matching.\n\nNamed capture groups will be included in `scope[\"kwargs\"]`:\n\n```python\nPath('/users/(?P<username>[a-zA-Z0-9_]{1,20})', app=User, methods=['GET'])\n```\n\nBecause each target of the router is an ASGI instance itself, routers\nallow for easy composition. For example:\n\n```python\napp = Router([\n    Path('/', app=Homepage, methods=['GET']),\n    PathPrefix('/users', app=Router([\n        Path('/', app=Users, methods=['GET', 'POST']),\n        Path('/{username}', app=User, methods=['GET']),\n    ]))\n])\n```\n\nThe router will respond with \"404 Not found\" or \"406 Method not allowed\"\nresponses for requests which do not match.\n\n---\n\n## Static Files\n\nAs well as the `FileResponse` class, Starlette also includes ASGI applications\nfor serving a specific file or directory:\n\n* `StaticFile(path)` - Serve a single file, given by `path`.\n* `StaticFiles(directory)` - Serve any files in the given `directory`.\n\nYou can combine these ASGI applications with Starlette's routing to provide\ncomprehensive static file serving.\n\n```python\nfrom starlette.routing import Router, Path, PathPrefix\nfrom starlette.staticfiles import StaticFile, StaticFiles\n\n\napp = Router(routes=[\n    Path('/', app=StaticFile(path='index.html')),\n    PathPrefix('/static/', app=StaticFiles(directory='static')),\n])\n```\n\nStatic files will respond with \"404 Not found\" or \"406 Method not allowed\"\nresponses for requests which do not match.\n\n---\n\n## Test Client\n\nThe test client allows you to make requests against your ASGI application,\nusing the `requests` library.\n\n```python\nfrom starlette import HTMLResponse, TestClient\n\n\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        response = HTMLResponse('<html><body>Hello, world!</body></html>')\n        await response(receive, send)\n\n\ndef test_app():\n    client = TestClient(App)\n    response = client.get('/')\n    assert response.status_code == 200\n```\n\n---\n\n## Debugging\n\nYou can use Starlette's `DebugMiddleware` to display simple error tracebacks in the browser.\n\n```python\nfrom starlette.debug import DebugMiddleware\n\n\nclass App:\n    def __init__(self, scope):\n        self.scope = scope\n\n    async def __call__(self, receive, send):\n        raise RuntimeError('Something went wrong')\n\n\napp = DebugMiddleware(App)\n```\n\n---\n\n## Decorators\n\nThe `asgi_application` decorator takes a request/response function and turns\nit into an ASGI application.\n\nThe function must take a single `request` argument, and return a response.\n\nThe decorator can be applied to either `async` functions, or to standard\nfunctions.\n\n```python\nfrom starlette import asgi_application, HTMLResponse\n\n\n@asgi_application\nasync def app(request):\n    return HTMLResponse('<html><body>Hello, world!</body></html>')\n```\n\n---\n\n<p align=\"center\"><i>Starlette is <a href=\"https://github.com/tomchristie/starlette/blob/master/LICENSE.md\">BSD licensed</a> code.<br/>Designed & built in Brighton, England.</i><br/>&mdash; \u2b50\ufe0f &mdash;</p>",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/encode/starlette",
+      "keywords": "",
+      "license": "BSD",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "starlette",
+      "package_url": "https://pypi.org/project/starlette/",
+      "platform": "",
+      "project_url": "https://pypi.org/project/starlette/",
+      "project_urls": {
+        "Homepage": "https://github.com/encode/starlette"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/starlette/0.1.14/",
+      "requires_dist": null,
+      "requires_python": "",
+      "summary": "The little ASGI library that shines.",
+      "version": "0.1.14",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 39828917,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "Kludex"
+        },
+        {
+          "role": "Maintainer",
+          "user": "tomchristie"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "9226722c4305681242b62b6fcb15b9a28a1e67e7adb0d714e353742a71840e5c",
+          "md5": "96262bc867553b85950734a93ea7a2aa",
+          "sha256": "8aa2d124a75f6bf770adba4c20336718338bb1d5a66510772bec539ae8eb370f"
+        },
+        "downloads": -1,
+        "filename": "starlette-0.1.14.tar.gz",
+        "has_sig": false,
+        "md5_digest": "96262bc867553b85950734a93ea7a2aa",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 14594,
+        "upload_time": "2018-07-18T14:43:11",
+        "upload_time_iso_8601": "2018-07-18T14:43:11.139211Z",
+        "url": "https://files.pythonhosted.org/packages/92/26/722c4305681242b62b6fcb15b9a28a1e67e7adb0d714e353742a71840e5c/starlette-0.1.14.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "aliases": [
+          "CVE-2023-30798",
+          "PYSEC-2023-48"
+        ],
+        "details": "### Impact\n\nThe `MultipartParser` using the package `python-multipart` accepts an unlimited number of multipart parts (form fields or files).\n\nProcessing too many parts results in high CPU usage and high memory usage, eventually leading to an <abbr title=\"out of memory\">OOM</abbr> process kill.\n\nThis can be triggered by sending too many small form fields with no content, or too many empty files.\n\nFor this to take effect application code has to:\n\n* Have `python-multipart` installed and\n* call `request.form()`\n  * or via another framework like FastAPI, using form field parameters or `UploadFile` parameters, which in turn calls `request.form()`.\n\n### Patches\n\nThe vulnerability is solved in Starlette 0.25.0 by making the maximum fields and files customizable and with a sensible default (1000). \n\nApplications will be secure by just upgrading their Starlette version to 0.25.0 (or FastAPI to 0.92.0).\n\nIf application code needs to customize the new max field and file number, there are new `request.form()` parameters (with the default values):\n\n* `max_files=1000`\n* `max_fields=1000`\n\n### Workarounds\n\nApplications that don't install `python-multipart` or that don't use form fields are safe.\n\nIn older versions, it's also possible to instead of calling `request.form()` call `request.stream()` and parse the form data in internal code.\n\nIn most cases, the best solution is to upgrade the Starlette version.\n\n### References\n\nThis was reported in private by @das7pad via internal email. He also coordinated the fix across multiple frameworks and parsers.\n\nThe details about how `multipart/form-data` is structured and parsed are in the [RFC 7578](https://www.rfc-editor.org/rfc/rfc7578).\n",
+        "fixed_in": [
+          "0.25.0"
+        ],
+        "id": "GHSA-74m5-2c7w-9w3x",
+        "link": "https://osv.dev/vulnerability/GHSA-74m5-2c7w-9w3x",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2023-30798",
+          "GHSA-74m5-2c7w-9w3x"
+        ],
+        "details": "There MultipartParser usage in Encode's Starlette python framework before versions 0.25.0 allows an unauthenticated and remote attacker to specify any number of form fields or files which can cause excessive memory usage resulting in denial of service of the HTTP service.",
+        "fixed_in": [
+          "0.25.0"
+        ],
+        "id": "PYSEC-2023-48",
+        "link": "https://osv.dev/vulnerability/PYSEC-2023-48",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-47874",
+          "PYSEC-2026-1943"
+        ],
+        "details": "### Summary\nStarlette treats `multipart/form-data` parts without a `filename` as text form fields and buffers those in byte strings with no size limit. This allows an attacker to upload arbitrary large form fields and cause Starlette to both slow down significantly due to excessive memory allocations and copy operations, and also consume more and more memory until the server starts swapping and grinds to a halt, or the OS terminates the server process with an OOM error. Uploading multiple such requests in parallel may be enough to render a service practically unusable, even if reasonable request size limits are enforced by a reverse proxy in front of Starlette.\n\n### PoC\n\n```python\nfrom starlette.applications import Starlette\nfrom starlette.routing import Route\n\nasync def poc(request):\n    async with request.form():\n        pass\n\napp = Starlette(routes=[\n    Route('/', poc, methods=[\"POST\"]),\n])\n```\n\n```sh\ncurl http://localhost:8000 -F 'big=</dev/urandom'\n```\n\n### Impact\nThis Denial of service (DoS) vulnerability affects all applications built with Starlette (or FastAPI) accepting form requests.\n",
+        "fixed_in": [
+          "0.40.0"
+        ],
+        "id": "GHSA-f96h-pmfr-66vw",
+        "link": "https://osv.dev/vulnerability/GHSA-f96h-pmfr-66vw",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2025-54121",
+          "PYSEC-2026-1941"
+        ],
+        "details": "### Summary\nWhen parsing a multi-part form with large files (greater than the [default max spool size](https://github.com/encode/starlette/blob/fa5355442753f794965ae1af0f87f9fec1b9a3de/starlette/formparsers.py#L126)) `starlette` will block the main thread to roll the file over to disk. This blocks the event thread which means we can't accept new connections.\n\n### Details\nPlease see this discussion for details: https://github.com/encode/starlette/discussions/2927#discussioncomment-13721403. In summary the following UploadFile code (copied from [here](https://github.com/encode/starlette/blob/fa5355442753f794965ae1af0f87f9fec1b9a3de/starlette/datastructures.py#L436C5-L447C14)) has a minor bug. Instead of just checking for `self._in_memory` we should also check if the additional bytes will cause a rollover.\n\n```python\n\n    @property\n    def _in_memory(self) -> bool:\n        # check for SpooledTemporaryFile._rolled\n        rolled_to_disk = getattr(self.file, \"_rolled\", True)\n        return not rolled_to_disk\n\n    async def write(self, data: bytes) -> None:\n        if self.size is not None:\n            self.size += len(data)\n\n        if self._in_memory:\n            self.file.write(data)\n        else:\n            await run_in_threadpool(self.file.write, data)\n```\n\nI have already created a PR which fixes the problem: https://github.com/encode/starlette/pull/2962\n\n\n### PoC\nSee the discussion [here](https://github.com/encode/starlette/discussions/2927#discussioncomment-13721403) for steps on how to reproduce.\n\n### Impact\nTo be honest, very low and not many users will be impacted. Parsing large forms is already CPU intensive so the additional IO block doesn't slow down `starlette` that much on systems with modern HDDs/SSDs. If someone is running on tape they might see a greater impact.",
+        "fixed_in": [
+          "0.47.2"
+        ],
+        "id": "GHSA-2c2j-9gv5-cj73",
+        "link": "https://osv.dev/vulnerability/GHSA-2c2j-9gv5-cj73",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-48710",
+          "GHSA-86qp-5c8j-p5mr",
+          "X41-2026-002"
+        ],
+        "details": "Starlette reconstructs the requested URL based on the HTTP Host request header and requested path, but does not perform any validation of the Host header value. This allows attackers to inject paths into the host part, prepending the actual path. However, routing in Starlette is based on the actual request path. This inconsistent interpretation of HTTP requests may lead to issues such as authentication bypass when the authentication depends on the reconstructed URL\u2019s path.",
+        "fixed_in": [
+          "1.0.1"
+        ],
+        "id": "PYSEC-2026-161",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-161",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-48710",
+          "PYSEC-2026-161",
+          "X41-2026-002"
+        ],
+        "details": "### Summary\nIn affected versions, the HTTP `Host` request header was not validated before being used to reconstruct `request.url`. Because the routing algorithm relies on the raw HTTP path while `request.url` is rebuilt from the `Host` header, a malformed header could make `request.url.path` differ from the path that was actually requested. Middleware and endpoints that apply security restrictions based on `request.url` (rather than the raw `scope` path) could therefore be bypassed.\n\n### Details\nWhen a client requests `http://example.com/foo`, it sends:\n\n```http\nGET /foo HTTP/1.1\nHost: example.com\n```\n\nAffected versions reconstructed the URL by concatenating `http://{host}{path}` and re-parsing the result. The `Host` value is only valid as a `uri-host [ \":\" port ]` per [RFC 9112 \u00a73.2](https://www.rfc-editor.org/rfc/rfc9112.html#section-3.2-6), where `uri-host` follows the restricted `host` grammar of [RFC 3986 \u00a73.2.2](https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.2). When it contains characters outside that grammar - notably `/`, `?`, or `#` - those characters move the path/query/fragment boundaries during re-parsing, so the parsed `request.url.path` no longer matches the path the server actually received. For example:\n\n```http\nGET /foo HTTP/1.1\nHost: example.com/abc?bar=\n```\n\nreconstructs to `http://example.com/abc?bar=/foo`, whose parsed `path` is `/abc` - even though routing used the real path `/foo`. The router still dispatches to `/foo` and the endpoint executes, but any middleware or code that reads `request.url.path` sees `/abc`, so path-based authorization checks can be bypassed.\n\n### Impact\nAny application running an affected version that relies on `request.url` (or `request.url.path`) for security-sensitive decisions is affected. The most common case is middleware that gates access to certain path prefixes based on `request.url.path`. Deployments fronted by a proxy or load balancer are mitigated only if that proxy rejects or normalizes the malformed `Host` header before forwarding and the application does not trust attacker-controlled host headers (e.g. `X-Forwarded-Host`) elsewhere.\n\n### Mitigation\nUpgrade to a patched version, which validates the `Host` header against the grammar of [RFC 9112 \u00a73.2](https://www.rfc-editor.org/rfc/rfc9112.html#section-3.2-6) / [RFC 3986 \u00a73.2.2](https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.2) when constructing `request.url` and falls back to `scope[\"server\"]` for malformed values.",
+        "fixed_in": [
+          "1.0.1"
+        ],
+        "id": "GHSA-86qp-5c8j-p5mr",
+        "link": "https://osv.dev/vulnerability/GHSA-86qp-5c8j-p5mr",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-48818",
+          "PYSEC-2026-2281"
+        ],
+        "details": "### Summary\n\nWhen serving static files on Windows, `StaticFiles` resolves the requested path with [`os.path.realpath`](https://docs.python.org/3/library/os.path.html#os.path.realpath). If a UNC path (such as `\\\\attacker.com\\share`) reaches the resolver, `realpath` causes the process to open a connection to the remote host over SMB (port 445). This is a server-side request forgery (SSRF) that leaks the service account's NTLMv2 credentials to the attacker-controlled host, which can then be cracked offline or relayed to other hosts.\n\n### Details\n\n`StaticFiles.lookup_path()` joins the requested path onto the served directory and calls [`os.path.realpath`](https://docs.python.org/3/library/os.path.html#os.path.realpath) on the result before checking containment with [`os.path.commonpath`](https://docs.python.org/3/library/os.path.html#os.path.commonpath). On Windows, a UNC path is absolute, so [`os.path.join`](https://docs.python.org/3/library/os.path.html#os.path.join) discards the served directory and `realpath` resolves the bare UNC path, triggering the outbound SMB connection and NTLM authentication before the containment check rejects the path. The HTTP response is a benign 404, but the credential disclosure has already happened. POSIX systems are not affected.\n\nThis only affects the default configuration (`follow_symlink=False`), which uses [`os.path.realpath`](https://docs.python.org/3/library/os.path.html#os.path.realpath). The `follow_symlink=True` branch uses [`os.path.abspath`](https://docs.python.org/3/library/os.path.html#os.path.abspath), which performs no I/O.\n\n### Impact\n\nApplications running on Windows that serve files with `StaticFiles` (directly, or via a framework built on Starlette such as FastAPI) in the default configuration are affected. `StaticFiles` is typically unauthenticated, so any client can trigger the SMB connection and leak the service account's NTLMv2 hash. A secondary impact is discovering internal hosts reachable over SMB by timing responses for valid versus invalid addresses.\n\n### Mitigation\n\nApplications not running on Windows are not affected. On Windows, serving static files through a dedicated web server (such as nginx or IIS) instead of `StaticFiles` avoids the issue. Blocking outbound SMB (port 445) from the application host prevents the credential disclosure even if a UNC path is resolved.",
+        "fixed_in": [
+          "1.1.0"
+        ],
+        "id": "GHSA-wqp7-x3pw-xc5r",
+        "link": "https://osv.dev/vulnerability/GHSA-wqp7-x3pw-xc5r",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-48817",
+          "PYSEC-2026-2280"
+        ],
+        "details": "### Summary\n\nWhen dispatching a request, `HTTPEndpoint` selects the handler by lowercasing the HTTP method and looking it up as an attribute with `getattr`, without restricting the lookup to a known set of HTTP verbs.\n\nWhen an `HTTPEndpoint` subclass is registered through `Route(...)` without an explicit `methods=` argument, the route does not constrain the method and every method reaches the endpoint. If a non-standard HTTP method whose lowercased name matches an attribute on the endpoint subclass reaches the endpoint, that attribute is invoked as if it were a request handler. An attacker can use this to reach methods that were never meant to be HTTP handlers, such as internal helpers, without the authorization checks applied by the intended public handler.\n\n### Details\n\n`HTTPEndpoint` uses the client-supplied method name to resolve an instance attribute, without validating it against the set of HTTP verbs the endpoint supports. A method such as `_DO_DELETE` therefore resolves an attribute like `_do_delete` and invokes it. Non-standard methods are valid [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#name-method) token methods, so an endpoint must not treat the method name as a trusted attribute selector.\n\n### Impact\n\nAn application is affected when all of the following hold:\n\n* It defines an `HTTPEndpoint` subclass and registers it via `Route(...)` without an explicit `methods=` argument.\n* The subclass defines additional methods whose names match a non-standard HTTP-method token shape and that accept a single `request` argument and return a response.\n\nThis also affects frameworks built on Starlette, like FastAPI.\n\n### Mitigation\n\nRegister `HTTPEndpoint` subclasses with an explicit `methods=` argument on the `Route`, listing only the HTTP verbs the endpoint supports. The route then rejects any other method with `405 Method Not Allowed` before it reaches the endpoint, so non-standard methods cannot resolve an attribute.",
+        "fixed_in": [
+          "1.1.0"
+        ],
+        "id": "GHSA-x746-7m8f-x49c",
+        "link": "https://osv.dev/vulnerability/GHSA-x746-7m8f-x49c",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-54282",
+          "PYSEC-2026-248"
+        ],
+        "details": "### Summary\n\nIn affected versions, the HTTP request path is not validated before being used to reconstruct `request.url`. Because `request.url` is rebuilt by concatenating `{scheme}://{host}{path}` and re-parsing the result, a path that does not begin with `/` (for example `@google.com`) moves the authority boundary during re-parsing, so `request.url.hostname` and `request.url.netloc` become attacker-controlled. Code that reads `request.url.hostname` (rather than the `Host` header or `scope`) can therefore be misled into trusting an attacker-supplied host.\n\n### Details\n\nWhen a client requests a path that does not start with `/`:\n\n```http\nGET @google.com HTTP/1.1\nHost: localhost\n```\n\naffected versions reconstruct the URL as `http://localhost@google.com`. Per [RFC 3986 \u00a73.2.1](https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.1), the substring before `@` in the authority is `userinfo`, so re-parsing yields `username = \"localhost\"` and `hostname = \"google.com\"`, with an empty path:\n\n```text\nrequest.url          == \"http://localhost@google.com\"\nrequest.url.hostname == \"google.com\"\nrequest.url.path     == \"\"\n```\n\nThe root cause is that the path is concatenated directly after the host without a separating `/`, and without validating that it begins with one. Only the `Host` header was validated when constructing `request.url`; the path was not.\n\nThis requires an ASGI server that forwards a request-target lacking a leading `/` into `scope[\"path\"]`.\n\n### Impact\n\nAny application running an affected version that uses `request.url`, `request.url.netloc`, or `request.url.hostname` for a security-sensitive decision (host-based authorization, redirect/callback base, SSRF target, cache key, audit log) may be affected, when no fronting proxy or load balancer rejects the malformed request-target first.\n\nNote that this is less exploitable than [GHSA-86qp-5c8j-p5mr](https://github.com/Kludex/starlette/security/advisories/GHSA-86qp-5c8j-p5mr): there, the poison is carried in the `Host` header, so the real path still routes to a valid endpoint while `request.url.path` lies. Here, the poison must be carried in the path itself, and that path (`@google.com`) does not match any registered route, so routing returns `404` and no endpoint handler runs. The exposure is limited to code that reads `request.url` before routing - notably middleware - or in 404/exception handlers.\n\n### Mitigation\n\nUpgrade to a patched version, which prevents the request path from crossing into the URL authority. The request above instead yields `http://localhost/@google.com` with `request.url.hostname == \"localhost\"`.",
+        "fixed_in": [
+          "1.3.0"
+        ],
+        "id": "GHSA-jp82-jpqv-5vv3",
+        "link": "https://osv.dev/vulnerability/GHSA-jp82-jpqv-5vv3",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-54282",
+          "GHSA-jp82-jpqv-5vv3"
+        ],
+        "details": "Starlette is a lightweight ASGI framework/toolkit. Prior to 1.3.0, the HTTP request path is not validated before being used to reconstruct request.url. Because request.url is rebuilt by concatenating {scheme}://{host}{path} and re-parsing the result, a path that does not begin with / (for example @google.com) moves the authority boundary during re-parsing, so request.url.hostname and request.url.netloc become attacker-controlled. Code that reads request.url.hostname (rather than the Host header or scope) can therefore be misled into trusting an attacker-supplied host. This vulnerability is fixed in 1.3.0.",
+        "fixed_in": [
+          "1.3.0"
+        ],
+        "id": "PYSEC-2026-248",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-248",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-47874",
+          "GHSA-f96h-pmfr-66vw"
+        ],
+        "details": "### Summary\nStarlette treats `multipart/form-data` parts without a `filename` as text form fields and buffers those in byte strings with no size limit. This allows an attacker to upload arbitrary large form fields and cause Starlette to both slow down significantly due to excessive memory allocations and copy operations, and also consume more and more memory until the server starts swapping and grinds to a halt, or the OS terminates the server process with an OOM error. Uploading multiple such requests in parallel may be enough to render a service practically unusable, even if reasonable request size limits are enforced by a reverse proxy in front of Starlette.\n\n### PoC\n\n```python\nfrom starlette.applications import Starlette\nfrom starlette.routing import Route\n\nasync def poc(request):\n    async with request.form():\n        pass\n\napp = Starlette(routes=[\n    Route('/', poc, methods=[\"POST\"]),\n])\n```\n\n```sh\ncurl http://localhost:8000 -F 'big=</dev/urandom'\n```\n\n### Impact\nThis Denial of service (DoS) vulnerability affects all applications built with Starlette (or FastAPI) accepting form requests.\n",
+        "fixed_in": [
+          "0.40.0"
+        ],
+        "id": "PYSEC-2026-1943",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1943",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2025-54121",
+          "GHSA-2c2j-9gv5-cj73"
+        ],
+        "details": "### Summary\nWhen parsing a multi-part form with large files (greater than the [default max spool size](https://github.com/encode/starlette/blob/fa5355442753f794965ae1af0f87f9fec1b9a3de/starlette/formparsers.py#L126)) `starlette` will block the main thread to roll the file over to disk. This blocks the event thread which means we can't accept new connections.\n\n### Details\nPlease see this discussion for details: https://github.com/encode/starlette/discussions/2927#discussioncomment-13721403. In summary the following UploadFile code (copied from [here](https://github.com/encode/starlette/blob/fa5355442753f794965ae1af0f87f9fec1b9a3de/starlette/datastructures.py#L436C5-L447C14)) has a minor bug. Instead of just checking for `self._in_memory` we should also check if the additional bytes will cause a rollover.\n\n```python\n\n    @property\n    def _in_memory(self) -> bool:\n        # check for SpooledTemporaryFile._rolled\n        rolled_to_disk = getattr(self.file, \"_rolled\", True)\n        return not rolled_to_disk\n\n    async def write(self, data: bytes) -> None:\n        if self.size is not None:\n            self.size += len(data)\n\n        if self._in_memory:\n            self.file.write(data)\n        else:\n            await run_in_threadpool(self.file.write, data)\n```\n\nI have already created a PR which fixes the problem: https://github.com/encode/starlette/pull/2962\n\n\n### PoC\nSee the discussion [here](https://github.com/encode/starlette/discussions/2927#discussioncomment-13721403) for steps on how to reproduce.\n\n### Impact\nTo be honest, very low and not many users will be impacted. Parsing large forms is already CPU intensive so the additional IO block doesn't slow down `starlette` that much on systems with modern HDDs/SSDs. If someone is running on tape they might see a greater impact.",
+        "fixed_in": [
+          "0.47.2"
+        ],
+        "id": "PYSEC-2026-1941",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1941",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-48818",
+          "GHSA-wqp7-x3pw-xc5r"
+        ],
+        "details": "Starlette is a lightweight ASGI framework/toolkit. In versions 1.0.1 and earlier, StaticFiles on Windows is vulnerable to SSRF. An UNC path such as \\\\attacker.com\\share can cause os.path.realpath to initiate an outbound SMB connection before the path is rejected, exposing the service account\u2019s NTLMv2 credentials for offline cracking or relay even though the HTTP response is only a 404. The issue affects default follow_symlink=False deployments, including frameworks built on Starlette such as FastAPI; POSIX systems and follow_symlink=True are unaffected. The issue is fixed in 1.1.0.",
+        "fixed_in": [
+          "1.1.0"
+        ],
+        "id": "PYSEC-2026-2281",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-2281",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-48817",
+          "GHSA-x746-7m8f-x49c"
+        ],
+        "details": "Starlette is a lightweight ASGI framework/toolkit. In versions 1.0.1 and below, when dispatching a request, HTTPEndpoint selects the handler by lowercasing the HTTP method and looking it up as an attribute with getattr, without restricting the lookup to a known set of HTTP verbs. When an HTTPEndpoint subclass is registered through Route(...) without an explicit methods= argument, the route does not constrain the method and every method reaches the endpoint. If a non-standard HTTP method whose lowercased name matches an attribute on the endpoint subclass reaches the endpoint, that attribute is invoked as if it were a request handler. An attacker can use this to reach methods that were never meant to be HTTP handlers, such as internal helpers, without the authorization checks applied by the intended public handler. An application (including Starlette-based frameworks like FastAPI) is affected if it registers an HTTPEndpoint subclass via Route(...) without explicitly setting methods=, and that subclass includes extra methods named like non-standard HTTP verbs that take one request argument and return a response. This issue has been fixed in version 1.1.0.",
+        "fixed_in": [
+          "1.1.0"
+        ],
+        "id": "PYSEC-2026-2280",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-2280",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      }
+    ]
+  }
+}

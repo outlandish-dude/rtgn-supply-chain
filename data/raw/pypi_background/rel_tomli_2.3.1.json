@@ -1,0 +1,1207 @@
+{
+  "package": "tomli",
+  "version": "2.3.1",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:54:39.553452+00:00",
+  "payload": {
+    "info": {
+      "author": null,
+      "author_email": "Taneli Hukkinen <hukkin@users.noreply.github.com>",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Typing :: Typed"
+      ],
+      "description": "[![Build Status](https://github.com/hukkin/tomli/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/hukkin/tomli/actions?query=workflow%3ATests+branch%3Amaster+event%3Apush)\n[![codecov.io](https://codecov.io/gh/hukkin/tomli/branch/master/graph/badge.svg)](https://codecov.io/gh/hukkin/tomli)\n[![PyPI version](https://img.shields.io/pypi/v/tomli)](https://pypi.org/project/tomli)\n\n# Tomli\n\n> A lil' TOML parser\n\n**Table of Contents** *generated with [mdformat-toc](https://github.com/hukkin/mdformat-toc)*\n\n<!-- mdformat-toc start --slug=github --maxlevel=6 --minlevel=2 -->\n\n- [Intro](#intro)\n- [Installation](#installation)\n- [Usage](#usage)\n  - [Parse a TOML string](#parse-a-toml-string)\n  - [Parse a TOML file](#parse-a-toml-file)\n  - [Handle invalid TOML](#handle-invalid-toml)\n  - [Construct `decimal.Decimal`s from TOML floats](#construct-decimaldecimals-from-toml-floats)\n  - [Building a `tomli`/`tomllib` compatibility layer](#building-a-tomlitomllib-compatibility-layer)\n- [FAQ](#faq)\n  - [Why this parser?](#why-this-parser)\n  - [Is comment preserving round-trip parsing supported?](#is-comment-preserving-round-trip-parsing-supported)\n  - [Is there a `dumps`, `write` or `encode` function?](#is-there-a-dumps-write-or-encode-function)\n  - [How do TOML types map into Python types?](#how-do-toml-types-map-into-python-types)\n- [Performance](#performance)\n  - [Pure Python](#pure-python)\n  - [Mypyc generated wheel](#mypyc-generated-wheel)\n\n<!-- mdformat-toc end -->\n\n## Intro<a name=\"intro\"></a>\n\nTomli is a Python library for parsing [TOML](https://toml.io).\nIt is fully compatible with [TOML v1.0.0](https://toml.io/en/v1.0.0).\n\nA version of Tomli, the `tomllib` module,\nwas added to the standard library in Python 3.11\nvia [PEP 680](https://www.python.org/dev/peps/pep-0680/).\nTomli continues to provide a backport on PyPI for Python versions\nwhere the standard library module is not available\nand that have not yet reached their end-of-life.\n\nTomli uses [mypyc](https://github.com/mypyc/mypyc)\nto generate binary wheels for most of the widely used platforms,\nso Python 3.11+ users may prefer it over `tomllib` for improved performance.\nPure Python wheels are available on any platform and should perform the same as `tomllib`.\n\n## Installation<a name=\"installation\"></a>\n\n```bash\npip install tomli\n```\n\n## Usage<a name=\"usage\"></a>\n\n### Parse a TOML string<a name=\"parse-a-toml-string\"></a>\n\n```python\nimport tomli\n\ntoml_str = \"\"\"\n[[players]]\nname = \"Lehtinen\"\nnumber = 26\n\n[[players]]\nname = \"Numminen\"\nnumber = 27\n\"\"\"\n\ntoml_dict = tomli.loads(toml_str)\nassert toml_dict == {\n    \"players\": [{\"name\": \"Lehtinen\", \"number\": 26}, {\"name\": \"Numminen\", \"number\": 27}]\n}\n```\n\n### Parse a TOML file<a name=\"parse-a-toml-file\"></a>\n\n```python\nimport tomli\n\nwith open(\"path_to_file/conf.toml\", \"rb\") as f:\n    toml_dict = tomli.load(f)\n```\n\nThe file must be opened in binary mode (with the `\"rb\"` flag).\nBinary mode will enforce decoding the file as UTF-8 with universal newlines disabled,\nboth of which are required to correctly parse TOML.\n\n### Handle invalid TOML<a name=\"handle-invalid-toml\"></a>\n\n```python\nimport tomli\n\ntry:\n    toml_dict = tomli.loads(\"]] this is invalid TOML [[\")\nexcept tomli.TOMLDecodeError:\n    print(\"Yep, definitely not valid.\")\n```\n\nNote that error messages are considered informational only.\nThey should not be assumed to stay constant across Tomli versions.\n\n### Construct `decimal.Decimal`s from TOML floats<a name=\"construct-decimaldecimals-from-toml-floats\"></a>\n\n```python\nfrom decimal import Decimal\nimport tomli\n\ntoml_dict = tomli.loads(\"precision-matters = 0.982492\", parse_float=Decimal)\nassert isinstance(toml_dict[\"precision-matters\"], Decimal)\nassert toml_dict[\"precision-matters\"] == Decimal(\"0.982492\")\n```\n\nNote that `decimal.Decimal` can be replaced with another callable that converts a TOML float from string to a Python type.\nThe `decimal.Decimal` is, however, a practical choice for use cases where float inaccuracies can not be tolerated.\n\nIllegal types are `dict` and `list`, and their subtypes.\nA `ValueError` will be raised if `parse_float` produces illegal types.\n\n### Building a `tomli`/`tomllib` compatibility layer<a name=\"building-a-tomlitomllib-compatibility-layer\"></a>\n\nPython versions 3.11+ ship with a version of Tomli:\nthe `tomllib` standard library module.\nTo build code that uses the standard library if available,\nbut still works seamlessly with Python 3.6+,\ndo the following.\n\nInstead of a hard Tomli dependency, use the following\n[dependency specifier](https://packaging.python.org/en/latest/specifications/dependency-specifiers/)\nto only require Tomli when the standard library module is not available:\n\n```\ntomli >= 1.1.0 ; python_version < \"3.11\"\n```\n\nThen, in your code, import a TOML parser using the following fallback mechanism:\n\n```python\nimport sys\n\nif sys.version_info >= (3, 11):\n    import tomllib\nelse:\n    import tomli as tomllib\n\ntomllib.loads(\"['This parses fine with Python 3.6+']\")\n```\n\n## FAQ<a name=\"faq\"></a>\n\n### Why this parser?<a name=\"why-this-parser\"></a>\n\n- it's lil'\n- pure Python with zero dependencies\n- the fastest pure Python parser [\\*](#pure-python):\n  18x as fast as [tomlkit](https://pypi.org/project/tomlkit/),\n  2.1x as fast as [toml](https://pypi.org/project/toml/)\n- outputs [basic data types](#how-do-toml-types-map-into-python-types) only\n- 100% spec compliant: passes all tests in\n  [BurntSushi/toml-test](https://github.com/BurntSushi/toml-test)\n  test suite\n- thoroughly tested: 100% branch coverage\n\n### Is comment preserving round-trip parsing supported?<a name=\"is-comment-preserving-round-trip-parsing-supported\"></a>\n\nNo.\n\nThe `tomli.loads` function returns a plain `dict` that is populated with builtin types and types from the standard library only.\nPreserving comments requires a custom type to be returned so will not be supported,\nat least not by the `tomli.loads` and `tomli.load` functions.\n\nLook into [TOML Kit](https://github.com/sdispater/tomlkit) if preservation of style is what you need.\n\n### Is there a `dumps`, `write` or `encode` function?<a name=\"is-there-a-dumps-write-or-encode-function\"></a>\n\n[Tomli-W](https://github.com/hukkin/tomli-w) is the write-only counterpart of Tomli, providing `dump` and `dumps` functions.\n\nThe core library does not include write capability, as most TOML use cases are read-only, and Tomli intends to be minimal.\n\n### How do TOML types map into Python types?<a name=\"how-do-toml-types-map-into-python-types\"></a>\n\n| TOML type        | Python type         | Details                                                      |\n| ---------------- | ------------------- | ------------------------------------------------------------ |\n| Document Root    | `dict`              |                                                              |\n| Key              | `str`               |                                                              |\n| String           | `str`               |                                                              |\n| Integer          | `int`               |                                                              |\n| Float            | `float`             |                                                              |\n| Boolean          | `bool`              |                                                              |\n| Offset Date-Time | `datetime.datetime` | `tzinfo` attribute set to an instance of `datetime.timezone` |\n| Local Date-Time  | `datetime.datetime` | `tzinfo` attribute set to `None`                             |\n| Local Date       | `datetime.date`     |                                                              |\n| Local Time       | `datetime.time`     |                                                              |\n| Array            | `list`              |                                                              |\n| Table            | `dict`              |                                                              |\n| Inline Table     | `dict`              |                                                              |\n\n## Performance<a name=\"performance\"></a>\n\nThe `benchmark/` folder in this repository contains a performance benchmark for comparing the various Python TOML parsers.\n\nBelow are the results for commit [0724e2a](https://github.com/hukkin/tomli/tree/0724e2ab1858da7f5e05a9bffdb24c33589d951c).\n\n### Pure Python<a name=\"pure-python\"></a>\n\n```console\nfoo@bar:~/dev/tomli$ python --version\nPython 3.12.7\nfoo@bar:~/dev/tomli$ pip freeze\nattrs==21.4.0\nclick==8.1.7\npytomlpp==1.0.13\nqtoml==0.3.1\nrtoml==0.11.0\ntoml==0.10.2\ntomli @ file:///home/foo/dev/tomli\ntomlkit==0.13.2\nfoo@bar:~/dev/tomli$ python benchmark/run.py\nParsing data.toml 5000 times:\n------------------------------------------------------\n    parser |  exec time | performance (more is better)\n-----------+------------+-----------------------------\n     rtoml |    0.647 s | baseline (100%)\n  pytomlpp |    0.891 s | 72.62%\n     tomli |     3.14 s | 20.56%\n      toml |     6.69 s | 9.67%\n     qtoml |     8.27 s | 7.82%\n   tomlkit |     56.1 s | 1.15%\n```\n\n### Mypyc generated wheel<a name=\"mypyc-generated-wheel\"></a>\n\n```console\nfoo@bar:~/dev/tomli$ python benchmark/run.py\nParsing data.toml 5000 times:\n------------------------------------------------------\n    parser |  exec time | performance (more is better)\n-----------+------------+-----------------------------\n     rtoml |    0.668 s | baseline (100%)\n  pytomlpp |    0.893 s | 74.81%\n     tomli |     1.96 s | 34.18%\n      toml |     6.64 s | 10.07%\n     qtoml |     8.26 s | 8.09%\n   tomlkit |     52.9 s | 1.26%\n```\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": [
+        "License-File"
+      ],
+      "home_page": null,
+      "keywords": "toml",
+      "license": null,
+      "license_expression": "MIT",
+      "license_files": [
+        "LICENSE"
+      ],
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "tomli",
+      "package_url": "https://pypi.org/project/tomli/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/tomli/",
+      "project_urls": {
+        "Changelog": "https://github.com/hukkin/tomli/blob/master/CHANGELOG.md",
+        "Homepage": "https://github.com/hukkin/tomli"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/tomli/2.3.1/",
+      "requires_dist": null,
+      "requires_python": ">=3.8",
+      "summary": "A lil' TOML parser",
+      "version": "2.3.1",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 35482183,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "hukkin"
+        },
+        {
+          "role": "Maintainer",
+          "user": "encukou"
+        },
+        {
+          "role": "Maintainer",
+          "user": "hauntsaninja"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "080ff753dfeb38d41dcbe1b8de272aa20167d9954261538fa5e85c286b752f47",
+          "md5": "2ac1aea1091770330f66d6bb0c95b0f6",
+          "sha256": "c6887f15ccf1a2b9f4e884d5301be6a52a33a039f0ac573b8ceef22ed4985f73"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp311-cp311-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "2ac1aea1091770330f66d6bb0c95b0f6",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 154123,
+        "upload_time": "2026-03-25T21:47:44",
+        "upload_time_iso_8601": "2026-03-25T21:47:44.246432Z",
+        "url": "https://files.pythonhosted.org/packages/08/0f/f753dfeb38d41dcbe1b8de272aa20167d9954261538fa5e85c286b752f47/tomli-2.3.1-cp311-cp311-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "1d29a6342cc7fa21cb2bd123062654811be24a4e85f6dd6e50f6893b3aad8968",
+          "md5": "aca3b16454be623fd3ec7e29d114a922",
+          "sha256": "65dbdd20930cac70569d55964635f289cd86bf086f2fb74d5939f628b4af4296"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp311-cp311-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "aca3b16454be623fd3ec7e29d114a922",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 148856,
+        "upload_time": "2026-03-25T21:47:45",
+        "upload_time_iso_8601": "2026-03-25T21:47:45.658341Z",
+        "url": "https://files.pythonhosted.org/packages/1d/29/a6342cc7fa21cb2bd123062654811be24a4e85f6dd6e50f6893b3aad8968/tomli-2.3.1-cp311-cp311-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "071a10c859c7653708b489385426620c878b62a37000b95de400e0787541801e",
+          "md5": "a98dbec3aff447973a9ee7c5df79f358",
+          "sha256": "326aaa34fd4cd67db405df288974a96091e526caddb68ddc327d6f22ef072b31"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "a98dbec3aff447973a9ee7c5df79f358",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 236599,
+        "upload_time": "2026-03-25T21:47:46",
+        "upload_time_iso_8601": "2026-03-25T21:47:46.653044Z",
+        "url": "https://files.pythonhosted.org/packages/07/1a/10c859c7653708b489385426620c878b62a37000b95de400e0787541801e/tomli-2.3.1-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "638e2c6f94aa765aeceee6d85d5528d3ce568a64f43cdf51467b639a1e9beea6",
+          "md5": "b5139dc5b18b752b7725b5d006253171",
+          "sha256": "882099a205753849c48aa9648f302105c36f33668c77709785ba3c84a2162952"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "b5139dc5b18b752b7725b5d006253171",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 243300,
+        "upload_time": "2026-03-25T21:47:47",
+        "upload_time_iso_8601": "2026-03-25T21:47:47.620987Z",
+        "url": "https://files.pythonhosted.org/packages/63/8e/2c6f94aa765aeceee6d85d5528d3ce568a64f43cdf51467b639a1e9beea6/tomli-2.3.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "e3aee6c6da60e63f50d896df19d4ee32a91b79c6eff4df960d3a82bf1e28aaf8",
+          "md5": "df00a76d27cb42dc1feb8e979b0e17f6",
+          "sha256": "59e68bfb6147919419080ed1b1ff3e40fb4540a75e1dfda76758b15375572f19"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp311-cp311-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "df00a76d27cb42dc1feb8e979b0e17f6",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 241381,
+        "upload_time": "2026-03-25T21:47:48",
+        "upload_time_iso_8601": "2026-03-25T21:47:48.659094Z",
+        "url": "https://files.pythonhosted.org/packages/e3/ae/e6c6da60e63f50d896df19d4ee32a91b79c6eff4df960d3a82bf1e28aaf8/tomli-2.3.1-cp311-cp311-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "4be6613e9342a77ba07135ee792572fd723aeb342dbfeed6a2dede0e7c8812d1",
+          "md5": "d15d035b90f1818476bd78ac715a6e60",
+          "sha256": "ac7dace80482e75e5ddb330329d54db82bfe5e7fb1854deb635969941effff54"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp311-cp311-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "d15d035b90f1818476bd78ac715a6e60",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 246531,
+        "upload_time": "2026-03-25T21:47:49",
+        "upload_time_iso_8601": "2026-03-25T21:47:49.699911Z",
+        "url": "https://files.pythonhosted.org/packages/4b/e6/613e9342a77ba07135ee792572fd723aeb342dbfeed6a2dede0e7c8812d1/tomli-2.3.1-cp311-cp311-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "e120d1f81e19cd02719aca4f37f8dd6c1333ece54a74f09b080fe6f817fe8fdc",
+          "md5": "9df93e58b901cf29bcb293fb7f0de13f",
+          "sha256": "37704f984bf77a26442d0d94dfe0eced13b78bae5959909bfb29ec809743c498"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp311-cp311-win32.whl",
+        "has_sig": false,
+        "md5_digest": "9df93e58b901cf29bcb293fb7f0de13f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 96865,
+        "upload_time": "2026-03-25T21:47:50",
+        "upload_time_iso_8601": "2026-03-25T21:47:50.667673Z",
+        "url": "https://files.pythonhosted.org/packages/e1/20/d1f81e19cd02719aca4f37f8dd6c1333ece54a74f09b080fe6f817fe8fdc/tomli-2.3.1-cp311-cp311-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "4ea3c44c1c81b403abaabd72604192f0d8636d90c8dd9a32d65d3f3e7ab69e1e",
+          "md5": "95f2fadf3282927b7ecaecedc14a7bbb",
+          "sha256": "6cfbe0e32de027945a24a8078a84bdd1841e83a89e70c380f516dde2ed64d42c"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp311-cp311-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "95f2fadf3282927b7ecaecedc14a7bbb",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 107824,
+        "upload_time": "2026-03-25T21:47:51",
+        "upload_time_iso_8601": "2026-03-25T21:47:51.705258Z",
+        "url": "https://files.pythonhosted.org/packages/4e/a3/c44c1c81b403abaabd72604192f0d8636d90c8dd9a32d65d3f3e7ab69e1e/tomli-2.3.1-cp311-cp311-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "54b52b0fe00601131af5ebf80e7c42653202b21bdedeee0b3c411132bbf5a386",
+          "md5": "15b1f376a9b349bf7584b58984823d83",
+          "sha256": "a9147a571415ea00a535d3f4dac47bc1e200b38ba5354d1630005edaa883f627"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp311-cp311-win_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "15b1f376a9b349bf7584b58984823d83",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 95019,
+        "upload_time": "2026-03-25T21:47:52",
+        "upload_time_iso_8601": "2026-03-25T21:47:52.577491Z",
+        "url": "https://files.pythonhosted.org/packages/54/b5/2b0fe00601131af5ebf80e7c42653202b21bdedeee0b3c411132bbf5a386/tomli-2.3.1-cp311-cp311-win_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "a73d412cca2e8656c6adef4fb51d180f0424f9b2ff84828ceb560e72da0cafc6",
+          "md5": "8b92847d95c1e995bea08a89e6c803c9",
+          "sha256": "274594ddf9cfbc8f00dc062f9b896260ccc67ee75f8505878fde3fb4fd7f6746"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp312-cp312-macosx_10_13_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "8b92847d95c1e995bea08a89e6c803c9",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 155642,
+        "upload_time": "2026-03-25T21:47:53",
+        "upload_time_iso_8601": "2026-03-25T21:47:53.622845Z",
+        "url": "https://files.pythonhosted.org/packages/a7/3d/412cca2e8656c6adef4fb51d180f0424f9b2ff84828ceb560e72da0cafc6/tomli-2.3.1-cp312-cp312-macosx_10_13_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "8cd403d65efd3f8e19448c66eab9ad85319f3bb2f524d22acbc37e0f2345d2d1",
+          "md5": "b17cc174a293f71ecd09e761ffe0bb4d",
+          "sha256": "15979b1209eb89c4f3df81fa7ae20a3318203a01e04a8f67bef2798cfa22d463"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp312-cp312-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "b17cc174a293f71ecd09e761ffe0bb4d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 149560,
+        "upload_time": "2026-03-25T21:47:54",
+        "upload_time_iso_8601": "2026-03-25T21:47:54.581474Z",
+        "url": "https://files.pythonhosted.org/packages/8c/d4/03d65efd3f8e19448c66eab9ad85319f3bb2f524d22acbc37e0f2345d2d1/tomli-2.3.1-cp312-cp312-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "0553cb70312a8441d8cd8d1e898fc1c503945541c0317a633a4b3cbd930677ec",
+          "md5": "c62eb0baf13a07e72d5a519170b7b8c8",
+          "sha256": "4eaef610f2b4861a64c6172388f6958a1d0f44ca518a324813fc444bf837a7da"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "c62eb0baf13a07e72d5a519170b7b8c8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 243997,
+        "upload_time": "2026-03-25T21:47:55",
+        "upload_time_iso_8601": "2026-03-25T21:47:55.517717Z",
+        "url": "https://files.pythonhosted.org/packages/05/53/cb70312a8441d8cd8d1e898fc1c503945541c0317a633a4b3cbd930677ec/tomli-2.3.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "36f50fc0ba7a135c786b60223023da7d5c424480296f53671bed50e88da0e510",
+          "md5": "d805bd5775295ff4ece5801a82e01264",
+          "sha256": "d210a56c57aacc9b1f2f4d248133eb971b0bb2e511cffef04d4e617359026d7e"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "d805bd5775295ff4ece5801a82e01264",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 252262,
+        "upload_time": "2026-03-25T21:47:56",
+        "upload_time_iso_8601": "2026-03-25T21:47:56.581236Z",
+        "url": "https://files.pythonhosted.org/packages/36/f5/0fc0ba7a135c786b60223023da7d5c424480296f53671bed50e88da0e510/tomli-2.3.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "29c294c02edad371ecc8ec2f8b81b801ac01f61abe353cb839b8d6428bd921cb",
+          "md5": "e09027ef804c8ac59650f2a188e8344b",
+          "sha256": "4b5b7d6a887de2601070cc4c3b38917b7895c65c531ab148ecb0b5cb70c219b5"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp312-cp312-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "e09027ef804c8ac59650f2a188e8344b",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 247476,
+        "upload_time": "2026-03-25T21:47:57",
+        "upload_time_iso_8601": "2026-03-25T21:47:57.695596Z",
+        "url": "https://files.pythonhosted.org/packages/29/c2/94c02edad371ecc8ec2f8b81b801ac01f61abe353cb839b8d6428bd921cb/tomli-2.3.1-cp312-cp312-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "2056dde6813c3e1f10a7ef05788115140d5b16c01c38a722a0ecb0e334deb0aa",
+          "md5": "859027e732147946c7bcf45a081e37f7",
+          "sha256": "2fe20693746fedb9560b91df1f0e28cb4b055cc055fa52754e2e41e4d5c70e9d"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp312-cp312-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "859027e732147946c7bcf45a081e37f7",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 252054,
+        "upload_time": "2026-03-25T21:47:58",
+        "upload_time_iso_8601": "2026-03-25T21:47:58.604938Z",
+        "url": "https://files.pythonhosted.org/packages/20/56/dde6813c3e1f10a7ef05788115140d5b16c01c38a722a0ecb0e334deb0aa/tomli-2.3.1-cp312-cp312-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "0491cf05a977cdaa949bb1d93c6034ba8bb7c20cfc6db976c8ab5bea4618509a",
+          "md5": "192bb066fbf771820e447d2c60f37aeb",
+          "sha256": "763e46651f5f6a5a22f5202408636891133b0b82b0c3ee0106b564c69db0aace"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp312-cp312-win32.whl",
+        "has_sig": false,
+        "md5_digest": "192bb066fbf771820e447d2c60f37aeb",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 97600,
+        "upload_time": "2026-03-25T21:47:59",
+        "upload_time_iso_8601": "2026-03-25T21:47:59.669588Z",
+        "url": "https://files.pythonhosted.org/packages/04/91/cf05a977cdaa949bb1d93c6034ba8bb7c20cfc6db976c8ab5bea4618509a/tomli-2.3.1-cp312-cp312-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "663ac3589507fa39ea1cc50435de11f17f2133020dc0b805a30afd9d48f5c170",
+          "md5": "d85d95e29f60d6ae8fa215d77eaa0283",
+          "sha256": "e101b5a3ea20b939d8a555a0d90c797cf3aef56fdbdf81f1ec0f336a8cf493c6"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp312-cp312-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "d85d95e29f60d6ae8fa215d77eaa0283",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 108502,
+        "upload_time": "2026-03-25T21:48:00",
+        "upload_time_iso_8601": "2026-03-25T21:48:00.496605Z",
+        "url": "https://files.pythonhosted.org/packages/66/3a/c3589507fa39ea1cc50435de11f17f2133020dc0b805a30afd9d48f5c170/tomli-2.3.1-cp312-cp312-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "234821a820b8098a96ac10fbe6807cc9efabeb5fd921fdaccc02f9aa5c61caf5",
+          "md5": "73e06502739fdaaa7870ff96707a8c17",
+          "sha256": "10ee0733f3cde9aded12fb525e26b74dcedd8e1dafbc120ef0251a0f42eb16ee"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp312-cp312-win_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "73e06502739fdaaa7870ff96707a8c17",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 94745,
+        "upload_time": "2026-03-25T21:48:01",
+        "upload_time_iso_8601": "2026-03-25T21:48:01.394970Z",
+        "url": "https://files.pythonhosted.org/packages/23/48/21a820b8098a96ac10fbe6807cc9efabeb5fd921fdaccc02f9aa5c61caf5/tomli-2.3.1-cp312-cp312-win_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "e117045c5e633e0b6bd8b13b4667be204d99560f1ffc06ca882880c43d1281d2",
+          "md5": "77bee190ce410ecf3583d895ccc880a4",
+          "sha256": "7c769af5bb00de40ab3c96ccac2159bc1f9e90309334d954cf4bb3f3d35f1c7c"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp313-cp313-macosx_10_13_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "77bee190ce410ecf3583d895ccc880a4",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.8",
+        "size": 155588,
+        "upload_time": "2026-03-25T21:48:02",
+        "upload_time_iso_8601": "2026-03-25T21:48:02.275861Z",
+        "url": "https://files.pythonhosted.org/packages/e1/17/045c5e633e0b6bd8b13b4667be204d99560f1ffc06ca882880c43d1281d2/tomli-2.3.1-cp313-cp313-macosx_10_13_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "3447e879abe1791f89c15437a7b93f9deae5170b8786a062c5bf69cbf64c30ae",
+          "md5": "9d94cd050e69bafe42eaa2bcf05d87ab",
+          "sha256": "4e5df936baa2f4f54414f29d79b4ef04c87e1e88bf797265319c16c74ed444e8"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp313-cp313-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "9d94cd050e69bafe42eaa2bcf05d87ab",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.8",
+        "size": 149412,
+        "upload_time": "2026-03-25T21:48:03",
+        "upload_time_iso_8601": "2026-03-25T21:48:03.171691Z",
+        "url": "https://files.pythonhosted.org/packages/34/47/e879abe1791f89c15437a7b93f9deae5170b8786a062c5bf69cbf64c30ae/tomli-2.3.1-cp313-cp313-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "6b519646c23937a09d69d52c5321e7994851ebca968536b9f21af2157b50bf66",
+          "md5": "b79bd5a661fd7f89cf103b28325f2ba7",
+          "sha256": "8e2022b46c35753e6c381df4a9adb16a0d153ccf01ba0f8845a8642e7130d8a3"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "b79bd5a661fd7f89cf103b28325f2ba7",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.8",
+        "size": 242589,
+        "upload_time": "2026-03-25T21:48:04",
+        "upload_time_iso_8601": "2026-03-25T21:48:04.102282Z",
+        "url": "https://files.pythonhosted.org/packages/6b/51/9646c23937a09d69d52c5321e7994851ebca968536b9f21af2157b50bf66/tomli-2.3.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "4d2e6ffe1b200ee5399a9c599fcb97d3a26c43ade5a8afc4bf1816c336b43c51",
+          "md5": "8e30cd2beb0d5becf2fd97e513e8e3c1",
+          "sha256": "f4b849fe05ff7a355abedf865f6720c03d5b2d745f7e8b83589432e1c0619855"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "8e30cd2beb0d5becf2fd97e513e8e3c1",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.8",
+        "size": 250658,
+        "upload_time": "2026-03-25T21:48:05",
+        "upload_time_iso_8601": "2026-03-25T21:48:05.182090Z",
+        "url": "https://files.pythonhosted.org/packages/4d/2e/6ffe1b200ee5399a9c599fcb97d3a26c43ade5a8afc4bf1816c336b43c51/tomli-2.3.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "5cdb84c4b281ccd835ef8733e5fdcf4f9e803cb9c2a5d432949eee39462dadaa",
+          "md5": "3d43519493f1f637476ddfe07f8c0b6c",
+          "sha256": "2c5b484c23af4c218484378e21a645d57799602a0f319cab3e4d55dbf43a42fd"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp313-cp313-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "3d43519493f1f637476ddfe07f8c0b6c",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.8",
+        "size": 246387,
+        "upload_time": "2026-03-25T21:48:06",
+        "upload_time_iso_8601": "2026-03-25T21:48:06.220316Z",
+        "url": "https://files.pythonhosted.org/packages/5c/db/84c4b281ccd835ef8733e5fdcf4f9e803cb9c2a5d432949eee39462dadaa/tomli-2.3.1-cp313-cp313-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "f28f58b5e5a5ce3bb573d0b06249a24fa12833ea3f5194299300858d8028f572",
+          "md5": "3abe1d7826b823b79b266fdce2bf4a6e",
+          "sha256": "14db7b7804ecf309df2acc7f8c89bc46e64c37357a495883ad2b8d96ba89a27c"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp313-cp313-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "3abe1d7826b823b79b266fdce2bf4a6e",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.8",
+        "size": 250672,
+        "upload_time": "2026-03-25T21:48:07",
+        "upload_time_iso_8601": "2026-03-25T21:48:07.184069Z",
+        "url": "https://files.pythonhosted.org/packages/f2/8f/58b5e5a5ce3bb573d0b06249a24fa12833ea3f5194299300858d8028f572/tomli-2.3.1-cp313-cp313-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "0a997f2545037c2916f8be06166aa93ef312fc1d9bed56e044fbf88644cc5ebe",
+          "md5": "52227b909fb139eafff363dbe85d72f5",
+          "sha256": "99422379c2b9882ebf72ea6fbad6a552ee8e5b7ce6a2904e500878b47adbcdf4"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp313-cp313-win32.whl",
+        "has_sig": false,
+        "md5_digest": "52227b909fb139eafff363dbe85d72f5",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.8",
+        "size": 97451,
+        "upload_time": "2026-03-25T21:48:08",
+        "upload_time_iso_8601": "2026-03-25T21:48:08.140321Z",
+        "url": "https://files.pythonhosted.org/packages/0a/99/7f2545037c2916f8be06166aa93ef312fc1d9bed56e044fbf88644cc5ebe/tomli-2.3.1-cp313-cp313-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "3d48771f707fc5ee89978e3f571c95afcc9972dd689950170c4e0e5720eae5eb",
+          "md5": "b5c230f3af458f69fde21ce44dbe835a",
+          "sha256": "569a9cb86168dba2d29f37190fc11f066ece017bff7ac3fc0ef08c9c229330c7"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp313-cp313-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "b5c230f3af458f69fde21ce44dbe835a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.8",
+        "size": 108380,
+        "upload_time": "2026-03-25T21:48:09",
+        "upload_time_iso_8601": "2026-03-25T21:48:09.380137Z",
+        "url": "https://files.pythonhosted.org/packages/3d/48/771f707fc5ee89978e3f571c95afcc9972dd689950170c4e0e5720eae5eb/tomli-2.3.1-cp313-cp313-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "d48c7d7d3c073def42958c8c3e0fefcc7e2243ed386617eab9d5f33476caa189",
+          "md5": "76332877cfd6d359b75326955c542722",
+          "sha256": "1185346592ba9120269ffaaf4d528f0a6fe2c75eb929ac8627415d72c88ddd83"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp313-cp313-win_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "76332877cfd6d359b75326955c542722",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.8",
+        "size": 94957,
+        "upload_time": "2026-03-25T21:48:10",
+        "upload_time_iso_8601": "2026-03-25T21:48:10.244937Z",
+        "url": "https://files.pythonhosted.org/packages/d4/8c/7d7d3c073def42958c8c3e0fefcc7e2243ed386617eab9d5f33476caa189/tomli-2.3.1-cp313-cp313-win_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "45e741711483ce56c90f8e326fb49da52e84697845bcd8103ce37748366c7f48",
+          "md5": "ec726766df9880a17f355ea165a0f441",
+          "sha256": "6a6be9bdf5d6af7dab031613be9dcd1bfd044699ee8d567b9666fbf6e20e5cd6"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314-macosx_10_15_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "ec726766df9880a17f355ea165a0f441",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 155492,
+        "upload_time": "2026-03-25T21:48:11",
+        "upload_time_iso_8601": "2026-03-25T21:48:11.104959Z",
+        "url": "https://files.pythonhosted.org/packages/45/e7/41711483ce56c90f8e326fb49da52e84697845bcd8103ce37748366c7f48/tomli-2.3.1-cp314-cp314-macosx_10_15_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "873a6a8551f1f486f8fe4a62f9df6a1907e7bd2b3d53093a3a4ca9531b9f805b",
+          "md5": "fd0ba9f1f1c712d335301cb31d14c99a",
+          "sha256": "a1c766fb11b96ff9bd1a133d7e0d43819bb47704223d485de15c5c37f64a67bb"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "fd0ba9f1f1c712d335301cb31d14c99a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 149486,
+        "upload_time": "2026-03-25T21:48:12",
+        "upload_time_iso_8601": "2026-03-25T21:48:12.397954Z",
+        "url": "https://files.pythonhosted.org/packages/87/3a/6a8551f1f486f8fe4a62f9df6a1907e7bd2b3d53093a3a4ca9531b9f805b/tomli-2.3.1-cp314-cp314-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "ed7ec9db50020732e9a140a440fc41ffc90c4a16e253a302bdb4b7e1a67a44eb",
+          "md5": "03b300a8e26c3cf75320ac06208e40a1",
+          "sha256": "11946f6b36feb93a7d8600e67b51b1df7de500bb5a8d5085c68d6ab72bc6e1ae"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "03b300a8e26c3cf75320ac06208e40a1",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 243734,
+        "upload_time": "2026-03-25T21:48:13",
+        "upload_time_iso_8601": "2026-03-25T21:48:13.346166Z",
+        "url": "https://files.pythonhosted.org/packages/ed/7e/c9db50020732e9a140a440fc41ffc90c4a16e253a302bdb4b7e1a67a44eb/tomli-2.3.1-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "a24def5c233800f6d3c71e228081bc18fb71679ab8c01d831770c06c7574136f",
+          "md5": "f4db47244178bd9c93394e9982f67ae7",
+          "sha256": "e3f2e6b46e59eebe22bdfaaa012126e70250e7df67dc174d43585fa7a739bee9"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "f4db47244178bd9c93394e9982f67ae7",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 251116,
+        "upload_time": "2026-03-25T21:48:14",
+        "upload_time_iso_8601": "2026-03-25T21:48:14.275953Z",
+        "url": "https://files.pythonhosted.org/packages/a2/4d/ef5c233800f6d3c71e228081bc18fb71679ab8c01d831770c06c7574136f/tomli-2.3.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "d29c672c7c5a10ce17decb932d38c8b792066afb59e0d7004854da989946dfde",
+          "md5": "375120b03386d91fdd4a607453e3d6cb",
+          "sha256": "7f6aff69b240fe7fad830db1e403cc9b4280e0091c90a00ec6d9f30988b7e723"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "375120b03386d91fdd4a607453e3d6cb",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 247356,
+        "upload_time": "2026-03-25T21:48:15",
+        "upload_time_iso_8601": "2026-03-25T21:48:15.252151Z",
+        "url": "https://files.pythonhosted.org/packages/d2/9c/672c7c5a10ce17decb932d38c8b792066afb59e0d7004854da989946dfde/tomli-2.3.1-cp314-cp314-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "763a3ed25e0441491ee6a0edd2d4e937e086b257fd86476aa9af9b0f17cb2e8a",
+          "md5": "dbbe53717cf5ab25d2a376b35f89d237",
+          "sha256": "91a31299bbc0344df506c4c35d66cc5056a4c7bc2d3c37c7da317fe1d95b4976"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "dbbe53717cf5ab25d2a376b35f89d237",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 255117,
+        "upload_time": "2026-03-25T21:48:16",
+        "upload_time_iso_8601": "2026-03-25T21:48:16.209814Z",
+        "url": "https://files.pythonhosted.org/packages/76/3a/3ed25e0441491ee6a0edd2d4e937e086b257fd86476aa9af9b0f17cb2e8a/tomli-2.3.1-cp314-cp314-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "92851725ab5747f75b6ba15f9907d2a027fdb4c4382358ed0fb237c80aac60fb",
+          "md5": "7612164ed565e6a01d3bf8cc35d97546",
+          "sha256": "a5a54dd0e971bdaa92132dd0878f5ffdeab08859cad2a4e4b37263b39754a4fa"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314t-macosx_10_15_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "7612164ed565e6a01d3bf8cc35d97546",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 163814,
+        "upload_time": "2026-03-25T21:48:20",
+        "upload_time_iso_8601": "2026-03-25T21:48:20.499453Z",
+        "url": "https://files.pythonhosted.org/packages/92/85/1725ab5747f75b6ba15f9907d2a027fdb4c4382358ed0fb237c80aac60fb/tomli-2.3.1-cp314-cp314t-macosx_10_15_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "3b274ff3b0090ff3eda859297a4a180376f85c8b4e794c3badd6f2a60e003ef5",
+          "md5": "634ea6b4769d5db60475e7ef103b8639",
+          "sha256": "94881e4bcd872b092fde00ef88384a0cd51024a3cb5a2caab0a1b10d1e2a4940"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314t-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "634ea6b4769d5db60475e7ef103b8639",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 159807,
+        "upload_time": "2026-03-25T21:48:21",
+        "upload_time_iso_8601": "2026-03-25T21:48:21.732614Z",
+        "url": "https://files.pythonhosted.org/packages/3b/27/4ff3b0090ff3eda859297a4a180376f85c8b4e794c3badd6f2a60e003ef5/tomli-2.3.1-cp314-cp314t-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "28002155b7a3ac03a17be352b2e9632cd56b215b4d155ffc87b8a10b0783c34c",
+          "md5": "ec69969eb9e5653cd7e9f9a811735f84",
+          "sha256": "1a689cd0f5abdb80db635c35836976a7c3eaa5f86132c0b1b7b9dffc0e9ef1ac"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "ec69969eb9e5653cd7e9f9a811735f84",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 269660,
+        "upload_time": "2026-03-25T21:48:22",
+        "upload_time_iso_8601": "2026-03-25T21:48:22.661413Z",
+        "url": "https://files.pythonhosted.org/packages/28/00/2155b7a3ac03a17be352b2e9632cd56b215b4d155ffc87b8a10b0783c34c/tomli-2.3.1-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "51e62d74b4940180cad2dcfeb30b506bf306278d0ad488616ca5647fa2251586",
+          "md5": "7254a802668fe48f6a3bc0525216d642",
+          "sha256": "5ffafff83818a2dfc850dbc30464d386e6f5eea7d07ddf8596b0e1d5714d4cf2"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "7254a802668fe48f6a3bc0525216d642",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 276886,
+        "upload_time": "2026-03-25T21:48:24",
+        "upload_time_iso_8601": "2026-03-25T21:48:24.357711Z",
+        "url": "https://files.pythonhosted.org/packages/51/e6/2d74b4940180cad2dcfeb30b506bf306278d0ad488616ca5647fa2251586/tomli-2.3.1-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "67a202390df86b9871a3be59d3a7d2f36eaa5f2b6a394d6aab5336af3658e427",
+          "md5": "9c9a06d182bde88b713f6891991dd031",
+          "sha256": "cc5fbf1ebd4398998715c20249dbba303668f4c6e4c3fbd247e9d51008b43c6a"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314t-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "9c9a06d182bde88b713f6891991dd031",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 273975,
+        "upload_time": "2026-03-25T21:48:25",
+        "upload_time_iso_8601": "2026-03-25T21:48:25.742475Z",
+        "url": "https://files.pythonhosted.org/packages/67/a2/02390df86b9871a3be59d3a7d2f36eaa5f2b6a394d6aab5336af3658e427/tomli-2.3.1-cp314-cp314t-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "a0ad5e17b3f3b575679a6084fccdf08ff45422a485126866c2a507a89dea1fc8"
+        },
+        "digests": {
+          "blake2b_256": "6b2f7b74c69f5374b8525ec206e0d52ae699e0610860641ccfc4431390b9a21a",
+          "md5": "77fe22484eee5be8ce717ee3844fe42d",
+          "sha256": "d72407e284d7b75d661208154be8baec7e26b52329787afe487878209618dc06"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314t-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "77fe22484eee5be8ce717ee3844fe42d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 281615,
+        "upload_time": "2026-03-25T21:48:27",
+        "upload_time_iso_8601": "2026-03-25T21:48:27.039154Z",
+        "url": "https://files.pythonhosted.org/packages/6b/2f/7b74c69f5374b8525ec206e0d52ae699e0610860641ccfc4431390b9a21a/tomli-2.3.1-cp314-cp314t-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "3d525de5979f76e657bbef980f9ed5b94b48f81c637c07a80fb7ebb96b2cfab5",
+          "md5": "11250436b92c3e7911cc3c3aa1673fa0",
+          "sha256": "bfaa3d3b6b1e455d43fcdcc19035c13541008a7c80706fa3e1ce256cdeb962d9"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314t-win32.whl",
+        "has_sig": false,
+        "md5_digest": "11250436b92c3e7911cc3c3aa1673fa0",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 107972,
+        "upload_time": "2026-03-25T21:48:28",
+        "upload_time_iso_8601": "2026-03-25T21:48:28.052962Z",
+        "url": "https://files.pythonhosted.org/packages/3d/52/5de5979f76e657bbef980f9ed5b94b48f81c637c07a80fb7ebb96b2cfab5/tomli-2.3.1-cp314-cp314t-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "ddf1499a7f5ec3be7c6d14c2c56435813dfa8b8cb36a102480ef3823c2ecfbaa",
+          "md5": "653192ccf841aadcf02072bcb697f757",
+          "sha256": "c76132c5bd7c68c6cdc08ed9310c8bc970dad2cad95a5cb713a5670d1afb61ca"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314t-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "653192ccf841aadcf02072bcb697f757",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 120849,
+        "upload_time": "2026-03-25T21:48:29",
+        "upload_time_iso_8601": "2026-03-25T21:48:29.044010Z",
+        "url": "https://files.pythonhosted.org/packages/dd/f1/499a7f5ec3be7c6d14c2c56435813dfa8b8cb36a102480ef3823c2ecfbaa/tomli-2.3.1-cp314-cp314t-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "5ff9f9701e210182a39c766a94da32009f6fbb6f68465fcb81f10633ac8ee327",
+          "md5": "fc1de669fbbfe31e94fa0cad70bda11f",
+          "sha256": "0da6e36b7bef5981d20b00137b504f027ca8970165755bb3646c6d672baa45cc"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314t-win_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "fc1de669fbbfe31e94fa0cad70bda11f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 100055,
+        "upload_time": "2026-03-25T21:48:29",
+        "upload_time_iso_8601": "2026-03-25T21:48:29.931030Z",
+        "url": "https://files.pythonhosted.org/packages/5f/f9/f9701e210182a39c766a94da32009f6fbb6f68465fcb81f10633ac8ee327/tomli-2.3.1-cp314-cp314t-win_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "52c224c138e7e55abedaec6b38aa78d5728cdd0fd084400234de94dc432768e1",
+          "md5": "4d0927eeff8abe6d38a00fa7ab56a22d",
+          "sha256": "75118824f140d4637f8e0997178e81672a9f1aa1224d88069a55556fad548236"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314-win32.whl",
+        "has_sig": false,
+        "md5_digest": "4d0927eeff8abe6d38a00fa7ab56a22d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 98549,
+        "upload_time": "2026-03-25T21:48:17",
+        "upload_time_iso_8601": "2026-03-25T21:48:17.565197Z",
+        "url": "https://files.pythonhosted.org/packages/52/c2/24c138e7e55abedaec6b38aa78d5728cdd0fd084400234de94dc432768e1/tomli-2.3.1-cp314-cp314-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "17f87b8580369119ccb0a68900935b002a1e02b7b324b6bc8c54e743d1f87afe",
+          "md5": "dd375802e371dc4ec7d562297c7db58a",
+          "sha256": "f4d0624f880fcf27da1aa886fd3089233dee77ad3a4e6f862b8e1f3cea1e23de"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "dd375802e371dc4ec7d562297c7db58a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 108777,
+        "upload_time": "2026-03-25T21:48:18",
+        "upload_time_iso_8601": "2026-03-25T21:48:18.747768Z",
+        "url": "https://files.pythonhosted.org/packages/17/f8/7b8580369119ccb0a68900935b002a1e02b7b324b6bc8c54e743d1f87afe/tomli-2.3.1-cp314-cp314-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "d71324d23b77898ceef660521a2a818d908072dd5fb31ad7ed0139c6d4c7cf0e"
+        },
+        "digests": {
+          "blake2b_256": "5690fa756f6eef4f44e1235db6a0aef8b0c045280e758078d2f83cf8d09298fd",
+          "md5": "d7f39ce62854edc22b37381216e1405b",
+          "sha256": "5a4a16fb4acebad71d7f55d5489ae4643f200d031b0bc2f3e7348ee15d39f89e"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-cp314-cp314-win_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "d7f39ce62854edc22b37381216e1405b",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp314",
+        "requires_python": ">=3.8",
+        "size": 96251,
+        "upload_time": "2026-03-25T21:48:19",
+        "upload_time_iso_8601": "2026-03-25T21:48:19.661037Z",
+        "url": "https://files.pythonhosted.org/packages/56/90/fa756f6eef4f44e1235db6a0aef8b0c045280e758078d2f83cf8d09298fd/tomli-2.3.1-cp314-cp314-win_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "560a4cea85875ffaa9ddcdb9ba922ff998a215c50448d9fda6f341e622da92d5"
+        },
+        "digests": {
+          "blake2b_256": "be72973b26a081dba0f5a0cbb18192a27c98bd88b19da5a97df72b5b2ca6c1ce",
+          "md5": "bcebb6d85d06877cc3f8b6eb81e4698d",
+          "sha256": "94004df25851c4e811a5135545a470a823f9e31418ea3eb07c9440aec09c4369"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "bcebb6d85d06877cc3f8b6eb81e4698d",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.8",
+        "size": 14567,
+        "upload_time": "2026-03-25T21:48:30",
+        "upload_time_iso_8601": "2026-03-25T21:48:30.774825Z",
+        "url": "https://files.pythonhosted.org/packages/be/72/973b26a081dba0f5a0cbb18192a27c98bd88b19da5a97df72b5b2ca6c1ce/tomli-2.3.1-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "2ac52d0b45ef342896ccb54f8dee459636c9bbfddd45b1f149ff0093f7f2d324",
+          "md5": "15bde1752a7bae087543fe6c57684c73",
+          "sha256": "833f1bdec09874d3239b87e1527342cda82137abe730518066777ffed876acf4"
+        },
+        "downloads": -1,
+        "filename": "tomli-2.3.1.tar.gz",
+        "has_sig": false,
+        "md5_digest": "15bde1752a7bae087543fe6c57684c73",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.8",
+        "size": 17562,
+        "upload_time": "2026-03-25T21:48:31",
+        "upload_time_iso_8601": "2026-03-25T21:48:31.638761Z",
+        "url": "https://files.pythonhosted.org/packages/2a/c5/2d0b45ef342896ccb54f8dee459636c9bbfddd45b1f149ff0093f7f2d324/tomli-2.3.1.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

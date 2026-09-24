@@ -1,0 +1,1 @@
+"""Datadog manifest ingestion adapter."""

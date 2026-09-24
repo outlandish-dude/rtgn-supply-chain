@@ -1,0 +1,2589 @@
+{
+  "package": "yarl",
+  "version": "1.20.1",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:56:31.188264+00:00",
+  "payload": {
+    "info": {
+      "author": "Andrew Svetlov",
+      "author_email": "andrew.svetlov@gmail.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Cython",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Internet :: WWW/HTTP",
+        "Topic :: Software Development :: Libraries :: Python Modules"
+      ],
+      "description": "yarl\n====\n\nThe module provides handy URL class for URL parsing and changing.\n\n.. image:: https://github.com/aio-libs/yarl/workflows/CI/badge.svg\n   :target: https://github.com/aio-libs/yarl/actions?query=workflow%3ACI\n   :align: right\n\n.. image:: https://codecov.io/gh/aio-libs/yarl/graph/badge.svg?flag=pytest\n   :target: https://app.codecov.io/gh/aio-libs/yarl?flags[]=pytest\n   :alt: Codecov coverage for the pytest-driven measurements\n\n.. image:: https://img.shields.io/endpoint?url=https://codspeed.io/badge.json\n   :target: https://codspeed.io/aio-libs/yarl\n\n.. image:: https://badge.fury.io/py/yarl.svg\n   :target: https://badge.fury.io/py/yarl\n\n.. image:: https://readthedocs.org/projects/yarl/badge/?version=latest\n   :target: https://yarl.aio-libs.org\n\n.. image:: https://img.shields.io/pypi/pyversions/yarl.svg\n   :target: https://pypi.python.org/pypi/yarl\n\n.. image:: https://img.shields.io/matrix/aio-libs:matrix.org?label=Discuss%20on%20Matrix%20at%20%23aio-libs%3Amatrix.org&logo=matrix&server_fqdn=matrix.org&style=flat\n   :target: https://matrix.to/#/%23aio-libs:matrix.org\n   :alt: Matrix Room \u2014 #aio-libs:matrix.org\n\n.. image:: https://img.shields.io/matrix/aio-libs-space:matrix.org?label=Discuss%20on%20Matrix%20at%20%23aio-libs-space%3Amatrix.org&logo=matrix&server_fqdn=matrix.org&style=flat\n   :target: https://matrix.to/#/%23aio-libs-space:matrix.org\n   :alt: Matrix Space \u2014 #aio-libs-space:matrix.org\n\n\nIntroduction\n------------\n\nUrl is constructed from ``str``:\n\n.. code-block:: pycon\n\n   >>> from yarl import URL\n   >>> url = URL('https://www.python.org/~guido?arg=1#frag')\n   >>> url\n   URL('https://www.python.org/~guido?arg=1#frag')\n\nAll url parts: *scheme*, *user*, *password*, *host*, *port*, *path*,\n*query* and *fragment* are accessible by properties:\n\n.. code-block:: pycon\n\n   >>> url.scheme\n   'https'\n   >>> url.host\n   'www.python.org'\n   >>> url.path\n   '/~guido'\n   >>> url.query_string\n   'arg=1'\n   >>> url.query\n   <MultiDictProxy('arg': '1')>\n   >>> url.fragment\n   'frag'\n\nAll url manipulations produce a new url object:\n\n.. code-block:: pycon\n\n   >>> url = URL('https://www.python.org')\n   >>> url / 'foo' / 'bar'\n   URL('https://www.python.org/foo/bar')\n   >>> url / 'foo' % {'bar': 'baz'}\n   URL('https://www.python.org/foo?bar=baz')\n\nStrings passed to constructor and modification methods are\nautomatically encoded giving canonical representation as result:\n\n.. code-block:: pycon\n\n   >>> url = URL('https://www.python.org/\u0448\u043b\u044f\u0445')\n   >>> url\n   URL('https://www.python.org/%D1%88%D0%BB%D1%8F%D1%85')\n\nRegular properties are *percent-decoded*, use ``raw_`` versions for\ngetting *encoded* strings:\n\n.. code-block:: pycon\n\n   >>> url.path\n   '/\u0448\u043b\u044f\u0445'\n\n   >>> url.raw_path\n   '/%D1%88%D0%BB%D1%8F%D1%85'\n\nHuman readable representation of URL is available as ``.human_repr()``:\n\n.. code-block:: pycon\n\n   >>> url.human_repr()\n   'https://www.python.org/\u0448\u043b\u044f\u0445'\n\nFor full documentation please read https://yarl.aio-libs.org.\n\n\nInstallation\n------------\n\n::\n\n   $ pip install yarl\n\nThe library is Python 3 only!\n\nPyPI contains binary wheels for Linux, Windows and MacOS.  If you want to install\n``yarl`` on another operating system where wheels are not provided,\nthe tarball will be used to compile the library from\nthe source code. It requires a C compiler and and Python headers installed.\n\nTo skip the compilation you must explicitly opt-in by using a PEP 517\nconfiguration setting ``pure-python``, or setting the ``YARL_NO_EXTENSIONS``\nenvironment variable to a non-empty value, e.g.:\n\n.. code-block:: console\n\n   $ pip install yarl --config-settings=pure-python=false\n\nPlease note that the pure-Python (uncompiled) version is much slower. However,\nPyPy always uses a pure-Python implementation, and, as such, it is unaffected\nby this variable.\n\nDependencies\n------------\n\nYARL requires multidict_ and propcache_ libraries.\n\n\nAPI documentation\n------------------\n\nThe documentation is located at https://yarl.aio-libs.org.\n\n\nWhy isn't boolean supported by the URL query API?\n-------------------------------------------------\n\nThere is no standard for boolean representation of boolean values.\n\nSome systems prefer ``true``/``false``, others like ``yes``/``no``, ``on``/``off``,\n``Y``/``N``, ``1``/``0``, etc.\n\n``yarl`` cannot make an unambiguous decision on how to serialize ``bool`` values because\nit is specific to how the end-user's application is built and would be different for\ndifferent apps.  The library doesn't accept booleans in the API; a user should convert\nbools into strings using own preferred translation protocol.\n\n\nComparison with other URL libraries\n------------------------------------\n\n* furl (https://pypi.python.org/pypi/furl)\n\n  The library has rich functionality but the ``furl`` object is mutable.\n\n  I'm afraid to pass this object into foreign code: who knows if the\n  code will modify my url in a terrible way while I just want to send URL\n  with handy helpers for accessing URL properties.\n\n  ``furl`` has other non-obvious tricky things but the main objection\n  is mutability.\n\n* URLObject (https://pypi.python.org/pypi/URLObject)\n\n  URLObject is immutable, that's pretty good.\n\n  Every URL change generates a new URL object.\n\n  But the library doesn't do any decode/encode transformations leaving the\n  end user to cope with these gory details.\n\n\nSource code\n-----------\n\nThe project is hosted on GitHub_\n\nPlease file an issue on the `bug tracker\n<https://github.com/aio-libs/yarl/issues>`_ if you have found a bug\nor have some suggestion in order to improve the library.\n\nDiscussion list\n---------------\n\n*aio-libs* google group: https://groups.google.com/forum/#!forum/aio-libs\n\nFeel free to post your questions and ideas here.\n\n\nAuthors and License\n-------------------\n\nThe ``yarl`` package is written by Andrew Svetlov.\n\nIt's *Apache 2* licensed and freely available.\n\n\n.. _GitHub: https://github.com/aio-libs/yarl\n\n.. _multidict: https://github.com/aio-libs/multidict\n\n.. _propcache: https://github.com/aio-libs/propcache\n\n=========\nChangelog\n=========\n\n..\n    You should *NOT* be adding new change log entries to this file, this\n    file is managed by towncrier. You *may* edit previous change logs to\n    fix problems like typo corrections or such.\n    To add a new change log entry, please see\n    https://pip.pypa.io/en/latest/development/#adding-a-news-entry\n    we named the news folder \"changes\".\n\n    WARNING: Don't drop the next directive!\n\n.. towncrier release notes start\n\n1.20.1\n======\n\n*(2025-06-09)*\n\n\nBug fixes\n---------\n\n- Started raising a ``ValueError`` exception raised for corrupted\n  IPv6 URL values.\n\n  These fixes the issue where exception ``IndexError`` was\n  leaking from the internal code because of not being handled and\n  transformed into a user-facing error. The problem was happening\n  under the following conditions: empty IPv6 URL, brackets in\n  reverse order.\n\n  -- by `@MaelPic <https://github.com/sponsors/MaelPic>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1512 <https://github.com/aio-libs/yarl/issues/1512>`__.\n\n\nPackaging updates and notes for downstreams\n-------------------------------------------\n\n- Updated to use Cython 3.1 universally across the build path -- by `@lysnikolaou <https://github.com/sponsors/lysnikolaou>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1514 <https://github.com/aio-libs/yarl/issues/1514>`__.\n\n- Made Cython line tracing opt-in via the ``with-cython-tracing`` build config setting -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  Previously, line tracing was enabled by default in ``pyproject.toml``, which caused build issues for some users and made wheels nearly twice as slow.\n  Now line tracing is only enabled when explicitly requested via ``pip install . --config-setting=with-cython-tracing=true`` or by setting the ``YARL_CYTHON_TRACING`` environment variable.\n\n  *Related issues and pull requests on GitHub:*\n  `#1521 <https://github.com/aio-libs/yarl/issues/1521>`__.\n\n\n----\n\n\n1.20.0\n======\n\n*(2025-04-16)*\n\n\nFeatures\n--------\n\n- Implemented support for the free-threaded build of CPython 3.13 -- by `@lysnikolaou <https://github.com/sponsors/lysnikolaou>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1456 <https://github.com/aio-libs/yarl/issues/1456>`__.\n\n\nPackaging updates and notes for downstreams\n-------------------------------------------\n\n- Started building wheels for the free-threaded build of CPython 3.13 -- by `@lysnikolaou <https://github.com/sponsors/lysnikolaou>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1456 <https://github.com/aio-libs/yarl/issues/1456>`__.\n\n\n----\n\n\n1.19.0\n======\n\n*(2025-04-05)*\n\n\nBug fixes\n---------\n\n- Fixed entire name being re-encoded when using ``yarl.URL.with_suffix()`` -- by `@NTFSvolume <https://github.com/sponsors/NTFSvolume>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1468 <https://github.com/aio-libs/yarl/issues/1468>`__.\n\n\nFeatures\n--------\n\n- Started building armv7l wheels for manylinux -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1495 <https://github.com/aio-libs/yarl/issues/1495>`__.\n\n\nContributor-facing changes\n--------------------------\n\n- GitHub Actions CI/CD is now configured to manage caching pip-ecosystem\n  dependencies using `re-actors/cache-python-deps`_ -- an action by\n  `@webknjaz <https://github.com/sponsors/webknjaz>`__ that takes into account ABI stability and the exact\n  version of Python runtime.\n\n  .. _`re-actors/cache-python-deps`:\n     https://github.com/marketplace/actions/cache-python-deps\n\n  *Related issues and pull requests on GitHub:*\n  `#1471 <https://github.com/aio-libs/yarl/issues/1471>`__.\n\n- Increased minimum `propcache`_ version to 0.2.1 to fix failing tests -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  .. _`propcache`:\n     https://github.com/aio-libs/propcache\n\n  *Related issues and pull requests on GitHub:*\n  `#1479 <https://github.com/aio-libs/yarl/issues/1479>`__.\n\n- Added all hidden folders to pytest's ``norecursedirs`` to prevent it\n  from trying to collect tests there -- by `@lysnikolaou <https://github.com/sponsors/lysnikolaou>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1480 <https://github.com/aio-libs/yarl/issues/1480>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved accuracy of type annotations -- by `@Dreamsorcerer <https://github.com/sponsors/Dreamsorcerer>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1484 <https://github.com/aio-libs/yarl/issues/1484>`__.\n\n- Improved performance of parsing query strings -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1493 <https://github.com/aio-libs/yarl/issues/1493>`__, `#1497 <https://github.com/aio-libs/yarl/issues/1497>`__.\n\n- Improved performance of the C unquoter -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1496 <https://github.com/aio-libs/yarl/issues/1496>`__, `#1498 <https://github.com/aio-libs/yarl/issues/1498>`__.\n\n\n----\n\n\n1.18.3\n======\n\n*(2024-12-01)*\n\n\nBug fixes\n---------\n\n- Fixed uppercase ASCII hosts being rejected by ``URL.build()()`` and ``yarl.URL.with_host()`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#954 <https://github.com/aio-libs/yarl/issues/954>`__, `#1442 <https://github.com/aio-libs/yarl/issues/1442>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performances of multiple path properties on cache miss -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1443 <https://github.com/aio-libs/yarl/issues/1443>`__.\n\n\n----\n\n\n1.18.2\n======\n\n*(2024-11-29)*\n\n\nNo significant changes.\n\n\n----\n\n\n1.18.1\n======\n\n*(2024-11-29)*\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved cache performance when ``~yarl.URL`` objects are constructed from ``yarl.URL.build()`` with ``encoded=True`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1432 <https://github.com/aio-libs/yarl/issues/1432>`__.\n\n- Improved cache performance for operations that produce a new ``~yarl.URL`` object -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1434 <https://github.com/aio-libs/yarl/issues/1434>`__, `#1436 <https://github.com/aio-libs/yarl/issues/1436>`__.\n\n\n----\n\n\n1.18.0\n======\n\n*(2024-11-21)*\n\n\nFeatures\n--------\n\n- Added ``keep_query`` and ``keep_fragment`` flags in the ``yarl.URL.with_path()``, ``yarl.URL.with_name()`` and ``yarl.URL.with_suffix()`` methods, allowing users to optionally retain the query string and fragment in the resulting URL when replacing the path -- by `@paul-nameless <https://github.com/sponsors/paul-nameless>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#111 <https://github.com/aio-libs/yarl/issues/111>`__, `#1421 <https://github.com/aio-libs/yarl/issues/1421>`__.\n\n\nContributor-facing changes\n--------------------------\n\n- Started running downstream ``aiohttp`` tests in CI -- by `@Cycloctane <https://github.com/sponsors/Cycloctane>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1415 <https://github.com/aio-libs/yarl/issues/1415>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of converting ``~yarl.URL`` to a string -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1422 <https://github.com/aio-libs/yarl/issues/1422>`__.\n\n\n----\n\n\n1.17.2\n======\n\n*(2024-11-17)*\n\n\nBug fixes\n---------\n\n- Stopped implicitly allowing the use of Cython pre-release versions when\n  building the distribution package -- by `@ajsanchezsanz <https://github.com/sponsors/ajsanchezsanz>`__ and\n  `@markgreene74 <https://github.com/sponsors/markgreene74>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1411 <https://github.com/aio-libs/yarl/issues/1411>`__, `#1412 <https://github.com/aio-libs/yarl/issues/1412>`__.\n\n- Fixed a bug causing ``~yarl.URL.port`` to return the default port when the given port was zero\n  -- by `@gmacon <https://github.com/sponsors/gmacon>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1413 <https://github.com/aio-libs/yarl/issues/1413>`__.\n\n\nFeatures\n--------\n\n- Make error messages include details of incorrect type when ``port`` is not int in ``yarl.URL.build()``.\n  -- by `@Cycloctane <https://github.com/sponsors/Cycloctane>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1414 <https://github.com/aio-libs/yarl/issues/1414>`__.\n\n\nPackaging updates and notes for downstreams\n-------------------------------------------\n\n- Stopped implicitly allowing the use of Cython pre-release versions when\n  building the distribution package -- by `@ajsanchezsanz <https://github.com/sponsors/ajsanchezsanz>`__ and\n  `@markgreene74 <https://github.com/sponsors/markgreene74>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1411 <https://github.com/aio-libs/yarl/issues/1411>`__, `#1412 <https://github.com/aio-libs/yarl/issues/1412>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of the ``yarl.URL.joinpath()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1418 <https://github.com/aio-libs/yarl/issues/1418>`__.\n\n\n----\n\n\n1.17.1\n======\n\n*(2024-10-30)*\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of many ``~yarl.URL`` methods -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1396 <https://github.com/aio-libs/yarl/issues/1396>`__, `#1397 <https://github.com/aio-libs/yarl/issues/1397>`__, `#1398 <https://github.com/aio-libs/yarl/issues/1398>`__.\n\n- Improved performance of passing a `dict` or `str` to ``yarl.URL.extend_query()`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1401 <https://github.com/aio-libs/yarl/issues/1401>`__.\n\n\n----\n\n\n1.17.0\n======\n\n*(2024-10-28)*\n\n\nFeatures\n--------\n\n- Added ``~yarl.URL.host_port_subcomponent`` which returns the ``3986#section-3.2.2`` host and ``3986#section-3.2.3`` port subcomponent -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1375 <https://github.com/aio-libs/yarl/issues/1375>`__.\n\n\n----\n\n\n1.16.0\n======\n\n*(2024-10-21)*\n\n\nBug fixes\n---------\n\n- Fixed blocking I/O to load Python code when creating a new ``~yarl.URL`` with non-ascii characters in the network location part -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1342 <https://github.com/aio-libs/yarl/issues/1342>`__.\n\n\nRemovals and backward incompatible breaking changes\n---------------------------------------------------\n\n- Migrated to using a single cache for encoding hosts -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  Passing ``ip_address_size`` and ``host_validate_size`` to ``yarl.cache_configure()`` is deprecated in favor of the new ``encode_host_size`` parameter and will be removed in a future release. For backwards compatibility, the old parameters affect the ``encode_host`` cache size.\n\n  *Related issues and pull requests on GitHub:*\n  `#1348 <https://github.com/aio-libs/yarl/issues/1348>`__, `#1357 <https://github.com/aio-libs/yarl/issues/1357>`__, `#1363 <https://github.com/aio-libs/yarl/issues/1363>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of constructing ``~yarl.URL`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1336 <https://github.com/aio-libs/yarl/issues/1336>`__.\n\n- Improved performance of calling ``yarl.URL.build()`` and constructing unencoded ``~yarl.URL`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1345 <https://github.com/aio-libs/yarl/issues/1345>`__.\n\n- Reworked the internal encoding cache to improve performance on cache hit -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1369 <https://github.com/aio-libs/yarl/issues/1369>`__.\n\n\n----\n\n\n1.15.5\n======\n\n*(2024-10-18)*\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of the ``yarl.URL.joinpath()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1304 <https://github.com/aio-libs/yarl/issues/1304>`__.\n\n- Improved performance of the ``yarl.URL.extend_query()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1305 <https://github.com/aio-libs/yarl/issues/1305>`__.\n\n- Improved performance of the ``yarl.URL.origin()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1306 <https://github.com/aio-libs/yarl/issues/1306>`__.\n\n- Improved performance of the ``yarl.URL.with_path()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1307 <https://github.com/aio-libs/yarl/issues/1307>`__.\n\n- Improved performance of the ``yarl.URL.with_query()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1308 <https://github.com/aio-libs/yarl/issues/1308>`__, `#1328 <https://github.com/aio-libs/yarl/issues/1328>`__.\n\n- Improved performance of the ``yarl.URL.update_query()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1309 <https://github.com/aio-libs/yarl/issues/1309>`__, `#1327 <https://github.com/aio-libs/yarl/issues/1327>`__.\n\n- Improved performance of the ``yarl.URL.join()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1313 <https://github.com/aio-libs/yarl/issues/1313>`__.\n\n- Improved performance of ``~yarl.URL`` equality checks -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1315 <https://github.com/aio-libs/yarl/issues/1315>`__.\n\n- Improved performance of ``~yarl.URL`` methods that modify the network location -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1316 <https://github.com/aio-libs/yarl/issues/1316>`__.\n\n- Improved performance of the ``yarl.URL.with_fragment()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1317 <https://github.com/aio-libs/yarl/issues/1317>`__.\n\n- Improved performance of calculating the hash of ``~yarl.URL`` objects -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1318 <https://github.com/aio-libs/yarl/issues/1318>`__.\n\n- Improved performance of the ``yarl.URL.relative()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1319 <https://github.com/aio-libs/yarl/issues/1319>`__.\n\n- Improved performance of the ``yarl.URL.with_name()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1320 <https://github.com/aio-libs/yarl/issues/1320>`__.\n\n- Improved performance of ``~yarl.URL.parent`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1321 <https://github.com/aio-libs/yarl/issues/1321>`__.\n\n- Improved performance of the ``yarl.URL.with_scheme()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1322 <https://github.com/aio-libs/yarl/issues/1322>`__.\n\n\n----\n\n\n1.15.4\n======\n\n*(2024-10-16)*\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of the quoter when all characters are safe -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1288 <https://github.com/aio-libs/yarl/issues/1288>`__.\n\n- Improved performance of unquoting strings -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1292 <https://github.com/aio-libs/yarl/issues/1292>`__, `#1293 <https://github.com/aio-libs/yarl/issues/1293>`__.\n\n- Improved performance of calling ``yarl.URL.build()`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1297 <https://github.com/aio-libs/yarl/issues/1297>`__.\n\n\n----\n\n\n1.15.3\n======\n\n*(2024-10-15)*\n\n\nBug fixes\n---------\n\n- Fixed ``yarl.URL.build()`` failing to validate paths must start with a ``/`` when passing ``authority`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  The validation only worked correctly when passing ``host``.\n\n  *Related issues and pull requests on GitHub:*\n  `#1265 <https://github.com/aio-libs/yarl/issues/1265>`__.\n\n\nRemovals and backward incompatible breaking changes\n---------------------------------------------------\n\n- Removed support for Python 3.8 as it has reached end of life -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1203 <https://github.com/aio-libs/yarl/issues/1203>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of constructing ``~yarl.URL`` when the net location is only the host -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1271 <https://github.com/aio-libs/yarl/issues/1271>`__.\n\n\n----\n\n\n1.15.2\n======\n\n*(2024-10-13)*\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of converting ``~yarl.URL`` to a string -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1234 <https://github.com/aio-libs/yarl/issues/1234>`__.\n\n- Improved performance of ``yarl.URL.joinpath()`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1248 <https://github.com/aio-libs/yarl/issues/1248>`__, `#1250 <https://github.com/aio-libs/yarl/issues/1250>`__.\n\n- Improved performance of constructing query strings from ``~multidict.MultiDict`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1256 <https://github.com/aio-libs/yarl/issues/1256>`__.\n\n- Improved performance of constructing query strings with ``int`` values -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1259 <https://github.com/aio-libs/yarl/issues/1259>`__.\n\n\n----\n\n\n1.15.1\n======\n\n*(2024-10-12)*\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of calling ``yarl.URL.build()`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1222 <https://github.com/aio-libs/yarl/issues/1222>`__.\n\n- Improved performance of all ``~yarl.URL`` methods that create new ``~yarl.URL`` objects -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1226 <https://github.com/aio-libs/yarl/issues/1226>`__.\n\n- Improved performance of ``~yarl.URL`` methods that modify the network location -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1229 <https://github.com/aio-libs/yarl/issues/1229>`__.\n\n\n----\n\n\n1.15.0\n======\n\n*(2024-10-11)*\n\n\nBug fixes\n---------\n\n- Fixed validation with ``yarl.URL.with_scheme()`` when passed scheme is not lowercase -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1189 <https://github.com/aio-libs/yarl/issues/1189>`__.\n\n\nFeatures\n--------\n\n- Started building ``armv7l`` wheels -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1204 <https://github.com/aio-libs/yarl/issues/1204>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of constructing unencoded ``~yarl.URL`` objects -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1188 <https://github.com/aio-libs/yarl/issues/1188>`__.\n\n- Added a cache for parsing hosts to reduce overhead of encoding ``~yarl.URL`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1190 <https://github.com/aio-libs/yarl/issues/1190>`__.\n\n- Improved performance of constructing query strings from ``~collections.abc.Mapping`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1193 <https://github.com/aio-libs/yarl/issues/1193>`__.\n\n- Improved performance of converting ``~yarl.URL`` objects to strings -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1198 <https://github.com/aio-libs/yarl/issues/1198>`__.\n\n\n----\n\n\n1.14.0\n======\n\n*(2024-10-08)*\n\n\nPackaging updates and notes for downstreams\n-------------------------------------------\n\n- Switched to using the ``propcache`` package for property caching\n  -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  The ``propcache`` package is derived from the property caching\n  code in ``yarl`` and has been broken out to avoid maintaining it for multiple\n  projects.\n\n  *Related issues and pull requests on GitHub:*\n  `#1169 <https://github.com/aio-libs/yarl/issues/1169>`__.\n\n\nContributor-facing changes\n--------------------------\n\n- Started testing with Hypothesis -- by `@webknjaz <https://github.com/sponsors/webknjaz>`__ and `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  Special thanks to `@Zac-HD <https://github.com/sponsors/Zac-HD>`__ for helping us get started with this framework.\n\n  *Related issues and pull requests on GitHub:*\n  `#860 <https://github.com/aio-libs/yarl/issues/860>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of ``yarl.URL.is_default_port()`` when no explicit port is set -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1168 <https://github.com/aio-libs/yarl/issues/1168>`__.\n\n- Improved performance of converting ``~yarl.URL`` to a string when no explicit port is set -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1170 <https://github.com/aio-libs/yarl/issues/1170>`__.\n\n- Improved performance of the ``yarl.URL.origin()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1175 <https://github.com/aio-libs/yarl/issues/1175>`__.\n\n- Improved performance of encoding hosts -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1176 <https://github.com/aio-libs/yarl/issues/1176>`__.\n\n\n----\n\n\n1.13.1\n======\n\n*(2024-09-27)*\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of calling ``yarl.URL.build()`` with ``authority`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1163 <https://github.com/aio-libs/yarl/issues/1163>`__.\n\n\n----\n\n\n1.13.0\n======\n\n*(2024-09-26)*\n\n\nBug fixes\n---------\n\n- Started rejecting ASCII hostnames with invalid characters. For host strings that\n  look like authority strings, the exception message includes advice on what to do\n  instead -- by `@mjpieters <https://github.com/sponsors/mjpieters>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#880 <https://github.com/aio-libs/yarl/issues/880>`__, `#954 <https://github.com/aio-libs/yarl/issues/954>`__.\n\n- Fixed IPv6 addresses missing brackets when the ``~yarl.URL`` was converted to a string -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1157 <https://github.com/aio-libs/yarl/issues/1157>`__, `#1158 <https://github.com/aio-libs/yarl/issues/1158>`__.\n\n\nFeatures\n--------\n\n- Added ``~yarl.URL.host_subcomponent`` which returns the ``3986#section-3.2.2`` host subcomponent -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  The only current practical difference between ``~yarl.URL.raw_host`` and ``~yarl.URL.host_subcomponent`` is that IPv6 addresses are returned bracketed.\n\n  *Related issues and pull requests on GitHub:*\n  `#1159 <https://github.com/aio-libs/yarl/issues/1159>`__.\n\n\n----\n\n\n1.12.1\n======\n\n*(2024-09-23)*\n\n\nNo significant changes.\n\n\n----\n\n\n1.12.0\n======\n\n*(2024-09-23)*\n\n\nFeatures\n--------\n\n- Added ``~yarl.URL.path_safe`` to be able to fetch the path without ``%2F`` and ``%25`` decoded -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1150 <https://github.com/aio-libs/yarl/issues/1150>`__.\n\n\nRemovals and backward incompatible breaking changes\n---------------------------------------------------\n\n- Restore decoding ``%2F`` (``/``) in ``URL.path`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  This change restored the behavior before `#1057 <https://github.com/aio-libs/yarl/issues/1057>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1151 <https://github.com/aio-libs/yarl/issues/1151>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of processing paths -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1143 <https://github.com/aio-libs/yarl/issues/1143>`__.\n\n\n----\n\n\n1.11.1\n======\n\n*(2024-09-09)*\n\n\nBug fixes\n---------\n\n- Allowed scheme replacement for relative URLs if the scheme does not require a host -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#280 <https://github.com/aio-libs/yarl/issues/280>`__, `#1138 <https://github.com/aio-libs/yarl/issues/1138>`__.\n\n- Allowed empty host for URL schemes other than the special schemes listed in the WHATWG URL spec -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1136 <https://github.com/aio-libs/yarl/issues/1136>`__.\n\n\nFeatures\n--------\n\n- Loosened restriction on integers as query string values to allow classes that implement ``__int__`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1139 <https://github.com/aio-libs/yarl/issues/1139>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of normalizing paths -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1137 <https://github.com/aio-libs/yarl/issues/1137>`__.\n\n\n----\n\n\n1.11.0\n======\n\n*(2024-09-08)*\n\n\nFeatures\n--------\n\n- Added ``URL.extend_query()()`` method, which can be used to extend parameters without replacing same named keys -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  This method was primarily added to replace the inefficient hand rolled method currently used in ``aiohttp``.\n\n  *Related issues and pull requests on GitHub:*\n  `#1128 <https://github.com/aio-libs/yarl/issues/1128>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of the Cython ``cached_property`` implementation -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1122 <https://github.com/aio-libs/yarl/issues/1122>`__.\n\n- Simplified computing ports by removing unnecessary code -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1123 <https://github.com/aio-libs/yarl/issues/1123>`__.\n\n- Improved performance of encoding non IPv6 hosts -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1125 <https://github.com/aio-libs/yarl/issues/1125>`__.\n\n- Improved performance of ``URL.build()()`` when the path, query string, or fragment is an empty string -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1126 <https://github.com/aio-libs/yarl/issues/1126>`__.\n\n- Improved performance of the ``URL.update_query()()`` method -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1130 <https://github.com/aio-libs/yarl/issues/1130>`__.\n\n- Improved performance of processing query string changes when arguments are ``str`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1131 <https://github.com/aio-libs/yarl/issues/1131>`__.\n\n\n----\n\n\n1.10.0\n======\n\n*(2024-09-06)*\n\n\nBug fixes\n---------\n\n- Fixed joining a path when the existing path was empty -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  A regression in ``URL.join()()`` was introduced in `#1082 <https://github.com/aio-libs/yarl/issues/1082>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1118 <https://github.com/aio-libs/yarl/issues/1118>`__.\n\n\nFeatures\n--------\n\n- Added ``URL.without_query_params()()`` method, to drop some parameters from query string -- by `@hongquan <https://github.com/sponsors/hongquan>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#774 <https://github.com/aio-libs/yarl/issues/774>`__, `#898 <https://github.com/aio-libs/yarl/issues/898>`__, `#1010 <https://github.com/aio-libs/yarl/issues/1010>`__.\n\n- The previously protected types ``_SimpleQuery``, ``_QueryVariable``, and ``_Query`` are now available for use externally as ``SimpleQuery``, ``QueryVariable``, and ``Query`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1050 <https://github.com/aio-libs/yarl/issues/1050>`__, `#1113 <https://github.com/aio-libs/yarl/issues/1113>`__.\n\n\nContributor-facing changes\n--------------------------\n\n- Replaced all ``~typing.Optional`` with ``~typing.Union`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1095 <https://github.com/aio-libs/yarl/issues/1095>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Significantly improved performance of parsing the network location -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1112 <https://github.com/aio-libs/yarl/issues/1112>`__.\n\n- Added internal types to the cache to prevent future refactoring errors -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1117 <https://github.com/aio-libs/yarl/issues/1117>`__.\n\n\n----\n\n\n1.9.11\n======\n\n*(2024-09-04)*\n\n\nBug fixes\n---------\n\n- Fixed a ``TypeError`` with ``MultiDictProxy`` and Python 3.8 -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1084 <https://github.com/aio-libs/yarl/issues/1084>`__, `#1105 <https://github.com/aio-libs/yarl/issues/1105>`__, `#1107 <https://github.com/aio-libs/yarl/issues/1107>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of encoding hosts -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  Previously, the library would unconditionally try to parse a host as an IP Address. The library now avoids trying to parse a host as an IP Address if the string is not in one of the formats described in ``3986#section-3.2.2``.\n\n  *Related issues and pull requests on GitHub:*\n  `#1104 <https://github.com/aio-libs/yarl/issues/1104>`__.\n\n\n----\n\n\n1.9.10\n======\n\n*(2024-09-04)*\n\n\nBug fixes\n---------\n\n- ``URL.join()()`` has been changed to match\n  ``3986`` and align with\n  ``/ operation()`` and ``URL.joinpath()()``\n  when joining URLs with empty segments.\n  Previously ``urllib.parse.urljoin`` was used,\n  which has known issues with empty segments\n  (`python/cpython#84774 <https://github.com/python/cpython/issues/84774>`_).\n\n  Due to the semantics of ``URL.join()()``, joining an\n  URL with scheme requires making it relative, prefixing with ``./``.\n\n  .. code-block:: pycon\n\n     >>> URL(\"https://web.archive.org/web/\").join(URL(\"./https://github.com/aio-libs/yarl\"))\n     URL('https://web.archive.org/web/https://github.com/aio-libs/yarl')\n\n\n  Empty segments are honored in the base as well as the joined part.\n\n  .. code-block:: pycon\n\n     >>> URL(\"https://web.archive.org/web/https://\").join(URL(\"github.com/aio-libs/yarl\"))\n     URL('https://web.archive.org/web/https://github.com/aio-libs/yarl')\n\n\n\n  -- by `@commonism <https://github.com/sponsors/commonism>`__\n\n  This change initially appeared in 1.9.5 but was reverted in 1.9.6 to resolve a problem with query string handling.\n\n  *Related issues and pull requests on GitHub:*\n  `#1039 <https://github.com/aio-libs/yarl/issues/1039>`__, `#1082 <https://github.com/aio-libs/yarl/issues/1082>`__.\n\n\nFeatures\n--------\n\n- Added ``~yarl.URL.absolute`` which is now preferred over ``URL.is_absolute()`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1100 <https://github.com/aio-libs/yarl/issues/1100>`__.\n\n\n----\n\n\n1.9.9\n=====\n\n*(2024-09-04)*\n\n\nBug fixes\n---------\n\n- Added missing type on ``~yarl.URL.port`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1097 <https://github.com/aio-libs/yarl/issues/1097>`__.\n\n\n----\n\n\n1.9.8\n=====\n\n*(2024-09-03)*\n\n\nFeatures\n--------\n\n- Covered the ``~yarl.URL`` object with types -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1084 <https://github.com/aio-libs/yarl/issues/1084>`__.\n\n- Cache parsing of IP Addresses when encoding hosts -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1086 <https://github.com/aio-libs/yarl/issues/1086>`__.\n\n\nContributor-facing changes\n--------------------------\n\n- Covered the ``~yarl.URL`` object with types -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1084 <https://github.com/aio-libs/yarl/issues/1084>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of handling ports -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1081 <https://github.com/aio-libs/yarl/issues/1081>`__.\n\n\n----\n\n\n1.9.7\n=====\n\n*(2024-09-01)*\n\n\nRemovals and backward incompatible breaking changes\n---------------------------------------------------\n\n- Removed support ``3986#section-3.2.3`` port normalization when the scheme is not one of ``http``, ``https``, ``wss``, or ``ws`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  Support for port normalization was recently added in `#1033 <https://github.com/aio-libs/yarl/issues/1033>`__ and contained code that would do blocking I/O if the scheme was not one of the four listed above. The code has been removed because this library is intended to be safe for usage with ``asyncio``.\n\n  *Related issues and pull requests on GitHub:*\n  `#1076 <https://github.com/aio-libs/yarl/issues/1076>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- Improved performance of property caching -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  The ``reify`` implementation from ``aiohttp`` was adapted to replace the internal ``cached_property`` implementation.\n\n  *Related issues and pull requests on GitHub:*\n  `#1070 <https://github.com/aio-libs/yarl/issues/1070>`__.\n\n\n----\n\n\n1.9.6\n=====\n\n*(2024-08-30)*\n\n\nBug fixes\n---------\n\n- Reverted ``3986`` compatible ``URL.join()()`` honoring empty segments which was introduced in `#1039 <https://github.com/aio-libs/yarl/issues/1039>`__.\n\n  This change introduced a regression handling query string parameters with joined URLs. The change was reverted to maintain compatibility with the previous behavior.\n\n  *Related issues and pull requests on GitHub:*\n  `#1067 <https://github.com/aio-libs/yarl/issues/1067>`__.\n\n\n----\n\n\n1.9.5\n=====\n\n*(2024-08-30)*\n\n\nBug fixes\n---------\n\n- Joining URLs with empty segments has been changed\n  to match ``3986``.\n\n  Previously empty segments would be removed from path,\n  breaking use-cases such as\n\n  .. code-block:: python\n\n     URL(\"https://web.archive.org/web/\") / \"https://github.com/\"\n\n  Now ``/ operation()`` and ``URL.joinpath()()``\n  keep empty segments, but do not introduce new empty segments.\n  e.g.\n\n  .. code-block:: python\n\n     URL(\"https://example.org/\") / \"\"\n\n  does not introduce an empty segment.\n\n  -- by `@commonism <https://github.com/sponsors/commonism>`__ and `@youtux <https://github.com/sponsors/youtux>`__\n\n  *Related issues and pull requests on GitHub:*\n  `#1026 <https://github.com/aio-libs/yarl/issues/1026>`__.\n\n- The default protocol ports of well-known URI schemes are now taken into account\n  during the normalization of the URL string representation in accordance with\n  ``3986#section-3.2.3``.\n\n  Specified ports are removed from the ``str`` representation of a ``~yarl.URL``\n  if the port matches the scheme's default port -- by `@commonism <https://github.com/sponsors/commonism>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1033 <https://github.com/aio-libs/yarl/issues/1033>`__.\n\n- ``URL.join()()`` has been changed to match\n  ``3986`` and align with\n  ``/ operation()`` and ``URL.joinpath()()``\n  when joining URLs with empty segments.\n  Previously ``urllib.parse.urljoin`` was used,\n  which has known issues with empty segments\n  (`python/cpython#84774 <https://github.com/python/cpython/issues/84774>`_).\n\n  Due to the semantics of ``URL.join()()``, joining an\n  URL with scheme requires making it relative, prefixing with ``./``.\n\n  .. code-block:: pycon\n\n     >>> URL(\"https://web.archive.org/web/\").join(URL(\"./https://github.com/aio-libs/yarl\"))\n     URL('https://web.archive.org/web/https://github.com/aio-libs/yarl')\n\n\n  Empty segments are honored in the base as well as the joined part.\n\n  .. code-block:: pycon\n\n     >>> URL(\"https://web.archive.org/web/https://\").join(URL(\"github.com/aio-libs/yarl\"))\n     URL('https://web.archive.org/web/https://github.com/aio-libs/yarl')\n\n\n\n  -- by `@commonism <https://github.com/sponsors/commonism>`__\n\n  *Related issues and pull requests on GitHub:*\n  `#1039 <https://github.com/aio-libs/yarl/issues/1039>`__.\n\n\nRemovals and backward incompatible breaking changes\n---------------------------------------------------\n\n- Stopped decoding ``%2F`` (``/``) in ``URL.path``, as this could lead to code incorrectly treating it as a path separator\n  -- by `@Dreamsorcerer <https://github.com/sponsors/Dreamsorcerer>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1057 <https://github.com/aio-libs/yarl/issues/1057>`__.\n\n- Dropped support for Python 3.7 -- by `@Dreamsorcerer <https://github.com/sponsors/Dreamsorcerer>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1016 <https://github.com/aio-libs/yarl/issues/1016>`__.\n\n\nImproved documentation\n----------------------\n\n- On the ``Contributing docs`` page,\n  a link to the ``Towncrier philosophy`` has been fixed.\n\n  *Related issues and pull requests on GitHub:*\n  `#981 <https://github.com/aio-libs/yarl/issues/981>`__.\n\n- The pre-existing ``/ magic method()``\n  has been documented in the API reference -- by `@commonism <https://github.com/sponsors/commonism>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1026 <https://github.com/aio-libs/yarl/issues/1026>`__.\n\n\nPackaging updates and notes for downstreams\n-------------------------------------------\n\n- A flaw in the logic for copying the project directory into a\n  temporary folder that led to infinite recursion when ``TMPDIR``\n  was set to a project subdirectory path. This was happening in Fedora\n  and its downstream due to the use of `pyproject-rpm-macros\n  <https://src.fedoraproject.org/rpms/pyproject-rpm-macros>`__. It was\n  only reproducible with ``pip wheel`` and was not affecting the\n  ``pyproject-build`` users.\n\n  -- by `@hroncok <https://github.com/sponsors/hroncok>`__ and `@webknjaz <https://github.com/sponsors/webknjaz>`__\n\n  *Related issues and pull requests on GitHub:*\n  `#992 <https://github.com/aio-libs/yarl/issues/992>`__, `#1014 <https://github.com/aio-libs/yarl/issues/1014>`__.\n\n- Support Python 3.13 and publish non-free-threaded wheels\n\n  *Related issues and pull requests on GitHub:*\n  `#1054 <https://github.com/aio-libs/yarl/issues/1054>`__.\n\n\nContributor-facing changes\n--------------------------\n\n- The CI/CD setup has been updated to test ``arm64`` wheels\n  under macOS 14, except for Python 3.7 that is unsupported\n  in that environment -- by `@webknjaz <https://github.com/sponsors/webknjaz>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1015 <https://github.com/aio-libs/yarl/issues/1015>`__.\n\n- Removed unused type ignores and casts -- by `@hauntsaninja <https://github.com/sponsors/hauntsaninja>`__.\n\n  *Related issues and pull requests on GitHub:*\n  `#1031 <https://github.com/aio-libs/yarl/issues/1031>`__.\n\n\nMiscellaneous internal changes\n------------------------------\n\n- ``port``, ``scheme``, and ``raw_host`` are now ``cached_property`` -- by `@bdraco <https://github.com/sponsors/bdraco>`__.\n\n  ``aiohttp`` accesses these properties quite often, which cause ``urllib`` to build the ``_hostinfo`` property every time. ``port``, ``scheme``, and ``raw_host`` are now cached properties, which will improve performance.\n\n  *Related issues and pull requests on GitHub:*\n  `#1044 <https://github.com/aio-libs/yarl/issues/1044>`__, `#1058 <https://github.com/aio-libs/yarl/issues/1058>`__.\n\n\n----\n\n\n1.9.4 (2023-12-06)\n==================\n\nBug fixes\n---------\n\n- Started raising ``TypeError`` when a string value is passed into\n  ``yarl.URL.build()`` as the ``port`` argument  -- by `@commonism <https://github.com/sponsors/commonism>`__.\n\n  Previously the empty string as port would create malformed URLs when rendered as string representations. (`#883 <https://github.com/aio-libs/yarl/issues/883>`__)\n\n\nPackaging updates and notes for downstreams\n-------------------------------------------\n\n- The leading ``--`` has been dropped from the `PEP 517 <https://peps.python.org/pep-517>`__ in-tree build\n  backend config setting names. ``--pure-python`` is now just ``pure-python``\n  -- by `@webknjaz <https://github.com/sponsors/webknjaz>`__.\n\n  The usage now looks as follows:\n\n  .. code-block:: console\n\n      $ python -m build \\\n          --config-setting=pure-python=true \\\n          --config-setting=with-cython-tracing=true\n\n  (`#963 <https://github.com/aio-libs/yarl/issues/963>`__)\n\n\nContributor-facing changes\n--------------------------\n\n- A step-by-step ``Release Guide`` guide has\n  been added, describing how to release *yarl* -- by `@webknjaz <https://github.com/sponsors/webknjaz>`__.\n\n  This is primarily targeting maintainers. (`#960 <https://github.com/aio-libs/yarl/issues/960>`__)\n- Coverage collection has been implemented for the Cython modules\n  -- by `@webknjaz <https://github.com/sponsors/webknjaz>`__.\n\n  It will also be reported to Codecov from any non-release CI jobs.\n\n  To measure coverage in a development environment, *yarl* can be\n  installed in editable mode:\n\n  .. code-block:: console\n\n      $ python -Im pip install -e .\n\n  Editable install produces C-files required for the Cython coverage\n  plugin to map the measurements back to the PYX-files.\n\n  `#961 <https://github.com/aio-libs/yarl/issues/961>`__\n\n- It is now possible to request line tracing in Cython builds using the\n  ``with-cython-tracing`` `PEP 517 <https://peps.python.org/pep-517>`__ config setting\n  -- `@webknjaz <https://github.com/sponsors/webknjaz>`__.\n\n  This can be used in CI and development environment to measure coverage\n  on Cython modules, but is not normally useful to the end-users or\n  downstream packagers.\n\n  Here's a usage example:\n\n  .. code-block:: console\n\n      $ python -Im pip install . --config-settings=with-cython-tracing=true\n\n  For editable installs, this setting is on by default. Otherwise, it's\n  off unless requested explicitly.\n\n  The following produces C-files required for the Cython coverage\n  plugin to map the measurements back to the PYX-files:\n\n  .. code-block:: console\n\n      $ python -Im pip install -e .\n\n  Alternatively, the ``YARL_CYTHON_TRACING=1`` environment variable\n  can be set to do the same as the `PEP 517 <https://peps.python.org/pep-517>`__ config setting.\n\n  `#962 <https://github.com/aio-libs/yarl/issues/962>`__\n\n\n1.9.3 (2023-11-20)\n==================\n\nBug fixes\n---------\n\n- Stopped dropping trailing slashes in ``yarl.URL.joinpath()`` -- by `@gmacon <https://github.com/sponsors/gmacon>`__. (`#862 <https://github.com/aio-libs/yarl/issues/862>`__, `#866 <https://github.com/aio-libs/yarl/issues/866>`__)\n- Started accepting string subclasses in ``yarl.URL.__truediv__()`` operations (``URL / segment``) -- by `@mjpieters <https://github.com/sponsors/mjpieters>`__. (`#871 <https://github.com/aio-libs/yarl/issues/871>`__, `#884 <https://github.com/aio-libs/yarl/issues/884>`__)\n- Fixed the human representation of URLs with square brackets in usernames and passwords -- by `@mjpieters <https://github.com/sponsors/mjpieters>`__. (`#876 <https://github.com/aio-libs/yarl/issues/876>`__, `#882 <https://github.com/aio-libs/yarl/issues/882>`__)\n- Updated type hints to include ``URL.missing_port()``, ``URL.__bytes__()``\n  and the ``encoding`` argument to ``yarl.URL.joinpath()``\n  -- by `@mjpieters <https://github.com/sponsors/mjpieters>`__. (`#891 <https://github.com/aio-libs/yarl/issues/891>`__)\n\n\nPackaging updates and notes for downstreams\n-------------------------------------------\n\n- Integrated Cython 3 to enable building *yarl* under Python 3.12 -- by `@mjpieters <https://github.com/sponsors/mjpieters>`__. (`#829 <https://github.com/aio-libs/yarl/issues/829>`__, `#881 <https://github.com/aio-libs/yarl/issues/881>`__)\n- Declared modern ``setuptools.build_meta`` as the `PEP 517 <https://peps.python.org/pep-517>`__ build\n  backend in ``pyproject.toml`` explicitly -- by `@webknjaz <https://github.com/sponsors/webknjaz>`__. (`#886 <https://github.com/aio-libs/yarl/issues/886>`__)\n- Converted most of the packaging setup into a declarative ``setup.cfg``\n  config -- by `@webknjaz <https://github.com/sponsors/webknjaz>`__. (`#890 <https://github.com/aio-libs/yarl/issues/890>`__)\n- The packaging is replaced from an old-fashioned ``setup.py`` to an\n  in-tree `PEP 517 <https://peps.python.org/pep-517>`__ build backend -- by `@webknjaz <https://github.com/sponsors/webknjaz>`__.\n\n  Whenever the end-users or downstream packagers need to build ``yarl`` from\n  source (a Git checkout or an sdist), they may pass a ``config_settings``\n  flag ``--pure-python``. If this flag is not set, a C-extension will be built\n  and included into the distribution.\n\n  Here is how this can be done with ``pip``:\n\n  .. code-block:: console\n\n      $ python -m pip install . --config-settings=--pure-python=false\n\n  This will also work with ``-e | --editable``.\n\n  The same can be achieved via ``pypa/build``:\n\n  .. code-block:: console\n\n      $ python -m build --config-setting=--pure-python=false\n\n  Adding ``-w | --wheel`` can force ``pypa/build`` produce a wheel from source\n  directly, as opposed to building an ``sdist`` and then building from it. (`#893 <https://github.com/aio-libs/yarl/issues/893>`__)\n\n  .. attention::\n\n     v1.9.3 was the only version using the ``--pure-python`` setting name.\n     Later versions dropped the ``--`` prefix, making it just ``pure-python``.\n\n- Declared Python 3.12 supported officially in the distribution package metadata\n  -- by `@edgarrmondragon <https://github.com/sponsors/edgarrmondragon>`__. (`#942 <https://github.com/aio-libs/yarl/issues/942>`__)\n\n\nContributor-facing changes\n--------------------------\n\n- A regression test for no-host URLs was added per `#821 <https://github.com/aio-libs/yarl/issues/821>`__\n  and ``3986`` -- by `@kenballus <https://github.com/sponsors/kenballus>`__. (`#821 <https://github.com/aio-libs/yarl/issues/821>`__, `#822 <https://github.com/aio-libs/yarl/issues/822>`__)\n- Started testing *yarl* against Python 3.12 in CI -- by `@mjpieters <https://github.com/sponsors/mjpieters>`__. (`#881 <https://github.com/aio-libs/yarl/issues/881>`__)\n- All Python 3.12 jobs are now marked as required to pass in CI\n  -- by `@edgarrmondragon <https://github.com/sponsors/edgarrmondragon>`__. (`#942 <https://github.com/aio-libs/yarl/issues/942>`__)\n- MyST is now integrated in Sphinx -- by `@webknjaz <https://github.com/sponsors/webknjaz>`__.\n\n  This allows the contributors to author new documents in Markdown\n  when they have difficulties with going straight RST. (`#953 <https://github.com/aio-libs/yarl/issues/953>`__)\n\n\n1.9.2 (2023-04-25)\n==================\n\nBugfixes\n--------\n\n- Fix regression with ``yarl.URL.__truediv__()`` and absolute URLs with empty paths causing the raw path to lack the leading ``/``.\n  (`#854 <https://github.com/aio-libs/yarl/issues/854>`_)\n\n\n1.9.1 (2023-04-21)\n==================\n\nBugfixes\n--------\n\n- Marked tests that fail on older Python patch releases (< 3.7.10, < 3.8.8 and < 3.9.2) as expected to fail due to missing a security fix for CVE-2021-23336. (`#850 <https://github.com/aio-libs/yarl/issues/850>`_)\n\n\n1.9.0 (2023-04-19)\n==================\n\nThis release was never published to PyPI, due to issues with the build process.\n\nFeatures\n--------\n\n- Added ``URL.joinpath(*elements)``, to create a new URL appending multiple path elements. (`#704 <https://github.com/aio-libs/yarl/issues/704>`_)\n- Made ``URL.__truediv__()()`` return ``NotImplemented`` if called with an\n  unsupported type \u2014 by `@michaeljpeters <https://github.com/sponsors/michaeljpeters>`__.\n  (`#832 <https://github.com/aio-libs/yarl/issues/832>`_)\n\n\nBugfixes\n--------\n\n- Path normalization for absolute URLs no longer raises a ValueError exception\n  when ``..`` segments would otherwise go beyond the URL path root.\n  (`#536 <https://github.com/aio-libs/yarl/issues/536>`_)\n- Fixed an issue with update_query() not getting rid of the query when argument is None. (`#792 <https://github.com/aio-libs/yarl/issues/792>`_)\n- Added some input restrictions on with_port() function to prevent invalid boolean inputs or out of valid port inputs; handled incorrect 0 port representation. (`#793 <https://github.com/aio-libs/yarl/issues/793>`_)\n- Made ``yarl.URL.build()`` raise a ``TypeError`` if the ``host`` argument is ``None`` \u2014 by `@paulpapacz <https://github.com/sponsors/paulpapacz>`__. (`#808 <https://github.com/aio-libs/yarl/issues/808>`_)\n- Fixed an issue with ``update_query()`` getting rid of the query when the argument\n  is empty but not ``None``. (`#845 <https://github.com/aio-libs/yarl/issues/845>`_)\n\n\nMisc\n----\n\n- `#220 <https://github.com/aio-libs/yarl/issues/220>`_\n\n\n1.8.2 (2022-12-03)\n==================\n\nThis is the first release that started shipping wheels for Python 3.11.\n\n\n1.8.1 (2022-08-01)\n==================\n\nMisc\n----\n\n- `#694 <https://github.com/aio-libs/yarl/issues/694>`_, `#699 <https://github.com/aio-libs/yarl/issues/699>`_, `#700 <https://github.com/aio-libs/yarl/issues/700>`_, `#701 <https://github.com/aio-libs/yarl/issues/701>`_, `#702 <https://github.com/aio-libs/yarl/issues/702>`_, `#703 <https://github.com/aio-libs/yarl/issues/703>`_, `#739 <https://github.com/aio-libs/yarl/issues/739>`_\n\n\n1.8.0 (2022-08-01)\n==================\n\nFeatures\n--------\n\n- Added ``URL.raw_suffix``, ``URL.suffix``, ``URL.raw_suffixes``, ``URL.suffixes``, ``URL.with_suffix``. (`#613 <https://github.com/aio-libs/yarl/issues/613>`_)\n\n\nImproved Documentation\n----------------------\n\n- Fixed broken internal references to ``yarl.URL.human_repr()``.\n  (`#665 <https://github.com/aio-libs/yarl/issues/665>`_)\n- Fixed broken external references to ``multidict:index`` docs. (`#665 <https://github.com/aio-libs/yarl/issues/665>`_)\n\n\nDeprecations and Removals\n-------------------------\n\n- Dropped Python 3.6 support. (`#672 <https://github.com/aio-libs/yarl/issues/672>`_)\n\n\nMisc\n----\n\n- `#646 <https://github.com/aio-libs/yarl/issues/646>`_, `#699 <https://github.com/aio-libs/yarl/issues/699>`_, `#701 <https://github.com/aio-libs/yarl/issues/701>`_\n\n\n1.7.2 (2021-11-01)\n==================\n\nBugfixes\n--------\n\n- Changed call in ``with_port()`` to stop reencoding parts of the URL that were already encoded. (`#623 <https://github.com/aio-libs/yarl/issues/623>`_)\n\n\n1.7.1 (2021-10-07)\n==================\n\nBugfixes\n--------\n\n- Fix 1.7.0 build error\n\n1.7.0 (2021-10-06)\n==================\n\nFeatures\n--------\n\n- Add ``__bytes__()`` magic method so that ``bytes(url)`` will work and use optimal ASCII encoding.\n  (`#582 <https://github.com/aio-libs/yarl/issues/582>`_)\n- Started shipping platform-specific arm64 wheels for Apple Silicon. (`#622 <https://github.com/aio-libs/yarl/issues/622>`_)\n- Started shipping platform-specific wheels with the ``musl`` tag targeting typical Alpine Linux runtimes. (`#622 <https://github.com/aio-libs/yarl/issues/622>`_)\n- Added support for Python 3.10. (`#622 <https://github.com/aio-libs/yarl/issues/622>`_)\n\n\n1.6.3 (2020-11-14)\n==================\n\nBugfixes\n--------\n\n- No longer loose characters when decoding incorrect percent-sequences (like ``%e2%82%f8``). All non-decodable percent-sequences are now preserved.\n  `#517 <https://github.com/aio-libs/yarl/issues/517>`_\n- Provide x86 Windows wheels.\n  `#535 <https://github.com/aio-libs/yarl/issues/535>`_\n\n\n----\n\n\n1.6.2 (2020-10-12)\n==================\n\n\nBugfixes\n--------\n\n- Provide generated ``.c`` files in TarBall distribution.\n  `#530  <https://github.com/aio-libs/multidict/issues/530>`_\n\n1.6.1 (2020-10-12)\n==================\n\nFeatures\n--------\n\n- Provide wheels for ``aarch64``, ``i686``, ``ppc64le``, ``s390x`` architectures on\n  Linux as well as ``x86_64``.\n  `#507  <https://github.com/aio-libs/yarl/issues/507>`_\n- Provide wheels for Python 3.9.\n  `#526 <https://github.com/aio-libs/yarl/issues/526>`_\n\nBugfixes\n--------\n\n- ``human_repr()`` now always produces valid representation equivalent to the original URL (if the original URL is valid).\n  `#511 <https://github.com/aio-libs/yarl/issues/511>`_\n- Fixed  requoting a single percent followed by a percent-encoded character in the Cython implementation.\n  `#514 <https://github.com/aio-libs/yarl/issues/514>`_\n- Fix ValueError when decoding ``%`` which is not followed by two hexadecimal digits.\n  `#516 <https://github.com/aio-libs/yarl/issues/516>`_\n- Fix decoding ``%`` followed by a space and hexadecimal digit.\n  `#520 <https://github.com/aio-libs/yarl/issues/520>`_\n- Fix annotation of ``with_query()``/``update_query()`` methods for ``key=[val1, val2]`` case.\n  `#528 <https://github.com/aio-libs/yarl/issues/528>`_\n\nRemoval\n-------\n\n- Drop Python 3.5 support; Python 3.6 is the minimal supported Python version.\n\n\n----\n\n\n1.6.0 (2020-09-23)\n==================\n\nFeatures\n--------\n\n- Allow for int and float subclasses in query, while still denying bool.\n  `#492 <https://github.com/aio-libs/yarl/issues/492>`_\n\n\nBugfixes\n--------\n\n- Do not requote arguments in ``URL.build()``, ``with_xxx()`` and in ``/`` operator.\n  `#502 <https://github.com/aio-libs/yarl/issues/502>`_\n- Keep IPv6 brackets in ``origin()``.\n  `#504 <https://github.com/aio-libs/yarl/issues/504>`_\n\n\n----\n\n\n1.5.1 (2020-08-01)\n==================\n\nBugfixes\n--------\n\n- Fix including relocated internal ``yarl._quoting_c`` C-extension into published PyPI dists.\n  `#485 <https://github.com/aio-libs/yarl/issues/485>`_\n\n\nMisc\n----\n\n- `#484 <https://github.com/aio-libs/yarl/issues/484>`_\n\n\n----\n\n\n1.5.0 (2020-07-26)\n==================\n\nFeatures\n--------\n\n- Convert host to lowercase on URL building.\n  `#386 <https://github.com/aio-libs/yarl/issues/386>`_\n- Allow using ``mod`` operator (``%``) for updating query string (an alias for ``update_query()`` method).\n  `#435 <https://github.com/aio-libs/yarl/issues/435>`_\n- Allow use of sequences such as ``list`` and ``tuple`` in the values\n  of a mapping such as ``dict`` to represent that a key has many values::\n\n      url = URL(\"http://example.com\")\n      assert url.with_query({\"a\": [1, 2]}) == URL(\"http://example.com/?a=1&a=2\")\n\n  `#443 <https://github.com/aio-libs/yarl/issues/443>`_\n- Support ``URL.build()`` with scheme and path (creates a relative URL).\n  `#464 <https://github.com/aio-libs/yarl/issues/464>`_\n- Cache slow IDNA encode/decode calls.\n  `#476 <https://github.com/aio-libs/yarl/issues/476>`_\n- Add ``@final`` / ``Final`` type hints\n  `#477 <https://github.com/aio-libs/yarl/issues/477>`_\n- Support URL authority/raw_authority properties and authority argument of ``URL.build()`` method.\n  `#478 <https://github.com/aio-libs/yarl/issues/478>`_\n- Hide the library implementation details, make the exposed public list very clean.\n  `#483 <https://github.com/aio-libs/yarl/issues/483>`_\n\n\nBugfixes\n--------\n\n- Fix tests with newer Python (3.7.6, 3.8.1 and 3.9.0+).\n  `#409 <https://github.com/aio-libs/yarl/issues/409>`_\n- Fix a bug where query component, passed in a form of mapping or sequence, is unquoted in unexpected way.\n  `#426 <https://github.com/aio-libs/yarl/issues/426>`_\n- Hide ``Query`` and ``QueryVariable`` type aliases in ``__init__.pyi``, now they are prefixed with underscore.\n  `#431 <https://github.com/aio-libs/yarl/issues/431>`_\n- Keep IPv6 brackets after updating port/user/password.\n  `#451 <https://github.com/aio-libs/yarl/issues/451>`_\n\n\n----\n\n\n1.4.2 (2019-12-05)\n==================\n\nFeatures\n--------\n\n- Workaround for missing ``str.isascii()`` in Python 3.6\n  `#389 <https://github.com/aio-libs/yarl/issues/389>`_\n\n\n----\n\n\n1.4.1 (2019-11-29)\n==================\n\n* Fix regression, make the library work on Python 3.5 and 3.6 again.\n\n1.4.0 (2019-11-29)\n==================\n\n* Distinguish an empty password in URL from a password not provided at all (#262)\n\n* Fixed annotations for optional parameters of ``URL.build`` (#309)\n\n* Use None as default value of ``user`` parameter of ``URL.build`` (#309)\n\n* Enforce building C Accelerated modules when installing from source tarball, use\n  ``YARL_NO_EXTENSIONS`` environment variable for falling back to (slower) Pure Python\n  implementation (#329)\n\n* Drop Python 3.5 support\n\n* Fix quoting of plus in path by pure python version (#339)\n\n* Don't create a new URL if fragment is unchanged (#292)\n\n* Included in error message the path that produces starting slash forbidden error (#376)\n\n* Skip slow IDNA encoding for ASCII-only strings (#387)\n\n\n1.3.0 (2018-12-11)\n==================\n\n* Fix annotations for ``query`` parameter (#207)\n\n* An incoming query sequence can have int variables (the same as for\n  Mapping type) (#208)\n\n* Add ``URL.explicit_port`` property (#218)\n\n* Give a friendlier error when port can't be converted to int (#168)\n\n* ``bool(URL())`` now returns ``False`` (#272)\n\n1.2.6 (2018-06-14)\n==================\n\n* Drop Python 3.4 trove classifier (#205)\n\n1.2.5 (2018-05-23)\n==================\n\n* Fix annotations for ``build`` (#199)\n\n1.2.4 (2018-05-08)\n==================\n\n* Fix annotations for ``cached_property`` (#195)\n\n1.2.3 (2018-05-03)\n==================\n\n* Accept ``str`` subclasses in ``URL`` constructor (#190)\n\n1.2.2 (2018-05-01)\n==================\n\n* Fix build\n\n1.2.1 (2018-04-30)\n==================\n\n* Pin minimal required Python to 3.5.3 (#189)\n\n1.2.0 (2018-04-30)\n==================\n\n* Forbid inheritance, replace ``__init__`` with ``__new__`` (#171)\n\n* Support PEP-561 (provide type hinting marker) (#182)\n\n1.1.1 (2018-02-17)\n==================\n\n* Fix performance regression: don't encode empty ``netloc`` (#170)\n\n1.1.0 (2018-01-21)\n==================\n\n* Make pure Python quoter consistent with Cython version (#162)\n\n1.0.0 (2018-01-15)\n==================\n\n* Use fast path if quoted string does not need requoting (#154)\n\n* Speed up quoting/unquoting by ``_Quoter`` and ``_Unquoter`` classes (#155)\n\n* Drop ``yarl.quote`` and ``yarl.unquote`` public functions (#155)\n\n* Add custom string writer, reuse static buffer if available (#157)\n  Code is 50-80 times faster than Pure Python version (was 4-5 times faster)\n\n* Don't recode IP zone (#144)\n\n* Support ``encoded=True`` in ``yarl.URL.build()`` (#158)\n\n* Fix updating query with multiple keys (#160)\n\n0.18.0 (2018-01-10)\n===================\n\n* Fallback to IDNA 2003 if domain name is not IDNA 2008 compatible (#152)\n\n0.17.0 (2017-12-30)\n===================\n\n* Use IDNA 2008 for domain name processing (#149)\n\n0.16.0 (2017-12-07)\n===================\n\n* Fix raising ``TypeError`` by ``url.query_string()`` after\n  ``url.with_query({})`` (empty mapping) (#141)\n\n0.15.0 (2017-11-23)\n===================\n\n* Add ``raw_path_qs`` attribute (#137)\n\n0.14.2 (2017-11-14)\n===================\n\n* Restore ``strict`` parameter as no-op in ``quote`` / ``unquote``\n\n0.14.1 (2017-11-13)\n===================\n\n* Restore ``strict`` parameter as no-op for sake of compatibility with\n  aiohttp 2.2\n\n0.14.0 (2017-11-11)\n===================\n\n* Drop strict mode (#123)\n\n* Fix ``\"ValueError: Unallowed PCT %\"`` when there's a ``\"%\"`` in the URL (#124)\n\n0.13.0 (2017-10-01)\n===================\n\n* Document ``encoded`` parameter (#102)\n\n* Support relative URLs like ``'?key=value'`` (#100)\n\n* Unsafe encoding for QS fixed. Encode ``;`` character in value parameter (#104)\n\n* Process passwords without user names (#95)\n\n0.12.0 (2017-06-26)\n===================\n\n* Properly support paths without leading slash in ``URL.with_path()`` (#90)\n\n* Enable type annotation checks\n\n0.11.0 (2017-06-26)\n===================\n\n* Normalize path (#86)\n\n* Clear query and fragment parts in ``.with_path()`` (#85)\n\n0.10.3 (2017-06-13)\n===================\n\n* Prevent double URL arguments unquoting (#83)\n\n0.10.2 (2017-05-05)\n===================\n\n* Unexpected hash behavior (#75)\n\n\n0.10.1 (2017-05-03)\n===================\n\n* Unexpected compare behavior (#73)\n\n* Do not quote or unquote + if not a query string. (#74)\n\n\n0.10.0 (2017-03-14)\n===================\n\n* Added ``URL.build`` class method (#58)\n\n* Added ``path_qs`` attribute (#42)\n\n\n0.9.8 (2017-02-16)\n==================\n\n* Do not quote ``:`` in path\n\n\n0.9.7 (2017-02-16)\n==================\n\n* Load from pickle without _cache (#56)\n\n* Percent-encoded pluses in path variables become spaces (#59)\n\n\n0.9.6 (2017-02-15)\n==================\n\n* Revert backward incompatible change (BaseURL)\n\n\n0.9.5 (2017-02-14)\n==================\n\n* Fix BaseURL rich comparison support\n\n\n0.9.4 (2017-02-14)\n==================\n\n* Use BaseURL\n\n\n0.9.3 (2017-02-14)\n==================\n\n* Added BaseURL\n\n\n0.9.2 (2017-02-08)\n==================\n\n* Remove debug print\n\n\n0.9.1 (2017-02-07)\n==================\n\n* Do not lose tail chars (#45)\n\n\n0.9.0 (2017-02-07)\n==================\n\n* Allow to quote ``%`` in non strict mode (#21)\n\n* Incorrect parsing of query parameters with %3B (;) inside (#34)\n\n* Fix core dumps (#41)\n\n* ``tmpbuf`` - compiling error (#43)\n\n* Added ``URL.update_path()`` method\n\n* Added ``URL.update_query()`` method (#47)\n\n\n0.8.1 (2016-12-03)\n==================\n\n* Fix broken aiohttp: revert back ``quote`` / ``unquote``.\n\n\n0.8.0 (2016-12-03)\n==================\n\n* Support more verbose error messages in ``.with_query()`` (#24)\n\n* Don't percent-encode ``@`` and ``:`` in path (#32)\n\n* Don't expose ``yarl.quote`` and ``yarl.unquote``, these functions are\n  part of private API\n\n0.7.1 (2016-11-18)\n==================\n\n* Accept not only ``str`` but all classes inherited from ``str`` also (#25)\n\n0.7.0 (2016-11-07)\n==================\n\n* Accept ``int`` as value for ``.with_query()``\n\n0.6.0 (2016-11-07)\n==================\n\n* Explicitly use UTF8 encoding in ``setup.py`` (#20)\n* Properly unquote non-UTF8 strings (#19)\n\n0.5.3 (2016-11-02)\n==================\n\n* Don't use ``typing.NamedTuple`` fields but indexes on URL construction\n\n0.5.2 (2016-11-02)\n==================\n\n* Inline ``_encode`` class method\n\n0.5.1 (2016-11-02)\n==================\n\n* Make URL construction faster by removing extra classmethod calls\n\n0.5.0 (2016-11-02)\n==================\n\n* Add Cython optimization for quoting/unquoting\n* Provide binary wheels\n\n0.4.3 (2016-09-29)\n==================\n\n* Fix typing stubs\n\n0.4.2 (2016-09-29)\n==================\n\n* Expose ``quote()`` and ``unquote()`` as public API\n\n0.4.1 (2016-09-28)\n==================\n\n* Support empty values in query (``'/path?arg'``)\n\n0.4.0 (2016-09-27)\n==================\n\n* Introduce ``relative()`` (#16)\n\n0.3.2 (2016-09-27)\n==================\n\n* Typo fixes #15\n\n0.3.1 (2016-09-26)\n==================\n\n* Support sequence of pairs as ``with_query()`` parameter\n\n0.3.0 (2016-09-26)\n==================\n\n* Introduce ``is_default_port()``\n\n0.2.1 (2016-09-26)\n==================\n\n* Raise ValueError for URLs like 'http://:8080/'\n\n0.2.0 (2016-09-18)\n==================\n\n* Avoid doubling slashes when joining paths (#13)\n\n* Appending path starting from slash is forbidden (#12)\n\n0.1.4 (2016-09-09)\n==================\n\n* Add ``kwargs`` support for ``with_query()`` (#10)\n\n0.1.3 (2016-09-07)\n==================\n\n* Document ``with_query()``, ``with_fragment()`` and ``origin()``\n\n* Allow ``None`` for ``with_query()`` and ``with_fragment()``\n\n0.1.2 (2016-09-07)\n==================\n\n* Fix links, tune docs theme.\n\n0.1.1 (2016-09-06)\n==================\n\n* Update README, old version used obsolete API\n\n0.1.0 (2016-09-06)\n==================\n\n* The library was deeply refactored, bytes are gone away but all\n  accepted strings are encoded if needed.\n\n0.0.1 (2016-08-30)\n==================\n\n* The first release.\n",
+      "description_content_type": "text/x-rst",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": [
+        "License-File"
+      ],
+      "home_page": "https://github.com/aio-libs/yarl",
+      "keywords": "cython, cext, yarl",
+      "license": "Apache-2.0",
+      "license_expression": null,
+      "license_files": [
+        "LICENSE",
+        "NOTICE"
+      ],
+      "maintainer": "aiohttp team <team@aiohttp.org>",
+      "maintainer_email": "team@aiohttp.org",
+      "name": "yarl",
+      "package_url": "https://pypi.org/project/yarl/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/yarl/",
+      "project_urls": {
+        "CI: GitHub Workflows": "https://github.com/aio-libs/yarl/actions?query=branch:master",
+        "Chat: Matrix": "https://matrix.to/#/#aio-libs:matrix.org",
+        "Chat: Matrix Space": "https://matrix.to/#/#aio-libs-space:matrix.org",
+        "Code of Conduct": "https://github.com/aio-libs/.github/blob/master/CODE_OF_CONDUCT.md",
+        "Coverage: codecov": "https://codecov.io/github/aio-libs/yarl",
+        "Docs: Changelog": "https://yarl.aio-libs.org/en/latest/changes/",
+        "Docs: RTD": "https://yarl.aio-libs.org",
+        "GitHub: issues": "https://github.com/aio-libs/yarl/issues",
+        "GitHub: repo": "https://github.com/aio-libs/yarl",
+        "Homepage": "https://github.com/aio-libs/yarl"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/yarl/1.20.1/",
+      "requires_dist": [
+        "idna>=2.0",
+        "multidict>=4.0",
+        "propcache>=0.2.1"
+      ],
+      "requires_python": ">=3.9",
+      "summary": "Yet another URL library",
+      "version": "1.20.1",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41106219,
+    "ownership": {
+      "organization": "aio-libs",
+      "roles": [
+        {
+          "role": "Maintainer",
+          "user": "Andrew.Svetlov"
+        },
+        {
+          "role": "Maintainer",
+          "user": "webknjaz"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "cb657fed0d774abf47487c64be14e9223749468922817b5e8792b8a64792a1bb",
+          "md5": "af5218f2a7765436e78e4dfdf3687d99",
+          "sha256": "6032e6da6abd41e4acda34d75a816012717000fa6839f37124a47fcefc49bec4"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-macosx_10_9_universal2.whl",
+        "has_sig": false,
+        "md5_digest": "af5218f2a7765436e78e4dfdf3687d99",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 132910,
+        "upload_time": "2025-06-10T00:42:31",
+        "upload_time_iso_8601": "2025-06-10T00:42:31.108879Z",
+        "url": "https://files.pythonhosted.org/packages/cb/65/7fed0d774abf47487c64be14e9223749468922817b5e8792b8a64792a1bb/yarl-1.20.1-cp310-cp310-macosx_10_9_universal2.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "8a7b988f55a52da99df9e56dc733b8e4e5a6ae2090081dc2754fc8fd34e60aa0",
+          "md5": "b972555108fb08986cbff22e56c43a25",
+          "sha256": "2c7b34d804b8cf9b214f05015c4fee2ebe7ed05cf581e7192c06555c71f4446a"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "b972555108fb08986cbff22e56c43a25",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 90644,
+        "upload_time": "2025-06-10T00:42:33",
+        "upload_time_iso_8601": "2025-06-10T00:42:33.851575Z",
+        "url": "https://files.pythonhosted.org/packages/8a/7b/988f55a52da99df9e56dc733b8e4e5a6ae2090081dc2754fc8fd34e60aa0/yarl-1.20.1-cp310-cp310-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "f7de30d98f03e95d30c7e3cc093759982d038c8833ec2451001d45ef4854edc1",
+          "md5": "3ae2b5adcda223ea7850e923fd0b59f8",
+          "sha256": "0c869f2651cc77465f6cd01d938d91a11d9ea5d798738c1dc077f3de0b5e5fed"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "3ae2b5adcda223ea7850e923fd0b59f8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 89322,
+        "upload_time": "2025-06-10T00:42:35",
+        "upload_time_iso_8601": "2025-06-10T00:42:35.688803Z",
+        "url": "https://files.pythonhosted.org/packages/f7/de/30d98f03e95d30c7e3cc093759982d038c8833ec2451001d45ef4854edc1/yarl-1.20.1-cp310-cp310-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "e07af2f314f5ebfe9200724b0b748de2186b927acb334cf964fd312eb86fc286",
+          "md5": "9d0373b801ebb83ccb2e1edd36103fbd",
+          "sha256": "62915e6688eb4d180d93840cda4110995ad50c459bf931b8b3775b37c264af1e"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "9d0373b801ebb83ccb2e1edd36103fbd",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 323786,
+        "upload_time": "2025-06-10T00:42:37",
+        "upload_time_iso_8601": "2025-06-10T00:42:37.817360Z",
+        "url": "https://files.pythonhosted.org/packages/e0/7a/f2f314f5ebfe9200724b0b748de2186b927acb334cf964fd312eb86fc286/yarl-1.20.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "153f718d26f189db96d993d14b984ce91de52e76309d0fd1d4296f34039856aa",
+          "md5": "a3d373584c59e411f71aa787d18c9d82",
+          "sha256": "41ebd28167bc6af8abb97fec1a399f412eec5fd61a3ccbe2305a18b84fb4ca73"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "a3d373584c59e411f71aa787d18c9d82",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 319627,
+        "upload_time": "2025-06-10T00:42:39",
+        "upload_time_iso_8601": "2025-06-10T00:42:39.937712Z",
+        "url": "https://files.pythonhosted.org/packages/15/3f/718d26f189db96d993d14b984ce91de52e76309d0fd1d4296f34039856aa/yarl-1.20.1-cp310-cp310-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "a5768fcfbf5fa2369157b9898962a4a7d96764b287b085b5b3d9ffae69cdefd1",
+          "md5": "4879ddc51534dd93eb8729460df69409",
+          "sha256": "21242b4288a6d56f04ea193adde174b7e347ac46ce6bc84989ff7c1b1ecea84e"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "4879ddc51534dd93eb8729460df69409",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 339149,
+        "upload_time": "2025-06-10T00:42:42",
+        "upload_time_iso_8601": "2025-06-10T00:42:42.627436Z",
+        "url": "https://files.pythonhosted.org/packages/a5/76/8fcfbf5fa2369157b9898962a4a7d96764b287b085b5b3d9ffae69cdefd1/yarl-1.20.1-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "3c95d7fc301cc4661785967acc04f54a4a42d5124905e27db27bb578aac49b5c",
+          "md5": "998e6a61a60ba95b7e65d74cc537d1e8",
+          "sha256": "bea21cdae6c7eb02ba02a475f37463abfe0a01f5d7200121b03e605d6a0439f8"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "998e6a61a60ba95b7e65d74cc537d1e8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 333327,
+        "upload_time": "2025-06-10T00:42:44",
+        "upload_time_iso_8601": "2025-06-10T00:42:44.842700Z",
+        "url": "https://files.pythonhosted.org/packages/3c/95/d7fc301cc4661785967acc04f54a4a42d5124905e27db27bb578aac49b5c/yarl-1.20.1-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "6594e21269718349582eee81efc5c1c08ee71c816bfc1585b77d0ec3f58089eb",
+          "md5": "afce857a38f4917e4ff5806f1e621089",
+          "sha256": "1f8a891e4a22a89f5dde7862994485e19db246b70bb288d3ce73a34422e55b23"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "afce857a38f4917e4ff5806f1e621089",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 326054,
+        "upload_time": "2025-06-10T00:42:47",
+        "upload_time_iso_8601": "2025-06-10T00:42:47.149295Z",
+        "url": "https://files.pythonhosted.org/packages/65/94/e21269718349582eee81efc5c1c08ee71c816bfc1585b77d0ec3f58089eb/yarl-1.20.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "32ae8616d1f07853704523519f6131d21f092e567c5af93de7e3e94b38d7f065",
+          "md5": "62d1d0967b67ebb21d0a354e8e98155b",
+          "sha256": "dd803820d44c8853a109a34e3660e5a61beae12970da479cf44aa2954019bf70"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "has_sig": false,
+        "md5_digest": "62d1d0967b67ebb21d0a354e8e98155b",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 315035,
+        "upload_time": "2025-06-10T00:42:48",
+        "upload_time_iso_8601": "2025-06-10T00:42:48.852892Z",
+        "url": "https://files.pythonhosted.org/packages/32/ae/8616d1f07853704523519f6131d21f092e567c5af93de7e3e94b38d7f065/yarl-1.20.1-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "48aa0ace06280861ef055855333707db5e49c6e3a08840a7ce62682259d0a6c0",
+          "md5": "11f6d38a02fae4e5723716882cf4b043",
+          "sha256": "b982fa7f74c80d5c0c7b5b38f908971e513380a10fecea528091405f519b9ebb"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "11f6d38a02fae4e5723716882cf4b043",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 338962,
+        "upload_time": "2025-06-10T00:42:51",
+        "upload_time_iso_8601": "2025-06-10T00:42:51.024705Z",
+        "url": "https://files.pythonhosted.org/packages/48/aa/0ace06280861ef055855333707db5e49c6e3a08840a7ce62682259d0a6c0/yarl-1.20.1-cp310-cp310-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "20521e9d0e6916f45a8fb50e6844f01cb34692455f1acd548606cbda8134cd1e",
+          "md5": "71232866f9560af3cd42e867f5db5195",
+          "sha256": "33f29ecfe0330c570d997bcf1afd304377f2e48f61447f37e846a6058a4d33b2"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-musllinux_1_2_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "71232866f9560af3cd42e867f5db5195",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 335399,
+        "upload_time": "2025-06-10T00:42:53",
+        "upload_time_iso_8601": "2025-06-10T00:42:53.007565Z",
+        "url": "https://files.pythonhosted.org/packages/20/52/1e9d0e6916f45a8fb50e6844f01cb34692455f1acd548606cbda8134cd1e/yarl-1.20.1-cp310-cp310-musllinux_1_2_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "f26560452df742952c630e82f394cd409de10610481d9043aa14c61bf846b7b1",
+          "md5": "62aa26de8edc99b08da7a915062e984a",
+          "sha256": "835ab2cfc74d5eb4a6a528c57f05688099da41cf4957cf08cad38647e4a83b30"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-musllinux_1_2_i686.whl",
+        "has_sig": false,
+        "md5_digest": "62aa26de8edc99b08da7a915062e984a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 338649,
+        "upload_time": "2025-06-10T00:42:54",
+        "upload_time_iso_8601": "2025-06-10T00:42:54.964610Z",
+        "url": "https://files.pythonhosted.org/packages/f2/65/60452df742952c630e82f394cd409de10610481d9043aa14c61bf846b7b1/yarl-1.20.1-cp310-cp310-musllinux_1_2_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "7bf56cd4ff38dcde57a70f23719a838665ee17079640c77087404c3d34da6727",
+          "md5": "6eb3ce06306146fa1c1241aeb6296ab2",
+          "sha256": "46b5e0ccf1943a9a6e766b2c2b8c732c55b34e28be57d8daa2b3c1d1d4009309"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-musllinux_1_2_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "6eb3ce06306146fa1c1241aeb6296ab2",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 358563,
+        "upload_time": "2025-06-10T00:42:57",
+        "upload_time_iso_8601": "2025-06-10T00:42:57.280200Z",
+        "url": "https://files.pythonhosted.org/packages/7b/f5/6cd4ff38dcde57a70f23719a838665ee17079640c77087404c3d34da6727/yarl-1.20.1-cp310-cp310-musllinux_1_2_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "d190c42eefd79d0d8222cb3227bdd51b640c0c1d0aa33fe4cc86c36eccba77d3",
+          "md5": "4988ca37fcb0146c173ab41850cb77c9",
+          "sha256": "df47c55f7d74127d1b11251fe6397d84afdde0d53b90bedb46a23c0e534f9d24"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-musllinux_1_2_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "4988ca37fcb0146c173ab41850cb77c9",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 357609,
+        "upload_time": "2025-06-10T00:42:59",
+        "upload_time_iso_8601": "2025-06-10T00:42:59.055375Z",
+        "url": "https://files.pythonhosted.org/packages/d1/90/c42eefd79d0d8222cb3227bdd51b640c0c1d0aa33fe4cc86c36eccba77d3/yarl-1.20.1-cp310-cp310-musllinux_1_2_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "03c8cea6b232cb4617514232e0f8a718153a95b5d82b5290711b201545825532",
+          "md5": "4fae7c0cee66a0380c58183b799fa04e",
+          "sha256": "76d12524d05841276b0e22573f28d5fbcb67589836772ae9244d90dd7d66aa13"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "4fae7c0cee66a0380c58183b799fa04e",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 350224,
+        "upload_time": "2025-06-10T00:43:01",
+        "upload_time_iso_8601": "2025-06-10T00:43:01.248413Z",
+        "url": "https://files.pythonhosted.org/packages/03/c8/cea6b232cb4617514232e0f8a718153a95b5d82b5290711b201545825532/yarl-1.20.1-cp310-cp310-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "cea3eaa0ab9712f1f3d01faf43cf6f1f7210ce4ea4a7e9b28b489a2261ca8db9",
+          "md5": "13404988fe19d3e536a629d6d98152a2",
+          "sha256": "6c4fbf6b02d70e512d7ade4b1f998f237137f1417ab07ec06358ea04f69134f8"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-win32.whl",
+        "has_sig": false,
+        "md5_digest": "13404988fe19d3e536a629d6d98152a2",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 81753,
+        "upload_time": "2025-06-10T00:43:03",
+        "upload_time_iso_8601": "2025-06-10T00:43:03.486893Z",
+        "url": "https://files.pythonhosted.org/packages/ce/a3/eaa0ab9712f1f3d01faf43cf6f1f7210ce4ea4a7e9b28b489a2261ca8db9/yarl-1.20.1-cp310-cp310-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "8f34e4abde70a9256465fe31c88ed02c3f8502b7b5dead693a4f350a06413f28",
+          "md5": "39476f49e0e35864cb68fee104628e61",
+          "sha256": "aef6c4d69554d44b7f9d923245f8ad9a707d971e6209d51279196d8e8fe1ae16"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp310-cp310-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "39476f49e0e35864cb68fee104628e61",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.9",
+        "size": 86817,
+        "upload_time": "2025-06-10T00:43:05",
+        "upload_time_iso_8601": "2025-06-10T00:43:05.231123Z",
+        "url": "https://files.pythonhosted.org/packages/8f/34/e4abde70a9256465fe31c88ed02c3f8502b7b5dead693a4f350a06413f28/yarl-1.20.1-cp310-cp310-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "b118893b50efc2350e47a874c5c2d67e55a0ea5df91186b2a6f5ac52eff887cd",
+          "md5": "4765b6eb9012060f9eb903cbed51a3c7",
+          "sha256": "47ee6188fea634bdfaeb2cc420f5b3b17332e6225ce88149a17c413c77ff269e"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-macosx_10_9_universal2.whl",
+        "has_sig": false,
+        "md5_digest": "4765b6eb9012060f9eb903cbed51a3c7",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 133833,
+        "upload_time": "2025-06-10T00:43:07",
+        "upload_time_iso_8601": "2025-06-10T00:43:07.393888Z",
+        "url": "https://files.pythonhosted.org/packages/b1/18/893b50efc2350e47a874c5c2d67e55a0ea5df91186b2a6f5ac52eff887cd/yarl-1.20.1-cp311-cp311-macosx_10_9_universal2.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "89edb8773448030e6fc47fa797f099ab9eab151a43a25717f9ac043844ad5ea3",
+          "md5": "ec95872f65b457cfc638f873cfaf590a",
+          "sha256": "d0f6500f69e8402d513e5eedb77a4e1818691e8f45e6b687147963514d84b44b"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "ec95872f65b457cfc638f873cfaf590a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 91070,
+        "upload_time": "2025-06-10T00:43:09",
+        "upload_time_iso_8601": "2025-06-10T00:43:09.538713Z",
+        "url": "https://files.pythonhosted.org/packages/89/ed/b8773448030e6fc47fa797f099ab9eab151a43a25717f9ac043844ad5ea3/yarl-1.20.1-cp311-cp311-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "e3e3409bd17b1e42619bf69f60e4f031ce1ccb29bd7380117a55529e76933464",
+          "md5": "9dcc9eb63aaa1a65e779050197f0759a",
+          "sha256": "7a8900a42fcdaad568de58887c7b2f602962356908eedb7628eaf6021a6e435b"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "9dcc9eb63aaa1a65e779050197f0759a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 89818,
+        "upload_time": "2025-06-10T00:43:11",
+        "upload_time_iso_8601": "2025-06-10T00:43:11.575838Z",
+        "url": "https://files.pythonhosted.org/packages/e3/e3/409bd17b1e42619bf69f60e4f031ce1ccb29bd7380117a55529e76933464/yarl-1.20.1-cp311-cp311-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "f87764d8431a4d77c856eb2d82aa3de2ad6741365245a29b3a9543cd598ed8c5",
+          "md5": "2411a12433a5ea902a85a1012cba59f5",
+          "sha256": "bad6d131fda8ef508b36be3ece16d0902e80b88ea7200f030a0f6c11d9e508d4"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "2411a12433a5ea902a85a1012cba59f5",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 347003,
+        "upload_time": "2025-06-10T00:43:14",
+        "upload_time_iso_8601": "2025-06-10T00:43:14.088338Z",
+        "url": "https://files.pythonhosted.org/packages/f8/77/64d8431a4d77c856eb2d82aa3de2ad6741365245a29b3a9543cd598ed8c5/yarl-1.20.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "8dd20c7e4def093dcef0bd9fa22d4d24b023788b0a33b8d0088b51aa51e21e99",
+          "md5": "48e36f70493dd4bd78f4fc3b74f8ddb8",
+          "sha256": "df018d92fe22aaebb679a7f89fe0c0f368ec497e3dda6cb81a567610f04501f1"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "48e36f70493dd4bd78f4fc3b74f8ddb8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 336537,
+        "upload_time": "2025-06-10T00:43:16",
+        "upload_time_iso_8601": "2025-06-10T00:43:16.431272Z",
+        "url": "https://files.pythonhosted.org/packages/8d/d2/0c7e4def093dcef0bd9fa22d4d24b023788b0a33b8d0088b51aa51e21e99/yarl-1.20.1-cp311-cp311-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "f0f3fc514f4b2cf02cb59d10cbfe228691d25929ce8f72a38db07d3febc3f706",
+          "md5": "0c691ba1a8c892b19d2475a14a0ce5db",
+          "sha256": "8f969afbb0a9b63c18d0feecf0db09d164b7a44a053e78a7d05f5df163e43833"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "0c691ba1a8c892b19d2475a14a0ce5db",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 362358,
+        "upload_time": "2025-06-10T00:43:18",
+        "upload_time_iso_8601": "2025-06-10T00:43:18.704632Z",
+        "url": "https://files.pythonhosted.org/packages/f0/f3/fc514f4b2cf02cb59d10cbfe228691d25929ce8f72a38db07d3febc3f706/yarl-1.20.1-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "ea6da313ac8d8391381ff9006ac05f1d4331cee3b1efaa833a53d12253733255",
+          "md5": "8bcacaed65078eb26346a8a47b50099d",
+          "sha256": "812303eb4aa98e302886ccda58d6b099e3576b1b9276161469c25803a8db277d"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "8bcacaed65078eb26346a8a47b50099d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 357362,
+        "upload_time": "2025-06-10T00:43:20",
+        "upload_time_iso_8601": "2025-06-10T00:43:20.888779Z",
+        "url": "https://files.pythonhosted.org/packages/ea/6d/a313ac8d8391381ff9006ac05f1d4331cee3b1efaa833a53d12253733255/yarl-1.20.1-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "00708f78a95d6935a70263d46caa3dd18e1f223cf2f2ff2037baa01a22bc5b22",
+          "md5": "f2331b7705d1a17422ed928f87c0c49e",
+          "sha256": "98c4a7d166635147924aa0bf9bfe8d8abad6fffa6102de9c99ea04a1376f91e8"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "f2331b7705d1a17422ed928f87c0c49e",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 348979,
+        "upload_time": "2025-06-10T00:43:23",
+        "upload_time_iso_8601": "2025-06-10T00:43:23.169387Z",
+        "url": "https://files.pythonhosted.org/packages/00/70/8f78a95d6935a70263d46caa3dd18e1f223cf2f2ff2037baa01a22bc5b22/yarl-1.20.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "cb0542773027968968f4f15143553970ee36ead27038d627f457cc44bbbeecf3",
+          "md5": "63252d6869e82a9ec9ed7e63d77960f5",
+          "sha256": "12e768f966538e81e6e7550f9086a6236b16e26cd964cf4df35349970f3551cf"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "has_sig": false,
+        "md5_digest": "63252d6869e82a9ec9ed7e63d77960f5",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 337274,
+        "upload_time": "2025-06-10T00:43:27",
+        "upload_time_iso_8601": "2025-06-10T00:43:27.111917Z",
+        "url": "https://files.pythonhosted.org/packages/cb/05/42773027968968f4f15143553970ee36ead27038d627f457cc44bbbeecf3/yarl-1.20.1-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "05be665634aa196954156741ea591d2f946f1b78ceee8bb8f28488bf28c0dd62",
+          "md5": "ef63ff68a351d0246e1244674e43f60c",
+          "sha256": "fe41919b9d899661c5c28a8b4b0acf704510b88f27f0934ac7a7bebdd8938d5e"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "ef63ff68a351d0246e1244674e43f60c",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 363294,
+        "upload_time": "2025-06-10T00:43:28",
+        "upload_time_iso_8601": "2025-06-10T00:43:28.960703Z",
+        "url": "https://files.pythonhosted.org/packages/05/be/665634aa196954156741ea591d2f946f1b78ceee8bb8f28488bf28c0dd62/yarl-1.20.1-cp311-cp311-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "eb9073448401d36fa4e210ece5579895731f190d5119c4b66b43b52182e88cd5",
+          "md5": "44abd8f1a9cd3e765d440c7b2b733c1e",
+          "sha256": "8601bc010d1d7780592f3fc1bdc6c72e2b6466ea34569778422943e1a1f3c389"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-musllinux_1_2_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "44abd8f1a9cd3e765d440c7b2b733c1e",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 358169,
+        "upload_time": "2025-06-10T00:43:30",
+        "upload_time_iso_8601": "2025-06-10T00:43:30.701004Z",
+        "url": "https://files.pythonhosted.org/packages/eb/90/73448401d36fa4e210ece5579895731f190d5119c4b66b43b52182e88cd5/yarl-1.20.1-cp311-cp311-musllinux_1_2_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "c3b0fce922d46dc1eb43c811f1889f7daa6001b27a4005587e94878570300881",
+          "md5": "1639ca6d0cf4137986c4b6430a722a79",
+          "sha256": "daadbdc1f2a9033a2399c42646fbd46da7992e868a5fe9513860122d7fe7a73f"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-musllinux_1_2_i686.whl",
+        "has_sig": false,
+        "md5_digest": "1639ca6d0cf4137986c4b6430a722a79",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 362776,
+        "upload_time": "2025-06-10T00:43:32",
+        "upload_time_iso_8601": "2025-06-10T00:43:32.510726Z",
+        "url": "https://files.pythonhosted.org/packages/c3/b0/fce922d46dc1eb43c811f1889f7daa6001b27a4005587e94878570300881/yarl-1.20.1-cp311-cp311-musllinux_1_2_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "f10db172628fce039dae8977fd22caeff3eeebffd52e86060413f5673767c427",
+          "md5": "62b911a4811b3b50a4570a92f2f05a3d",
+          "sha256": "03aa1e041727cb438ca762628109ef1333498b122e4c76dd858d186a37cec845"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-musllinux_1_2_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "62b911a4811b3b50a4570a92f2f05a3d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 381341,
+        "upload_time": "2025-06-10T00:43:34",
+        "upload_time_iso_8601": "2025-06-10T00:43:34.543012Z",
+        "url": "https://files.pythonhosted.org/packages/f1/0d/b172628fce039dae8977fd22caeff3eeebffd52e86060413f5673767c427/yarl-1.20.1-cp311-cp311-musllinux_1_2_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "6b9b5b886d7671f4580209e855974fe1cecec409aa4a89ea58b8f0560dc529b1",
+          "md5": "3540f482da635c3a82961fd01ec31986",
+          "sha256": "642980ef5e0fa1de5fa96d905c7e00cb2c47cb468bfcac5a18c58e27dbf8d8d1"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-musllinux_1_2_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "3540f482da635c3a82961fd01ec31986",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 379988,
+        "upload_time": "2025-06-10T00:43:36",
+        "upload_time_iso_8601": "2025-06-10T00:43:36.489706Z",
+        "url": "https://files.pythonhosted.org/packages/6b/9b/5b886d7671f4580209e855974fe1cecec409aa4a89ea58b8f0560dc529b1/yarl-1.20.1-cp311-cp311-musllinux_1_2_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "73be75ef5fd0fcd8f083a5d13f78fd3f009528132a1f2a1d7c925c39fa20aa79",
+          "md5": "cf18b5545b6fb0fad7b45dac027abe0a",
+          "sha256": "86971e2795584fe8c002356d3b97ef6c61862720eeff03db2a7c86b678d85b3e"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "cf18b5545b6fb0fad7b45dac027abe0a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 371113,
+        "upload_time": "2025-06-10T00:43:38",
+        "upload_time_iso_8601": "2025-06-10T00:43:38.592398Z",
+        "url": "https://files.pythonhosted.org/packages/73/be/75ef5fd0fcd8f083a5d13f78fd3f009528132a1f2a1d7c925c39fa20aa79/yarl-1.20.1-cp311-cp311-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "504f62faab3b479dfdcb741fe9e3f0323e2a7d5cd1ab2edc73221d57ad4834b2",
+          "md5": "bf134619689b9b37cbbe216409f87fb1",
+          "sha256": "597f40615b8d25812f14562699e287f0dcc035d25eb74da72cae043bb884d773"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-win32.whl",
+        "has_sig": false,
+        "md5_digest": "bf134619689b9b37cbbe216409f87fb1",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 81485,
+        "upload_time": "2025-06-10T00:43:41",
+        "upload_time_iso_8601": "2025-06-10T00:43:41.038375Z",
+        "url": "https://files.pythonhosted.org/packages/50/4f/62faab3b479dfdcb741fe9e3f0323e2a7d5cd1ab2edc73221d57ad4834b2/yarl-1.20.1-cp311-cp311-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "f009d9c7942f8f05c32ec72cd5c8e041c8b29b5807328b68b4801ff2511d4d5e",
+          "md5": "31bf1d343d4d190edfd758dfc6a8ac83",
+          "sha256": "26ef53a9e726e61e9cd1cda6b478f17e350fb5800b4bd1cd9fe81c4d91cfeb2e"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp311-cp311-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "31bf1d343d4d190edfd758dfc6a8ac83",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.9",
+        "size": 86686,
+        "upload_time": "2025-06-10T00:43:42",
+        "upload_time_iso_8601": "2025-06-10T00:43:42.692327Z",
+        "url": "https://files.pythonhosted.org/packages/f0/09/d9c7942f8f05c32ec72cd5c8e041c8b29b5807328b68b4801ff2511d4d5e/yarl-1.20.1-cp311-cp311-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "5f9acb7fad7d73c69f296eda6815e4a2c7ed53fc70c2f136479a91c8e5fbdb6d",
+          "md5": "a6c0b208a0cd0e0f4e35bb37f4c26dd8",
+          "sha256": "bdcc4cd244e58593a4379fe60fdee5ac0331f8eb70320a24d591a3be197b94a9"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-macosx_10_13_universal2.whl",
+        "has_sig": false,
+        "md5_digest": "a6c0b208a0cd0e0f4e35bb37f4c26dd8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 133667,
+        "upload_time": "2025-06-10T00:43:44",
+        "upload_time_iso_8601": "2025-06-10T00:43:44.369708Z",
+        "url": "https://files.pythonhosted.org/packages/5f/9a/cb7fad7d73c69f296eda6815e4a2c7ed53fc70c2f136479a91c8e5fbdb6d/yarl-1.20.1-cp312-cp312-macosx_10_13_universal2.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "6738688577a1cb1e656e3971fb66a3492501c5a5df56d99722e57c98249e5b8a",
+          "md5": "40c341a59294e843fa175f8a9f0c810f",
+          "sha256": "b29a2c385a5f5b9c7d9347e5812b6f7ab267193c62d282a540b4fc528c8a9d2a"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-macosx_10_13_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "40c341a59294e843fa175f8a9f0c810f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 91025,
+        "upload_time": "2025-06-10T00:43:46",
+        "upload_time_iso_8601": "2025-06-10T00:43:46.295969Z",
+        "url": "https://files.pythonhosted.org/packages/67/38/688577a1cb1e656e3971fb66a3492501c5a5df56d99722e57c98249e5b8a/yarl-1.20.1-cp312-cp312-macosx_10_13_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "50ec72991ae51febeb11a42813fc259f0d4c8e0507f2b74b5514618d8b640365",
+          "md5": "5b421f0e76d5e672fa8ca36290f9c411",
+          "sha256": "1112ae8154186dfe2de4732197f59c05a83dc814849a5ced892b708033f40dc2"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "5b421f0e76d5e672fa8ca36290f9c411",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 89709,
+        "upload_time": "2025-06-10T00:43:48",
+        "upload_time_iso_8601": "2025-06-10T00:43:48.220626Z",
+        "url": "https://files.pythonhosted.org/packages/50/ec/72991ae51febeb11a42813fc259f0d4c8e0507f2b74b5514618d8b640365/yarl-1.20.1-cp312-cp312-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "99da4d798025490e89426e9f976702e5f9482005c548c579bdae792a4c37769e",
+          "md5": "d2e49c74bf4538be0c3da25ce987e814",
+          "sha256": "90bbd29c4fe234233f7fa2b9b121fb63c321830e5d05b45153a2ca68f7d310ee"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "d2e49c74bf4538be0c3da25ce987e814",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 352287,
+        "upload_time": "2025-06-10T00:43:49",
+        "upload_time_iso_8601": "2025-06-10T00:43:49.924485Z",
+        "url": "https://files.pythonhosted.org/packages/99/da/4d798025490e89426e9f976702e5f9482005c548c579bdae792a4c37769e/yarl-1.20.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "1a2654a15c6a567aac1c61b18aa0f4b8aa2e285a52d547d1be8bf48abe2b3991",
+          "md5": "ae25f6dcfc559761e9d905b77f804f7d",
+          "sha256": "680e19c7ce3710ac4cd964e90dad99bf9b5029372ba0c7cbfcd55e54d90ea819"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "ae25f6dcfc559761e9d905b77f804f7d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 345429,
+        "upload_time": "2025-06-10T00:43:51",
+        "upload_time_iso_8601": "2025-06-10T00:43:51.700985Z",
+        "url": "https://files.pythonhosted.org/packages/1a/26/54a15c6a567aac1c61b18aa0f4b8aa2e285a52d547d1be8bf48abe2b3991/yarl-1.20.1-cp312-cp312-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "d6959dcf2386cb875b234353b93ec43e40219e14900e046bf6ac118f94b1e353",
+          "md5": "9a324624b9c6a63f2e497d6a9e1877c1",
+          "sha256": "4a979218c1fdb4246a05efc2cc23859d47c89af463a90b99b7c56094daf25a16"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "9a324624b9c6a63f2e497d6a9e1877c1",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 365429,
+        "upload_time": "2025-06-10T00:43:53",
+        "upload_time_iso_8601": "2025-06-10T00:43:53.494794Z",
+        "url": "https://files.pythonhosted.org/packages/d6/95/9dcf2386cb875b234353b93ec43e40219e14900e046bf6ac118f94b1e353/yarl-1.20.1-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "91b233a8750f6a4bc224242a635f5f2cff6d6ad5ba651f6edcccf721992c21a0",
+          "md5": "b8100247705a256a085b9c48aaf4e755",
+          "sha256": "255b468adf57b4a7b65d8aad5b5138dce6a0752c139965711bdcb81bc370e1b6"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "b8100247705a256a085b9c48aaf4e755",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 363862,
+        "upload_time": "2025-06-10T00:43:55",
+        "upload_time_iso_8601": "2025-06-10T00:43:55.766206Z",
+        "url": "https://files.pythonhosted.org/packages/91/b2/33a8750f6a4bc224242a635f5f2cff6d6ad5ba651f6edcccf721992c21a0/yarl-1.20.1-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "98283ab7acc5b51f4434b181b0cee8f1f4b77a65919700a355fb3617f9488874",
+          "md5": "0e8c6797f0bb8becc819b1b1f124af2d",
+          "sha256": "a97d67108e79cfe22e2b430d80d7571ae57d19f17cda8bb967057ca8a7bf5bfd"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "0e8c6797f0bb8becc819b1b1f124af2d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 355616,
+        "upload_time": "2025-06-10T00:43:58",
+        "upload_time_iso_8601": "2025-06-10T00:43:58.056144Z",
+        "url": "https://files.pythonhosted.org/packages/98/28/3ab7acc5b51f4434b181b0cee8f1f4b77a65919700a355fb3617f9488874/yarl-1.20.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "36a3f666894aa947a371724ec7cd2e5daa78ee8a777b21509b4252dd7bd15e29",
+          "md5": "8837c93dfe06e275d03883aafabc56d0",
+          "sha256": "8570d998db4ddbfb9a590b185a0a33dbf8aafb831d07a5257b4ec9948df9cb0a"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "has_sig": false,
+        "md5_digest": "8837c93dfe06e275d03883aafabc56d0",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 339954,
+        "upload_time": "2025-06-10T00:43:59",
+        "upload_time_iso_8601": "2025-06-10T00:43:59.773935Z",
+        "url": "https://files.pythonhosted.org/packages/36/a3/f666894aa947a371724ec7cd2e5daa78ee8a777b21509b4252dd7bd15e29/yarl-1.20.1-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "f1815f466427e09773c04219d3450d7a1256138a010b6c9f0af2d48565e9ad13",
+          "md5": "627c09d48ae98f4cc636dd2d57478431",
+          "sha256": "97c75596019baae7c71ccf1d8cc4738bc08134060d0adfcbe5642f778d1dca38"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "627c09d48ae98f4cc636dd2d57478431",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 365575,
+        "upload_time": "2025-06-10T00:44:02",
+        "upload_time_iso_8601": "2025-06-10T00:44:02.051868Z",
+        "url": "https://files.pythonhosted.org/packages/f1/81/5f466427e09773c04219d3450d7a1256138a010b6c9f0af2d48565e9ad13/yarl-1.20.1-cp312-cp312-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "2ee3e4b0ad8403e97e6c9972dd587388940a032f030ebec196ab81a3b8e94d31",
+          "md5": "1f67220b61f933ca3d3eaed282e0f21b",
+          "sha256": "1c48912653e63aef91ff988c5432832692ac5a1d8f0fb8a33091520b5bbe19ef"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-musllinux_1_2_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "1f67220b61f933ca3d3eaed282e0f21b",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 365061,
+        "upload_time": "2025-06-10T00:44:04",
+        "upload_time_iso_8601": "2025-06-10T00:44:04.196823Z",
+        "url": "https://files.pythonhosted.org/packages/2e/e3/e4b0ad8403e97e6c9972dd587388940a032f030ebec196ab81a3b8e94d31/yarl-1.20.1-cp312-cp312-musllinux_1_2_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "ac99b8a142e79eb86c926f9f06452eb13ecb1bb5713bd01dc0038faf5452e544",
+          "md5": "3cf49ad40876a0a85f89268faacf6f37",
+          "sha256": "4c3ae28f3ae1563c50f3d37f064ddb1511ecc1d5584e88c6b7c63cf7702a6d5f"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-musllinux_1_2_i686.whl",
+        "has_sig": false,
+        "md5_digest": "3cf49ad40876a0a85f89268faacf6f37",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 364142,
+        "upload_time": "2025-06-10T00:44:06",
+        "upload_time_iso_8601": "2025-06-10T00:44:06.527553Z",
+        "url": "https://files.pythonhosted.org/packages/ac/99/b8a142e79eb86c926f9f06452eb13ecb1bb5713bd01dc0038faf5452e544/yarl-1.20.1-cp312-cp312-musllinux_1_2_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "34f208ed34a4a506d82a1a3e5bab99ccd930a040f9b6449e9fd050320e45845c",
+          "md5": "590256ee19c326654c3e2d96389aa0ac",
+          "sha256": "c5e9642f27036283550f5f57dc6156c51084b458570b9d0d96100c8bebb186a8"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-musllinux_1_2_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "590256ee19c326654c3e2d96389aa0ac",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 381894,
+        "upload_time": "2025-06-10T00:44:08",
+        "upload_time_iso_8601": "2025-06-10T00:44:08.379354Z",
+        "url": "https://files.pythonhosted.org/packages/34/f2/08ed34a4a506d82a1a3e5bab99ccd930a040f9b6449e9fd050320e45845c/yarl-1.20.1-cp312-cp312-musllinux_1_2_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "92f89a3fbf0968eac704f681726eff595dce9b49c8a25cd92bf83df209668285",
+          "md5": "4e651987a120388843e2ec804cee4b4f",
+          "sha256": "2c26b0c49220d5799f7b22c6838409ee9bc58ee5c95361a4d7831f03cc225b5a"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-musllinux_1_2_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "4e651987a120388843e2ec804cee4b4f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 383378,
+        "upload_time": "2025-06-10T00:44:10",
+        "upload_time_iso_8601": "2025-06-10T00:44:10.510367Z",
+        "url": "https://files.pythonhosted.org/packages/92/f8/9a3fbf0968eac704f681726eff595dce9b49c8a25cd92bf83df209668285/yarl-1.20.1-cp312-cp312-musllinux_1_2_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "af859363f77bdfa1e4d690957cd39d192c4cacd1c58965df0470a4905253b54f",
+          "md5": "fbfd03ea7bf9378afb0fed6a9a660a26",
+          "sha256": "564ab3d517e3d01c408c67f2e5247aad4019dcf1969982aba3974b4093279004"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "fbfd03ea7bf9378afb0fed6a9a660a26",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 374069,
+        "upload_time": "2025-06-10T00:44:12",
+        "upload_time_iso_8601": "2025-06-10T00:44:12.834915Z",
+        "url": "https://files.pythonhosted.org/packages/af/85/9363f77bdfa1e4d690957cd39d192c4cacd1c58965df0470a4905253b54f/yarl-1.20.1-cp312-cp312-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "35999918c8739ba271dcd935400cff8b32e3cd319eaf02fcd023d5dcd487a7c8",
+          "md5": "3f4cd992a2babd1af021fd725e878016",
+          "sha256": "daea0d313868da1cf2fac6b2d3a25c6e3a9e879483244be38c8e6a41f1d876a5"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-win32.whl",
+        "has_sig": false,
+        "md5_digest": "3f4cd992a2babd1af021fd725e878016",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 81249,
+        "upload_time": "2025-06-10T00:44:14",
+        "upload_time_iso_8601": "2025-06-10T00:44:14.731121Z",
+        "url": "https://files.pythonhosted.org/packages/35/99/9918c8739ba271dcd935400cff8b32e3cd319eaf02fcd023d5dcd487a7c8/yarl-1.20.1-cp312-cp312-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "eb835d9092950565481b413b31a23e75dd3418ff0a277d6e0abf3729d4d1ce25",
+          "md5": "af5572e4091c30ed4dd0be2ad537c778",
+          "sha256": "48ea7d7f9be0487339828a4de0360d7ce0efc06524a48e1810f945c45b813698"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp312-cp312-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "af5572e4091c30ed4dd0be2ad537c778",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.9",
+        "size": 86710,
+        "upload_time": "2025-06-10T00:44:16",
+        "upload_time_iso_8601": "2025-06-10T00:44:16.716370Z",
+        "url": "https://files.pythonhosted.org/packages/eb/83/5d9092950565481b413b31a23e75dd3418ff0a277d6e0abf3729d4d1ce25/yarl-1.20.1-cp312-cp312-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "8ae12411b6d7f769a07687acee88a062af5833cf1966b7266f3d8dfb3d3dc7d3",
+          "md5": "74e457bf74a67f9fe6e11a946721d9d8",
+          "sha256": "0b5ff0fbb7c9f1b1b5ab53330acbfc5247893069e7716840c8e7d5bb7355038a"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-macosx_10_13_universal2.whl",
+        "has_sig": false,
+        "md5_digest": "74e457bf74a67f9fe6e11a946721d9d8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 131811,
+        "upload_time": "2025-06-10T00:44:18",
+        "upload_time_iso_8601": "2025-06-10T00:44:18.933510Z",
+        "url": "https://files.pythonhosted.org/packages/8a/e1/2411b6d7f769a07687acee88a062af5833cf1966b7266f3d8dfb3d3dc7d3/yarl-1.20.1-cp313-cp313-macosx_10_13_universal2.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "b227584394e1cb76fb771371770eccad35de400e7b434ce3142c2dd27392c968",
+          "md5": "b566b4718388e8de91aa5b6bf308883f",
+          "sha256": "14f326acd845c2b2e2eb38fb1346c94f7f3b01a4f5c788f8144f9b630bfff9a3"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-macosx_10_13_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "b566b4718388e8de91aa5b6bf308883f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 90078,
+        "upload_time": "2025-06-10T00:44:20",
+        "upload_time_iso_8601": "2025-06-10T00:44:20.635366Z",
+        "url": "https://files.pythonhosted.org/packages/b2/27/584394e1cb76fb771371770eccad35de400e7b434ce3142c2dd27392c968/yarl-1.20.1-cp313-cp313-macosx_10_13_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "bf9a3246ae92d4049099f52d9b0fe3486e3b500e29b7ea872d0f152966fc209d",
+          "md5": "a38d334dd828d6e648e452bd2c2dd7de",
+          "sha256": "f60e4ad5db23f0b96e49c018596707c3ae89f5d0bd97f0ad3684bcbad899f1e7"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "a38d334dd828d6e648e452bd2c2dd7de",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 88748,
+        "upload_time": "2025-06-10T00:44:22",
+        "upload_time_iso_8601": "2025-06-10T00:44:22.340401Z",
+        "url": "https://files.pythonhosted.org/packages/bf/9a/3246ae92d4049099f52d9b0fe3486e3b500e29b7ea872d0f152966fc209d/yarl-1.20.1-cp313-cp313-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "a32535afe384e31115a1a801fbcf84012d7a066d89035befae7c5d4284df1e03",
+          "md5": "ee257a8e276850e88c6bcd78e2753d13",
+          "sha256": "49bdd1b8e00ce57e68ba51916e4bb04461746e794e7c4d4bbc42ba2f18297691"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "ee257a8e276850e88c6bcd78e2753d13",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 349595,
+        "upload_time": "2025-06-10T00:44:24",
+        "upload_time_iso_8601": "2025-06-10T00:44:24.314912Z",
+        "url": "https://files.pythonhosted.org/packages/a3/25/35afe384e31115a1a801fbcf84012d7a066d89035befae7c5d4284df1e03/yarl-1.20.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "282d8aca6cb2cabc8f12efcb82749b9cefecbccfc7b0384e56cd71058ccee433",
+          "md5": "67e68664a9558237d46d394303d4db21",
+          "sha256": "66252d780b45189975abfed839616e8fd2dbacbdc262105ad7742c6ae58f3e31"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "67e68664a9558237d46d394303d4db21",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 342616,
+        "upload_time": "2025-06-10T00:44:26",
+        "upload_time_iso_8601": "2025-06-10T00:44:26.167049Z",
+        "url": "https://files.pythonhosted.org/packages/28/2d/8aca6cb2cabc8f12efcb82749b9cefecbccfc7b0384e56cd71058ccee433/yarl-1.20.1-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "0be91312633d16b31acf0098d30440ca855e3492d66623dafb8e25b03d00c3da",
+          "md5": "dfadce34579536a4b99d59bc6f5cf9a4",
+          "sha256": "59174e7332f5d153d8f7452a102b103e2e74035ad085f404df2e40e663a22b28"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "dfadce34579536a4b99d59bc6f5cf9a4",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 361324,
+        "upload_time": "2025-06-10T00:44:27",
+        "upload_time_iso_8601": "2025-06-10T00:44:27.915678Z",
+        "url": "https://files.pythonhosted.org/packages/0b/e9/1312633d16b31acf0098d30440ca855e3492d66623dafb8e25b03d00c3da/yarl-1.20.1-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "bca0688cc99463f12f7669eec7c8acc71ef56a1521b99eab7cd3abb75af887b0",
+          "md5": "8c6435df7cd3dcd2d5e123df32800fb6",
+          "sha256": "e3968ec7d92a0c0f9ac34d5ecfd03869ec0cab0697c91a45db3fbbd95fe1b653"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "8c6435df7cd3dcd2d5e123df32800fb6",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 359676,
+        "upload_time": "2025-06-10T00:44:30",
+        "upload_time_iso_8601": "2025-06-10T00:44:30.041188Z",
+        "url": "https://files.pythonhosted.org/packages/bc/a0/688cc99463f12f7669eec7c8acc71ef56a1521b99eab7cd3abb75af887b0/yarl-1.20.1-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "af4446407d7f7a56e9a85a4c207724c9f2c545c060380718eea9088f222ba697",
+          "md5": "80c4de04e0a2e34fc9791bdaddca0d35",
+          "sha256": "d1a4fbb50e14396ba3d375f68bfe02215d8e7bc3ec49da8341fe3157f59d2ff5"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "80c4de04e0a2e34fc9791bdaddca0d35",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 352614,
+        "upload_time": "2025-06-10T00:44:32",
+        "upload_time_iso_8601": "2025-06-10T00:44:32.171589Z",
+        "url": "https://files.pythonhosted.org/packages/af/44/46407d7f7a56e9a85a4c207724c9f2c545c060380718eea9088f222ba697/yarl-1.20.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "b19131163295e82b8d5485d31d9cf7754d973d41915cadce070491778d9c9825",
+          "md5": "99b1d13742221ed20fed6d98f2f6d0b0",
+          "sha256": "11a62c839c3a8eac2410e951301309426f368388ff2f33799052787035793b02"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "has_sig": false,
+        "md5_digest": "99b1d13742221ed20fed6d98f2f6d0b0",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 336766,
+        "upload_time": "2025-06-10T00:44:34",
+        "upload_time_iso_8601": "2025-06-10T00:44:34.494751Z",
+        "url": "https://files.pythonhosted.org/packages/b1/91/31163295e82b8d5485d31d9cf7754d973d41915cadce070491778d9c9825/yarl-1.20.1-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "b48ec41a5bc482121f51c083c4c2bcd16b9e01e1cf8729e380273a952513a21f",
+          "md5": "867f326bffac5a4b040c63f7a28ca016",
+          "sha256": "041eaa14f73ff5a8986b4388ac6bb43a77f2ea09bf1913df7a35d4646db69e53"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "867f326bffac5a4b040c63f7a28ca016",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 364615,
+        "upload_time": "2025-06-10T00:44:36",
+        "upload_time_iso_8601": "2025-06-10T00:44:36.856981Z",
+        "url": "https://files.pythonhosted.org/packages/b4/8e/c41a5bc482121f51c083c4c2bcd16b9e01e1cf8729e380273a952513a21f/yarl-1.20.1-cp313-cp313-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "e35b61a3b054238d33d70ea06ebba7e58597891b71c699e247df35cc984ab393",
+          "md5": "a11c68dc9bfc937f49c6df533d8e8f19",
+          "sha256": "377fae2fef158e8fd9d60b4c8751387b8d1fb121d3d0b8e9b0be07d1b41e83dc"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-musllinux_1_2_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "a11c68dc9bfc937f49c6df533d8e8f19",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 360982,
+        "upload_time": "2025-06-10T00:44:39",
+        "upload_time_iso_8601": "2025-06-10T00:44:39.141555Z",
+        "url": "https://files.pythonhosted.org/packages/e3/5b/61a3b054238d33d70ea06ebba7e58597891b71c699e247df35cc984ab393/yarl-1.20.1-cp313-cp313-musllinux_1_2_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "dfa36a72fb83f8d478cb201d14927bc8040af901811a88e0ff2da7842dd0ed19",
+          "md5": "af8ee232c708d5e0a67fbcbf243d7a10",
+          "sha256": "1c92f4390e407513f619d49319023664643d3339bd5e5a56a3bebe01bc67ec04"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-musllinux_1_2_i686.whl",
+        "has_sig": false,
+        "md5_digest": "af8ee232c708d5e0a67fbcbf243d7a10",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 369792,
+        "upload_time": "2025-06-10T00:44:40",
+        "upload_time_iso_8601": "2025-06-10T00:44:40.934096Z",
+        "url": "https://files.pythonhosted.org/packages/df/a3/6a72fb83f8d478cb201d14927bc8040af901811a88e0ff2da7842dd0ed19/yarl-1.20.1-cp313-cp313-musllinux_1_2_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "7caf4cc3c36dfc7c077f8dedb561eb21f69e1e9f2456b91b593882b0b18c19dc",
+          "md5": "15f568f08f1ad55292fe632f42719e10",
+          "sha256": "d25ddcf954df1754ab0f86bb696af765c5bfaba39b74095f27eececa049ef9a4"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-musllinux_1_2_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "15f568f08f1ad55292fe632f42719e10",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 382049,
+        "upload_time": "2025-06-10T00:44:42",
+        "upload_time_iso_8601": "2025-06-10T00:44:42.854634Z",
+        "url": "https://files.pythonhosted.org/packages/7c/af/4cc3c36dfc7c077f8dedb561eb21f69e1e9f2456b91b593882b0b18c19dc/yarl-1.20.1-cp313-cp313-musllinux_1_2_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "193ae54e2c4752160115183a66dc9ee75a153f81f3ab2ba4bf79c3c53b33de34",
+          "md5": "74f97f1187666f5d94c64ee56618c6d6",
+          "sha256": "909313577e9619dcff8c31a0ea2aa0a2a828341d92673015456b3ae492e7317b"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-musllinux_1_2_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "74f97f1187666f5d94c64ee56618c6d6",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 384774,
+        "upload_time": "2025-06-10T00:44:45",
+        "upload_time_iso_8601": "2025-06-10T00:44:45.275487Z",
+        "url": "https://files.pythonhosted.org/packages/19/3a/e54e2c4752160115183a66dc9ee75a153f81f3ab2ba4bf79c3c53b33de34/yarl-1.20.1-cp313-cp313-musllinux_1_2_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "9c20200ae86dabfca89060ec6447649f219b4cbd94531e425e50d57e5f5ac330",
+          "md5": "9eb2d87f86619dca5a9effea6d1575dd",
+          "sha256": "793fd0580cb9664548c6b83c63b43c477212c0260891ddf86809e1c06c8b08f1"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "9eb2d87f86619dca5a9effea6d1575dd",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 374252,
+        "upload_time": "2025-06-10T00:44:47",
+        "upload_time_iso_8601": "2025-06-10T00:44:47.310896Z",
+        "url": "https://files.pythonhosted.org/packages/9c/20/200ae86dabfca89060ec6447649f219b4cbd94531e425e50d57e5f5ac330/yarl-1.20.1-cp313-cp313-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "43c7669c52519dca4c95153c8ad96dd123c79f354a376346b198f438e56ffeb4",
+          "md5": "48ec7afac7d2e7d0c466e1fb17c15cd2",
+          "sha256": "f60233b98423aab21d249a30eb27c389c14929f47be8430efa7dbd91493a729d"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-macosx_10_13_universal2.whl",
+        "has_sig": false,
+        "md5_digest": "48ec7afac7d2e7d0c466e1fb17c15cd2",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 138826,
+        "upload_time": "2025-06-10T00:44:52",
+        "upload_time_iso_8601": "2025-06-10T00:44:52.883823Z",
+        "url": "https://files.pythonhosted.org/packages/43/c7/669c52519dca4c95153c8ad96dd123c79f354a376346b198f438e56ffeb4/yarl-1.20.1-cp313-cp313t-macosx_10_13_universal2.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "6a42fc0053719b44f6ad04a75d7f05e0e9674d45ef62f2d9ad2c1163e5c05827",
+          "md5": "b0a9ad74106eee10dcfad42e97b3b996",
+          "sha256": "6f3eff4cc3f03d650d8755c6eefc844edde99d641d0dcf4da3ab27141a5f8ddf"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-macosx_10_13_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "b0a9ad74106eee10dcfad42e97b3b996",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 93217,
+        "upload_time": "2025-06-10T00:44:54",
+        "upload_time_iso_8601": "2025-06-10T00:44:54.658918Z",
+        "url": "https://files.pythonhosted.org/packages/6a/42/fc0053719b44f6ad04a75d7f05e0e9674d45ef62f2d9ad2c1163e5c05827/yarl-1.20.1-cp313-cp313t-macosx_10_13_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "4f7ffa59c4c27e2a076bba0d959386e26eba77eb52ea4a0aac48e3515c186b4c",
+          "md5": "63d129529a06e8841ac8577b4ffb20c8",
+          "sha256": "69ff8439d8ba832d6bed88af2c2b3445977eba9a4588b787b32945871c2444e3"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "63d129529a06e8841ac8577b4ffb20c8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 92700,
+        "upload_time": "2025-06-10T00:44:56",
+        "upload_time_iso_8601": "2025-06-10T00:44:56.784758Z",
+        "url": "https://files.pythonhosted.org/packages/4f/7f/fa59c4c27e2a076bba0d959386e26eba77eb52ea4a0aac48e3515c186b4c/yarl-1.20.1-cp313-cp313t-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "2fd4062b2f48e7c93481e88eff97a6312dca15ea200e959f23e96d8ab898c5b8",
+          "md5": "3c915cd36c76b8df76891b5d1a2c96e5",
+          "sha256": "3cf34efa60eb81dd2645a2e13e00bb98b76c35ab5061a3989c7a70f78c85006d"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "3c915cd36c76b8df76891b5d1a2c96e5",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 347644,
+        "upload_time": "2025-06-10T00:44:59",
+        "upload_time_iso_8601": "2025-06-10T00:44:59.071258Z",
+        "url": "https://files.pythonhosted.org/packages/2f/d4/062b2f48e7c93481e88eff97a6312dca15ea200e959f23e96d8ab898c5b8/yarl-1.20.1-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "894778b7f40d13c8f62b499cc702fdf69e090455518ae544c00a3bf4afc9fc77",
+          "md5": "c500c1e0dafcfbe6505b67b5f2251f3f",
+          "sha256": "8e0fe9364ad0fddab2688ce72cb7a8e61ea42eff3c7caeeb83874a5d479c896c"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "c500c1e0dafcfbe6505b67b5f2251f3f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 323452,
+        "upload_time": "2025-06-10T00:45:01",
+        "upload_time_iso_8601": "2025-06-10T00:45:01.605431Z",
+        "url": "https://files.pythonhosted.org/packages/89/47/78b7f40d13c8f62b499cc702fdf69e090455518ae544c00a3bf4afc9fc77/yarl-1.20.1-cp313-cp313t-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "eb2b490d3b2dc66f52987d4ee0d3090a147ea67732ce6b4d61e362c1846d0d32",
+          "md5": "b8a19d3bbf582961c0f35d18ce7b2035",
+          "sha256": "8f64fbf81878ba914562c672024089e3401974a39767747691c65080a67b18c1"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "b8a19d3bbf582961c0f35d18ce7b2035",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 346378,
+        "upload_time": "2025-06-10T00:45:03",
+        "upload_time_iso_8601": "2025-06-10T00:45:03.946917Z",
+        "url": "https://files.pythonhosted.org/packages/eb/2b/490d3b2dc66f52987d4ee0d3090a147ea67732ce6b4d61e362c1846d0d32/yarl-1.20.1-cp313-cp313t-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "66ad775da9c8a94ce925d1537f939a4f17d782efef1f973039d821cbe4bcc211",
+          "md5": "ae7bdb462dc7f64b9969f6ddd967496d",
+          "sha256": "f6342d643bf9a1de97e512e45e4b9560a043347e779a173250824f8b254bd5ce"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "ae7bdb462dc7f64b9969f6ddd967496d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 353261,
+        "upload_time": "2025-06-10T00:45:05",
+        "upload_time_iso_8601": "2025-06-10T00:45:05.992756Z",
+        "url": "https://files.pythonhosted.org/packages/66/ad/775da9c8a94ce925d1537f939a4f17d782efef1f973039d821cbe4bcc211/yarl-1.20.1-cp313-cp313t-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "4b230ed0922b47a4f5c6eb9065d5ff1e459747226ddce5c6a4c111e728c9f701",
+          "md5": "8092510f3f13b043e1c14b4d85b1064c",
+          "sha256": "56dac5f452ed25eef0f6e3c6a066c6ab68971d96a9fb441791cad0efba6140d3"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "8092510f3f13b043e1c14b4d85b1064c",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 335987,
+        "upload_time": "2025-06-10T00:45:08",
+        "upload_time_iso_8601": "2025-06-10T00:45:08.227779Z",
+        "url": "https://files.pythonhosted.org/packages/4b/23/0ed0922b47a4f5c6eb9065d5ff1e459747226ddce5c6a4c111e728c9f701/yarl-1.20.1-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "3e49bc728a7fe7d0e9336e2b78f0958a2d6b288ba89f25a1762407a222bf53c3",
+          "md5": "39f358d4ba1e57762fbdb580ab0e8b59",
+          "sha256": "c7d7f497126d65e2cad8dc5f97d34c27b19199b6414a40cb36b52f41b79014be"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "has_sig": false,
+        "md5_digest": "39f358d4ba1e57762fbdb580ab0e8b59",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 329361,
+        "upload_time": "2025-06-10T00:45:10",
+        "upload_time_iso_8601": "2025-06-10T00:45:10.110920Z",
+        "url": "https://files.pythonhosted.org/packages/3e/49/bc728a7fe7d0e9336e2b78f0958a2d6b288ba89f25a1762407a222bf53c3/yarl-1.20.1-cp313-cp313t-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "938fb811b9d1f617c83c907e7082a76e2b92b655400e61730cd61a1f67178393",
+          "md5": "48e3a480943d333d70c8fb9ff4c7c1cb",
+          "sha256": "67e708dfb8e78d8a19169818eeb5c7a80717562de9051bf2413aca8e3696bf16"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "48e3a480943d333d70c8fb9ff4c7c1cb",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 346460,
+        "upload_time": "2025-06-10T00:45:12",
+        "upload_time_iso_8601": "2025-06-10T00:45:12.055693Z",
+        "url": "https://files.pythonhosted.org/packages/93/8f/b811b9d1f617c83c907e7082a76e2b92b655400e61730cd61a1f67178393/yarl-1.20.1-cp313-cp313t-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "70fdaf94f04f275f95da2c3b8b5e1d49e3e79f1ed8b6ceb0f1664cbd902773ff",
+          "md5": "6674aecd43736fab44cca0aa9773494b",
+          "sha256": "595c07bc79af2494365cc96ddeb772f76272364ef7c80fb892ef9d0649586513"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-musllinux_1_2_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "6674aecd43736fab44cca0aa9773494b",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 334486,
+        "upload_time": "2025-06-10T00:45:13",
+        "upload_time_iso_8601": "2025-06-10T00:45:13.995879Z",
+        "url": "https://files.pythonhosted.org/packages/70/fd/af94f04f275f95da2c3b8b5e1d49e3e79f1ed8b6ceb0f1664cbd902773ff/yarl-1.20.1-cp313-cp313t-musllinux_1_2_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "846504c62e82704e7dd0a9b3f61dbaa8447f8507655fd16c51da0637b39b2910",
+          "md5": "4fbdc67879e060aedf5740894687a944",
+          "sha256": "7bdd2f80f4a7df852ab9ab49484a4dee8030023aa536df41f2d922fd57bf023f"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-musllinux_1_2_i686.whl",
+        "has_sig": false,
+        "md5_digest": "4fbdc67879e060aedf5740894687a944",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 342219,
+        "upload_time": "2025-06-10T00:45:16",
+        "upload_time_iso_8601": "2025-06-10T00:45:16.479641Z",
+        "url": "https://files.pythonhosted.org/packages/84/65/04c62e82704e7dd0a9b3f61dbaa8447f8507655fd16c51da0637b39b2910/yarl-1.20.1-cp313-cp313t-musllinux_1_2_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "9195459ca62eb958381b342d94ab9a4b6aec1ddec1f7057c487e926f03c06d30",
+          "md5": "caf96f779b604628dba5bf7f2508a84b",
+          "sha256": "c03bfebc4ae8d862f853a9757199677ab74ec25424d0ebd68a0027e9c639a390"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-musllinux_1_2_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "caf96f779b604628dba5bf7f2508a84b",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 350693,
+        "upload_time": "2025-06-10T00:45:18",
+        "upload_time_iso_8601": "2025-06-10T00:45:18.399976Z",
+        "url": "https://files.pythonhosted.org/packages/91/95/459ca62eb958381b342d94ab9a4b6aec1ddec1f7057c487e926f03c06d30/yarl-1.20.1-cp313-cp313t-musllinux_1_2_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "a600d393e82dd955ad20617abc546a8f1aee40534d599ff555ea053d0ec9bf03",
+          "md5": "e21919a77f5e18ca72e44f4bc1d72dfa",
+          "sha256": "344d1103e9c1523f32a5ed704d576172d2cabed3122ea90b1d4e11fe17c66458"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-musllinux_1_2_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "e21919a77f5e18ca72e44f4bc1d72dfa",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 355803,
+        "upload_time": "2025-06-10T00:45:20",
+        "upload_time_iso_8601": "2025-06-10T00:45:20.677106Z",
+        "url": "https://files.pythonhosted.org/packages/a6/00/d393e82dd955ad20617abc546a8f1aee40534d599ff555ea053d0ec9bf03/yarl-1.20.1-cp313-cp313t-musllinux_1_2_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "9eedc5fb04869b99b717985e244fd93029c7a8e8febdfcffa06093e32d7d44e7",
+          "md5": "06d16be85513bfab8137d9e27f8297ab",
+          "sha256": "88cab98aa4e13e1ade8c141daeedd300a4603b7132819c484841bb7af3edce9e"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "06d16be85513bfab8137d9e27f8297ab",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 341709,
+        "upload_time": "2025-06-10T00:45:23",
+        "upload_time_iso_8601": "2025-06-10T00:45:23.221425Z",
+        "url": "https://files.pythonhosted.org/packages/9e/ed/c5fb04869b99b717985e244fd93029c7a8e8febdfcffa06093e32d7d44e7/yarl-1.20.1-cp313-cp313t-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "24fd725b8e73ac2a50e78a4534ac43c6addf5c1c2d65380dd48a9169cc6739a9",
+          "md5": "64bea564e8f6f22c06db8e7853e23e3d",
+          "sha256": "b121ff6a7cbd4abc28985b6028235491941b9fe8fe226e6fdc539c977ea1739d"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-win32.whl",
+        "has_sig": false,
+        "md5_digest": "64bea564e8f6f22c06db8e7853e23e3d",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 86591,
+        "upload_time": "2025-06-10T00:45:25",
+        "upload_time_iso_8601": "2025-06-10T00:45:25.793086Z",
+        "url": "https://files.pythonhosted.org/packages/24/fd/725b8e73ac2a50e78a4534ac43c6addf5c1c2d65380dd48a9169cc6739a9/yarl-1.20.1-cp313-cp313t-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "94c3b2e9f38bc3e11191981d57ea08cab2166e74ea770024a646617c9cddd9f6",
+          "md5": "0adf905ee27e4c53ae3d095cd37f80df",
+          "sha256": "541d050a355bbbc27e55d906bc91cb6fe42f96c01413dd0f4ed5a5240513874f"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313t-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "0adf905ee27e4c53ae3d095cd37f80df",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 93003,
+        "upload_time": "2025-06-10T00:45:27",
+        "upload_time_iso_8601": "2025-06-10T00:45:27.752983Z",
+        "url": "https://files.pythonhosted.org/packages/94/c3/b2e9f38bc3e11191981d57ea08cab2166e74ea770024a646617c9cddd9f6/yarl-1.20.1-cp313-cp313t-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "837511ee332f2f516b3d094e89448da73d557687f7d137d5a0f48c40ff211487",
+          "md5": "d41e681eff7e1c9fa1e519d6f687b3db",
+          "sha256": "468f6e40285de5a5b3c44981ca3a319a4b208ccc07d526b20b12aeedcfa654b7"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-win32.whl",
+        "has_sig": false,
+        "md5_digest": "d41e681eff7e1c9fa1e519d6f687b3db",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 81198,
+        "upload_time": "2025-06-10T00:44:49",
+        "upload_time_iso_8601": "2025-06-10T00:44:49.164955Z",
+        "url": "https://files.pythonhosted.org/packages/83/75/11ee332f2f516b3d094e89448da73d557687f7d137d5a0f48c40ff211487/yarl-1.20.1-cp313-cp313-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "baba39b1ecbf51620b40ab402b0fc817f0ff750f6d92712b44689c2c215be89d",
+          "md5": "dc3692d9e1a93133fc0ad88fd48f2ab9",
+          "sha256": "495b4ef2fea40596bfc0affe3837411d6aa3371abcf31aac0ccc4bdd64d4ef5c"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp313-cp313-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "dc3692d9e1a93133fc0ad88fd48f2ab9",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp313",
+        "requires_python": ">=3.9",
+        "size": 86346,
+        "upload_time": "2025-06-10T00:44:51",
+        "upload_time_iso_8601": "2025-06-10T00:44:51.182815Z",
+        "url": "https://files.pythonhosted.org/packages/ba/ba/39b1ecbf51620b40ab402b0fc817f0ff750f6d92712b44689c2c215be89d/yarl-1.20.1-cp313-cp313-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "01750d37402d208d025afa6b5b8eb80e466d267d3fd1927db8e317d29a94a4cb",
+          "md5": "08b3aaf7045767de3ae1f1eabff8ee81",
+          "sha256": "e42ba79e2efb6845ebab49c7bf20306c4edf74a0b20fc6b2ccdd1a219d12fad3"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-macosx_10_9_universal2.whl",
+        "has_sig": false,
+        "md5_digest": "08b3aaf7045767de3ae1f1eabff8ee81",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 134259,
+        "upload_time": "2025-06-10T00:45:29",
+        "upload_time_iso_8601": "2025-06-10T00:45:29.882195Z",
+        "url": "https://files.pythonhosted.org/packages/01/75/0d37402d208d025afa6b5b8eb80e466d267d3fd1927db8e317d29a94a4cb/yarl-1.20.1-cp39-cp39-macosx_10_9_universal2.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "73841fb6c85ae0cf9901046f07d0ac9eb162f7ce6d95db541130aa542ed377e6",
+          "md5": "0e84e0ef0b9c12615044ba7c7d6db682",
+          "sha256": "41493b9b7c312ac448b7f0a42a089dffe1d6e6e981a2d76205801a023ed26a2b"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "0e84e0ef0b9c12615044ba7c7d6db682",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 91269,
+        "upload_time": "2025-06-10T00:45:32",
+        "upload_time_iso_8601": "2025-06-10T00:45:32.917288Z",
+        "url": "https://files.pythonhosted.org/packages/73/84/1fb6c85ae0cf9901046f07d0ac9eb162f7ce6d95db541130aa542ed377e6/yarl-1.20.1-cp39-cp39-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "f39ceae746b24c4ea29a5accba9a06c197a70fa38a49c7df244e0d3951108861",
+          "md5": "512de24d718417e5e16ff06415a9e5d0",
+          "sha256": "f5a5928ff5eb13408c62a968ac90d43f8322fd56d87008b8f9dabf3c0f6ee983"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "512de24d718417e5e16ff06415a9e5d0",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 89995,
+        "upload_time": "2025-06-10T00:45:35",
+        "upload_time_iso_8601": "2025-06-10T00:45:35.066378Z",
+        "url": "https://files.pythonhosted.org/packages/f3/9c/eae746b24c4ea29a5accba9a06c197a70fa38a49c7df244e0d3951108861/yarl-1.20.1-cp39-cp39-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "fb30693e71003ec4bc1daf2e4cf7c478c417d0985e0a8e8f00b2230d517876fc",
+          "md5": "6ea69ea0bc53c993d8b6dc900b558540",
+          "sha256": "30c41ad5d717b3961b2dd785593b67d386b73feca30522048d37298fee981805"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "6ea69ea0bc53c993d8b6dc900b558540",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 325253,
+        "upload_time": "2025-06-10T00:45:37",
+        "upload_time_iso_8601": "2025-06-10T00:45:37.052498Z",
+        "url": "https://files.pythonhosted.org/packages/fb/30/693e71003ec4bc1daf2e4cf7c478c417d0985e0a8e8f00b2230d517876fc/yarl-1.20.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "0fa25264dbebf90763139aeb0b0b3154763239398400f754ae19a0518b654117",
+          "md5": "8ef3bedac71d3acadcf5292f8915c0b5",
+          "sha256": "59febc3969b0781682b469d4aca1a5cab7505a4f7b85acf6db01fa500fa3f6ba"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "8ef3bedac71d3acadcf5292f8915c0b5",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 320897,
+        "upload_time": "2025-06-10T00:45:39",
+        "upload_time_iso_8601": "2025-06-10T00:45:39.962788Z",
+        "url": "https://files.pythonhosted.org/packages/0f/a2/5264dbebf90763139aeb0b0b3154763239398400f754ae19a0518b654117/yarl-1.20.1-cp39-cp39-manylinux_2_17_armv7l.manylinux2014_armv7l.manylinux_2_31_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "e71777c7a89b3c05856489777e922f41db79ab4faf58621886df40d812c7facd",
+          "md5": "b62b2813c5bef31290b4571eff6084ef",
+          "sha256": "d2b6fb3622b7e5bf7a6e5b679a69326b4279e805ed1699d749739a61d242449e"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "b62b2813c5bef31290b4571eff6084ef",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 340696,
+        "upload_time": "2025-06-10T00:45:41",
+        "upload_time_iso_8601": "2025-06-10T00:45:41.915261Z",
+        "url": "https://files.pythonhosted.org/packages/e7/17/77c7a89b3c05856489777e922f41db79ab4faf58621886df40d812c7facd/yarl-1.20.1-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "6d5528409330b8ef5f2f681f5b478150496ec9cf3309b149dab7ec8ab5cfa3f0",
+          "md5": "6bf5a1c79e18395a92ce49016e923ab8",
+          "sha256": "749d73611db8d26a6281086f859ea7ec08f9c4c56cec864e52028c8b328db723"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "6bf5a1c79e18395a92ce49016e923ab8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 335064,
+        "upload_time": "2025-06-10T00:45:43",
+        "upload_time_iso_8601": "2025-06-10T00:45:43.893255Z",
+        "url": "https://files.pythonhosted.org/packages/6d/55/28409330b8ef5f2f681f5b478150496ec9cf3309b149dab7ec8ab5cfa3f0/yarl-1.20.1-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "8558cb0257cbd4002828ff735f44d3c5b6966c4fd1fc8cc1cd3cd8a143fbc513",
+          "md5": "6d9091205329c21ad9d434dd375f23d2",
+          "sha256": "9427925776096e664c39e131447aa20ec738bdd77c049c48ea5200db2237e000"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "6d9091205329c21ad9d434dd375f23d2",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 327256,
+        "upload_time": "2025-06-10T00:45:46",
+        "upload_time_iso_8601": "2025-06-10T00:45:46.393188Z",
+        "url": "https://files.pythonhosted.org/packages/85/58/cb0257cbd4002828ff735f44d3c5b6966c4fd1fc8cc1cd3cd8a143fbc513/yarl-1.20.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "53f6c77960370cfa46f6fb3d6a5a79a49d3abfdb9ef92556badc2dcd2748bc2a",
+          "md5": "0b3a77d9bdfd465c1a9d708e22ca06fa",
+          "sha256": "ff70f32aa316393eaf8222d518ce9118148eddb8a53073c2403863b41033eed5"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "has_sig": false,
+        "md5_digest": "0b3a77d9bdfd465c1a9d708e22ca06fa",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 316389,
+        "upload_time": "2025-06-10T00:45:48",
+        "upload_time_iso_8601": "2025-06-10T00:45:48.358551Z",
+        "url": "https://files.pythonhosted.org/packages/53/f6/c77960370cfa46f6fb3d6a5a79a49d3abfdb9ef92556badc2dcd2748bc2a/yarl-1.20.1-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "64abbe0b10b8e029553c10905b6b00c64ecad3ebc8ace44b02293a62579343f6",
+          "md5": "a60ae23cb112f15145af5e2ba36d932a",
+          "sha256": "c7ddf7a09f38667aea38801da8b8d6bfe81df767d9dfc8c88eb45827b195cd1c"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-musllinux_1_2_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "a60ae23cb112f15145af5e2ba36d932a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 340481,
+        "upload_time": "2025-06-10T00:45:50",
+        "upload_time_iso_8601": "2025-06-10T00:45:50.663842Z",
+        "url": "https://files.pythonhosted.org/packages/64/ab/be0b10b8e029553c10905b6b00c64ecad3ebc8ace44b02293a62579343f6/yarl-1.20.1-cp39-cp39-musllinux_1_2_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "c5c33f327bd3905a4916029bf5feb7f86dcf864c7704f099715f62155fb386b2",
+          "md5": "b88772ab7c68563d81292d1d53272889",
+          "sha256": "57edc88517d7fc62b174fcfb2e939fbc486a68315d648d7e74d07fac42cec240"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-musllinux_1_2_armv7l.whl",
+        "has_sig": false,
+        "md5_digest": "b88772ab7c68563d81292d1d53272889",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 336941,
+        "upload_time": "2025-06-10T00:45:52",
+        "upload_time_iso_8601": "2025-06-10T00:45:52.554887Z",
+        "url": "https://files.pythonhosted.org/packages/c5/c3/3f327bd3905a4916029bf5feb7f86dcf864c7704f099715f62155fb386b2/yarl-1.20.1-cp39-cp39-musllinux_1_2_armv7l.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "d142040bdd5d3b3bb02b4a6ace4ed4075e02f85df964d6e6cb321795d2a6496a",
+          "md5": "b8bae2454d58ae9c19b4c7528c4372e2",
+          "sha256": "dab096ce479d5894d62c26ff4f699ec9072269d514b4edd630a393223f45a0ee"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-musllinux_1_2_i686.whl",
+        "has_sig": false,
+        "md5_digest": "b8bae2454d58ae9c19b4c7528c4372e2",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 339936,
+        "upload_time": "2025-06-10T00:45:54",
+        "upload_time_iso_8601": "2025-06-10T00:45:54.919405Z",
+        "url": "https://files.pythonhosted.org/packages/d1/42/040bdd5d3b3bb02b4a6ace4ed4075e02f85df964d6e6cb321795d2a6496a/yarl-1.20.1-cp39-cp39-musllinux_1_2_i686.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "0d1c911867b8e8c7463b84dfdc275e0d99b04b66ad5132b503f184fe76be8ea4",
+          "md5": "744253e3f07de67a2582b6ce69790c35",
+          "sha256": "14a85f3bd2d7bb255be7183e5d7d6e70add151a98edf56a770d6140f5d5f4010"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-musllinux_1_2_ppc64le.whl",
+        "has_sig": false,
+        "md5_digest": "744253e3f07de67a2582b6ce69790c35",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 360163,
+        "upload_time": "2025-06-10T00:45:56",
+        "upload_time_iso_8601": "2025-06-10T00:45:56.870623Z",
+        "url": "https://files.pythonhosted.org/packages/0d/1c/911867b8e8c7463b84dfdc275e0d99b04b66ad5132b503f184fe76be8ea4/yarl-1.20.1-cp39-cp39-musllinux_1_2_ppc64le.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "e2318c389f6c6ca0379b57b2da87f1f126c834777b4931c5ee8427dd65d0ff6b",
+          "md5": "e979e366af89b93d03a745e4d00c2bb6",
+          "sha256": "2c89b5c792685dd9cd3fa9761c1b9f46fc240c2a3265483acc1565769996a3f8"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-musllinux_1_2_s390x.whl",
+        "has_sig": false,
+        "md5_digest": "e979e366af89b93d03a745e4d00c2bb6",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 359108,
+        "upload_time": "2025-06-10T00:45:58",
+        "upload_time_iso_8601": "2025-06-10T00:45:58.869416Z",
+        "url": "https://files.pythonhosted.org/packages/e2/31/8c389f6c6ca0379b57b2da87f1f126c834777b4931c5ee8427dd65d0ff6b/yarl-1.20.1-cp39-cp39-musllinux_1_2_s390x.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "7f09ae4a649fb3964324c70a3e2b61f45e566d9ffc0affd2b974cbf628957673",
+          "md5": "6d5d206bb06b6f0e2b052846be996072",
+          "sha256": "69e9b141de5511021942a6866990aea6d111c9042235de90e08f94cf972ca03d"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-musllinux_1_2_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "6d5d206bb06b6f0e2b052846be996072",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 351875,
+        "upload_time": "2025-06-10T00:46:01",
+        "upload_time_iso_8601": "2025-06-10T00:46:01.450907Z",
+        "url": "https://files.pythonhosted.org/packages/7f/09/ae4a649fb3964324c70a3e2b61f45e566d9ffc0affd2b974cbf628957673/yarl-1.20.1-cp39-cp39-musllinux_1_2_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "8d43bbb4ed4c34d5bb62b48bf957f68cd43f736f79059d4f85225ab1ef80f4b9",
+          "md5": "ad622b7139b53e559e7cdbaa995337fc",
+          "sha256": "b5f307337819cdfdbb40193cad84978a029f847b0a357fbe49f712063cfc4f06"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-win32.whl",
+        "has_sig": false,
+        "md5_digest": "ad622b7139b53e559e7cdbaa995337fc",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 82293,
+        "upload_time": "2025-06-10T00:46:03",
+        "upload_time_iso_8601": "2025-06-10T00:46:03.763534Z",
+        "url": "https://files.pythonhosted.org/packages/8d/43/bbb4ed4c34d5bb62b48bf957f68cd43f736f79059d4f85225ab1ef80f4b9/yarl-1.20.1-cp39-cp39-win32.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "40f04d6e945518ac084f9f3ab2c4cf2eca56ae621b095111942ed397486b862d"
+        },
+        "digests": {
+          "blake2b_256": "d7cdce185848a7dba68ea69e932674b5c1a42a1852123584bccc5443120f857c",
+          "md5": "77d6541784b887ada39dbf3664d38f34",
+          "sha256": "eae7bfe2069f9c1c5b05fc7fe5d612e5bbc089a39309904ee8b829e322dcad00"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-cp39-cp39-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "77d6541784b887ada39dbf3664d38f34",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.9",
+        "size": 87385,
+        "upload_time": "2025-06-10T00:46:05",
+        "upload_time_iso_8601": "2025-06-10T00:46:05.655698Z",
+        "url": "https://files.pythonhosted.org/packages/d7/cd/ce185848a7dba68ea69e932674b5c1a42a1852123584bccc5443120f857c/yarl-1.20.1-cp39-cp39-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "2b42f2e958b0c33e8c1ed382008289aa4c10b838e3b7d2327408ad5b345062f5"
+        },
+        "digests": {
+          "blake2b_256": "b42d2345fce04cfd4bee161bf1e7d9cdc702e3e16109021035dbb24db654a622",
+          "md5": "6398755dd9232de962cbf7a0dfb530cb",
+          "sha256": "83b8eb083fe4683c6115795d9fc1cfaf2cbbefb19b3a1cb68f6527460f483a77"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "6398755dd9232de962cbf7a0dfb530cb",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.9",
+        "size": 46542,
+        "upload_time": "2025-06-10T00:46:07",
+        "upload_time_iso_8601": "2025-06-10T00:46:07.521994Z",
+        "url": "https://files.pythonhosted.org/packages/b4/2d/2345fce04cfd4bee161bf1e7d9cdc702e3e16109021035dbb24db654a622/yarl-1.20.1-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "3cfbefaa23fa4e45537b827620f04cf8f3cd658b76642205162e072703a5b963",
+          "md5": "23352fbc2b165825d4a33682c91788bc",
+          "sha256": "d017a4997ee50c91fd5466cef416231bb82177b93b029906cefc542ce14c35ac"
+        },
+        "downloads": -1,
+        "filename": "yarl-1.20.1.tar.gz",
+        "has_sig": false,
+        "md5_digest": "23352fbc2b165825d4a33682c91788bc",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.9",
+        "size": 186428,
+        "upload_time": "2025-06-10T00:46:09",
+        "upload_time_iso_8601": "2025-06-10T00:46:09.923920Z",
+        "url": "https://files.pythonhosted.org/packages/3c/fb/efaa23fa4e45537b827620f04cf8f3cd658b76642205162e072703a5b963/yarl-1.20.1.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "package": "wcwidth",
+  "version": "0.1.9",
+  "status_code": 200,
+  "timestamp": "2026-09-22T19:01:29.884982+00:00",
+  "payload": {
+    "info": {
+      "author": "Jeff Quast",
+      "author_email": "contact@jeffquast.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 3 - Alpha",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Operating System :: POSIX",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Topic :: Software Development :: Internationalization",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Localization",
+        "Topic :: Terminals"
+      ],
+      "description": "============\nIntroduction\n============\n\nThis Library is mainly for those implementing a Terminal Emulator, or programs\nthat carefully produce output to mimick or to be interpreted by an emulator.\n\n**Problem Statement**: The printible length of *most* strings are equal to the\nnumber of cells they occupy on the screen.  However, there are categories of\ncharacters that *occupy 2 cells* (full-wide), and others that *occupy 0* cells\n(zero-width).\n\n**Solution**: POSIX.1-2001 and POSIX.1-2008 conforming systems provide\n`wcwidth(3)`_ and `wcswidth(3)`_ C functions of which this python module's\nfunctions precisely copy.  *These functions return the number of cells a\nunicode string is expected to occupy.*\n\nInstallation\n------------\n\nThe stable version of this package is maintained on pypi, install or upgrade using pip::\n\n    pip install --upgrade wcwidth\n\nExample\n-------\n\n**Problem**: given the following phrase (Japanese),\n\n    >>> text = u'\u30b3\u30f3\u30cb\u30c1\u30cf'\n\nPython **incorrectly** uses the *string length* of 5 codepoints rather than the\n*printible length* of 10 cells, so that when using the `rjust` function, the\noutput length is wrong::\n\n    >>> print(len('\u30b3\u30f3\u30cb\u30c1\u30cf'))\n    5\n\n    >>> print('\u30b3\u30f3\u30cb\u30c1\u30cf'.rjust(11, '_'))\n    ______\u30b3\u30f3\u30cb\u30c1\u30cf\n\nBy defining our own \"rjust\" function that uses wcwidth, we can correct this::\n\n   >>> def wc_rjust(text, length, padding=' '):\n   ...    from wcwidth import wcswidth\n   ...    return padding * max(0, (length - wcswidth(text))) + text\n   ...\n\nOur **Solution** uses wcswidth to determine the string length correctly::\n\n   >>> from wcwidth import wcswidth\n   >>> print(wcswidth('\u30b3\u30f3\u30cb\u30c1\u30cf'))\n   10\n\n   >>> print(wc_rjust('\u30b3\u30f3\u30cb\u30c1\u30cf', 11, '_'))\n   _\u30b3\u30f3\u30cb\u30c1\u30cf\n\nUses\n----\n\nThis library is used in:\n\n- asciimatics_: Package to help people create full-screen text UIs.\n- blessed_: a simplified wrapper around curses.\n- curtsies_: Curses wrapper with a display based on compositing 2d arrays of text.\n- ftfy_: Fixes mojibake and other glitches in Unicode text, after the fact.\n- pyte_: a Simple VTXXX-compatible linux terminal emulator.\n- python-prompt-toolkit_: a Powerful interactive command line building library.\n- termtosvg_: Terminal recorder that renders sessions as SVG animations.\n\n\nwcwidth, wcswidth\n-----------------\nUse function ``wcwidth()`` to determine the length of a *single unicode\ncharacter*, and ``wcswidth()`` to determine the length of a several, or a\n*string of unicode characters*.\n\nBriefly, return values of function ``wcwidth()`` are:\n\n``-1``\n  Indeterminate (not printable).\n\n``0``\n  Does not advance the cursor, such as NULL or Combining.\n\n``2``\n  Characters of category East Asian Wide (W) or East Asian\n  Full-width (F) which are displayed using two terminal cells.\n\n``1``\n  All others.\n\nFunction ``wcswidth()`` simply returns the sum of all values for each character\nalong a string, or ``-1`` when it occurs anywhere along a string.\n\nMore documentation is available using pydoc::\n\n    $ pydoc wcwidth\n\n=======\nCaveats\n=======\n\nThis library attempts to determine the printable width by a fictional terminal,\nusing the very latest Unicode specification, though some work is in progress for\nthe ability to select a version, there is no standards conforming ability to\ndiscern what the target emulator software, version, of level of support is.\nResults may vary!\n\nA `crude method\n<http://blessed.readthedocs.org/en/latest/examples.html#detect-multibyte-py>`_\nof determining the level of unicode support by the target emulator may be\nperformed using the VT100 Query Cursor Position sequence.\n\nThe libc version of `wcwidth(3)`_ is often several unicode releases behind,\nand therefor several levels of support lower than this python library.\n\n==========\nDeveloping\n==========\n\nInstall wcwidth in editable mode::\n\n   pip install -e.\n\nInstall developer requirements::\n\n   pip install -r requirements-develop.txt\n\nExecute unit tests using tox::\n\n   tox\n\nUse the interactive browser::\n\n  python bin/wcwidth-browser.py\n\nThis library aims to be forward-looking, portable, and most correct.  The most\ncurrent release of this API is based on the Unicode Standard release files:\n\n``DerivedGeneralCategory-13.0.0.txt``\n  *Date:  2019-10-21, 14:30:32 GMT*\n  \u00a9 2019 Unicode\u00ae, Inc.\n\n``EastAsianWidth-13.0.0.txt``\n  *Date:  2020-01-21, 18:14:00 GMT [KW, LI]*\n  \u00a9 2020 Unicode\u00ae, Inc.\n\n\nUpdating Tables\n---------------\n\nThe command ``python setup.py update`` will fetch the following resources:\n\n- http://www.unicode.org/Public/UNIDATA/EastAsianWidth.txt\n- http://www.unicode.org/Public/UNIDATA/extracted/DerivedGeneralCategory.txt\n\nAnd generates the table files:\n\n- `wcwidth/table_wide.py <https://github.com/jquast/wcwidth/tree/master/wcwidth/table_wide.py>`_\n- `wcwidth/table_zero.py <https://github.com/jquast/wcwidth/tree/master/wcwidth/table_zero.py>`_\n\n=======\nHistory\n=======\n\n0.1.9 *2020-03-22*\n  * **Performance** optimization by `Avram Lubkin`_, `PR #35`_.\n  * **Updated** tables to Unicode Specification 13.0.0.\n\n0.1.8 *2020-01-01*\n  * **Updated** tables to Unicode Specification 12.0.0. (`PR #30`_).\n\n0.1.7 *2016-07-01*\n  * **Updated** tables to Unicode Specification 9.0.0. (`PR #18`_).\n\n0.1.6 *2016-01-08 Production/Stable*\n  * ``LICENSE`` file now included with distribution.\n\n0.1.5 *2015-09-13 Alpha*\n  * **Bugfix**:\n    Resolution of \"combining_ character width\" issue, most especially\n    those that previously returned -1 now often (correctly) return 0.\n    resolved by `Philip Craig`_ via `PR #11`_.\n  * **Deprecated**:\n    The module path ``wcwidth.table_comb`` is no longer available,\n    it has been superseded by module path ``wcwidth.table_zero``.\n\n0.1.4 *2014-11-20 Pre-Alpha*\n  * **Feature**: ``wcswidth()`` now determines printable length\n    for (most) combining_ characters.  The developer's tool\n    `bin/wcwidth-browser.py`_ is improved to display combining_\n    characters when provided the ``--combining`` option\n    (`Thomas Ballinger`_ and `Leta Montopoli`_ `PR #5`_).\n  * **Feature**: added static analysis (prospector_) to testing\n    framework.\n\n0.1.3 *2014-10-29 Pre-Alpha*\n  * **Bugfix**: 2nd parameter of wcswidth was not honored.\n    (`Thomas Ballinger`_, `PR #4`_).\n\n0.1.2 *2014-10-28 Pre-Alpha*\n  * **Updated** tables to Unicode Specification 7.0.0.\n    (`Thomas Ballinger`_, `PR #3`_).\n\n0.1.1 *2014-05-14 Pre-Alpha*\n  * Initial release to pypi, Based on Unicode Specification 6.3.0\n\nThis code was originally derived directly from C code of the same name,\nwhose latest version is available at\nhttp://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c::\n\n * Markus Kuhn -- 2007-05-26 (Unicode 5.0)\n *\n * Permission to use, copy, modify, and distribute this software\n * for any purpose and without fee is hereby granted. The author\n * disclaims all warranties with regard to this software.\n\n.. _`prospector`: https://github.com/landscapeio/prospector\n.. _`combining`: https://en.wikipedia.org/wiki/Combining_character\n.. _`bin/wcwidth-browser.py`: https://github.com/jquast/wcwidth/tree/master/bin/wcwidth-browser.py\n.. _`Thomas Ballinger`: https://github.com/thomasballinger\n.. _`Leta Montopoli`: https://github.com/lmontopo\n.. _`Philip Craig`: https://github.com/philipc\n.. _`Avram Lubkin`: https://github.com/avylove\n.. _`PR #3`: https://github.com/jquast/wcwidth/pull/3\n.. _`PR #4`: https://github.com/jquast/wcwidth/pull/4\n.. _`PR #5`: https://github.com/jquast/wcwidth/pull/5\n.. _`PR #11`: https://github.com/jquast/wcwidth/pull/11\n.. _`PR #18`: https://github.com/jquast/wcwidth/pull/18\n.. _`PR #30`: https://github.com/jquast/wcwidth/pull/30\n.. _`PR #35`: https://github.com/jquast/wcwidth/pull/35\n.. _blessed: https://github.com/jquast/blessed\n.. _python-prompt-toolkit: https://github.com/prompt-toolkit/python-prompt-toolkit\n.. _pyte: https://github.com/selectel/pyte\n.. _asciimatics: https://github.com/peterbrittain/asciimatics\n.. _ftfy: https://github.com/LuminosoInsight/python-ftfy\n.. _curtsies: https://github.com/bpython/curtsies\n.. _bpython: https://github.com/bpython/bpython\n.. _termtosvg: https://github.com/nbedos/termtosvg\n.. _`wcwidth(3)`:  http://man7.org/linux/man-pages/man3/wcwidth.3.html\n.. _`wcswidth(3)`: http://man7.org/linux/man-pages/man3/wcswidth.3.html\n\n\n",
+      "description_content_type": "",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/jquast/wcwidth",
+      "keywords": "terminal,emulator,wcwidth,wcswidth,cjk,combining,xterm,console",
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "wcwidth",
+      "package_url": "https://pypi.org/project/wcwidth/",
+      "platform": "",
+      "project_url": "https://pypi.org/project/wcwidth/",
+      "project_urls": {
+        "Homepage": "https://github.com/jquast/wcwidth"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/wcwidth/0.1.9/",
+      "requires_dist": null,
+      "requires_python": "",
+      "summary": "Measures number of Terminal column cells of wide-character codes",
+      "version": "0.1.9",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41188569,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "jquast"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "c3be4d238b4d8f408cb10849c8d454227744430afc142e9cd85287f29a62c795"
+        },
+        "digests": {
+          "blake2b_256": "f6d51ecdac957e3ea12c1b319fcdee8b6917ffaff8b4644d673c4d72d2f20b49",
+          "md5": "003327fdfbb7653dda1f3ce28fc57be1",
+          "sha256": "cafe2186b3c009a04067022ce1dcd79cb38d8d65ee4f4791b8888d6599d1bbe1"
+        },
+        "downloads": -1,
+        "filename": "wcwidth-0.1.9-py2.py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "003327fdfbb7653dda1f3ce28fc57be1",
+        "packagetype": "bdist_wheel",
+        "python_version": "py2.py3",
+        "requires_python": null,
+        "size": 19410,
+        "upload_time": "2020-03-23T06:21:31",
+        "upload_time_iso_8601": "2020-03-23T06:21:31.883482Z",
+        "url": "https://files.pythonhosted.org/packages/f6/d5/1ecdac957e3ea12c1b319fcdee8b6917ffaff8b4644d673c4d72d2f20b49/wcwidth-0.1.9-py2.py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "259d0acbed6e4a4be4fc99148f275488580968f44ddb5e69b8ceb53fc9df55a0",
+          "md5": "b32584cd6084b4a8c81df13a2a6b4351",
+          "sha256": "ee73862862a156bf77ff92b09034fc4825dd3af9cf81bc5b360668d425f3c5f1"
+        },
+        "downloads": -1,
+        "filename": "wcwidth-0.1.9.tar.gz",
+        "has_sig": false,
+        "md5_digest": "b32584cd6084b4a8c81df13a2a6b4351",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 24764,
+        "upload_time": "2020-03-23T06:21:33",
+        "upload_time_iso_8601": "2020-03-23T06:21:33.838443Z",
+        "url": "https://files.pythonhosted.org/packages/25/9d/0acbed6e4a4be4fc99148f275488580968f44ddb5e69b8ceb53fc9df55a0/wcwidth-0.1.9.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

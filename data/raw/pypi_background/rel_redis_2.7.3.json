@@ -1,0 +1,103 @@
+{
+  "package": "redis",
+  "version": "2.7.3",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:50:16.380927+00:00",
+  "payload": {
+    "info": {
+      "author": "Andy McCurdy",
+      "author_email": "sedrik@gmail.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 5 - Production/Stable",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2.5",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: 3.3"
+      ],
+      "description": "# redis-py\n\nThe Python interface to the Redis key-value store.\n\n[![Build Status](https://secure.travis-ci.org/andymccurdy/redis-py.png?branch=master)](http://travis-ci.org/andymccurdy/redis-py)\n\n## Installation\n\n*NOTE:* redis-py requires a running Redis server.\nSee [Redis's quickstart](http://redis.io/topics/quickstart) for installation instructions.\n\n    $ sudo pip install redis\n\nor alternatively (you really should be using pip though):\n\n    $ sudo easy_install redis\n\nFrom source:\n\n    $ sudo python setup.py install\n\n\n## Getting Started\n\n    >>> import redis\n    >>> r = redis.StrictRedis(host='localhost', port=6379, db=0)\n    >>> r.set('foo', 'bar')\n    True\n    >>> r.get('foo')\n    'bar'\n\n## API Reference\n\nThe official Redis documentation does a great job of explaining each command in\ndetail (http://redis.io/commands). redis-py exposes two client classes that\nimplement these commands. The StrictRedis class attempts to adhere to the\nofficial command syntax. There are a few exceptions:\n\n* SELECT: Not implemented. See the explanation in the Thread Safety section\n  below.\n* DEL: 'del' is a reserved keyword in the Python syntax. Therefore redis-py\n  uses 'delete' instead.\n* CONFIG GET|SET: These are implemented separately as config_get or config_set.\n* MULTI/EXEC: These are implemented as part of the Pipeline class. The\n  pipeline is wrapped with the MULTI and EXEC statements by default when it\n  is executed, which can be disabled by specifying transaction=False.\n  See more about Pipelines below.\n* SUBSCRIBE/LISTEN: Similar to pipelines, PubSub is implemented as a separate\n  class as it places the underlying connection in a state where it can't\n  execute non-pubsub commands. Calling the pubsub method from the Redis client\n  will return a PubSub instance where you can subscribe to channels and listen\n  for messages. You can only call PUBLISH from the Redis client (see [this comment on issue #151](https://github.com/andymccurdy/redis-py/issues/151#issuecomment-1545015) for details).\n\nIn addition to the changes above, the Redis class, a subclass of StrictRedis,\noverrides several other commands to provide backwards compatibility with older\nversions of redis-py:\n\n* LREM: Order of 'num' and 'value' arguments reversed such that 'num' can\n  provide a default value of zero.\n* ZADD: Redis specifies the 'score' argument before 'value'. These were swapped\n  accidentally when being implemented and not discovered until after people\n  were already using it. The Redis class expects *args in the form of:\n      name1, score1, name2, score2, ...\n* SETEX: Order of 'time' and 'value' arguments reversed.\n\n\n## More Detail\n\n### Connection Pools\n\nBehind the scenes, redis-py uses a connection pool to manage connections to\na Redis server. By default, each Redis instance you create will in turn create\nits own connection pool. You can override this behavior and use an existing\nconnection pool by passing an already created connection pool instance to the\nconnection_pool argument of the Redis class. You may choose to do this in order\nto implement client side sharding or have finer grain control of how connections\nare managed.\n\n    >>> pool = redis.ConnectionPool(host='localhost', port=6379, db=0)\n    >>> r = redis.Redis(connection_pool=pool)\n\n### Connections\n\nConnectionPools manage a set of Connection instances. redis-py ships with two\ntypes of Connections. The default, Connection, is a normal TCP socket based\nconnection. The UnixDomainSocketConnection allows for clients running on the\nsame device as the server to connect via a unix domain socket. To use a\nUnixDomainSocketConnection connection, simply pass the unix_socket_path\nargument, which is a string to the unix domain socket file. Additionally, make\nsure the unixsocket parameter is defined in your redis.conf file. It's\ncommented out by default.\n\n    >>> r = redis.Redis(unix_socket_path='/tmp/redis.sock')\n\nYou can create your own Connection subclasses as well. This may be useful if\nyou want to control the socket behavior within an async framework. To\ninstantiate a client class using your own connection, you need to create\na connection pool, passing your class to the connection_class argument.\nOther keyword parameters your pass to the pool will be passed to the class\nspecified during initialization.\n\n    >>> pool = redis.ConnectionPool(connection_class=YourConnectionClass,\n                                    your_arg='...', ...)\n\n### Parsers\n\nParser classes provide a way to control how responses from the Redis server\nare parsed. redis-py ships with two parser classes, the PythonParser and the\nHiredisParser. By default, redis-py will attempt to use the HiredisParser if\nyou have the hiredis module installed and will fallback to the PythonParser\notherwise.\n\nHiredis is a C library maintained by the core Redis team. Pieter Noordhuis was\nkind enough to create Python bindings. Using Hiredis can provide up to a\n10x speed improvement in parsing responses from the Redis server. The\nperformance increase is most noticeable when retrieving many pieces of data,\nsuch as from LRANGE or SMEMBERS operations.\n\nHiredis is available on Pypi, and can be installed via pip or easy_install\njust like redis-py.\n\n    $ pip install hiredis\n\nor\n\n    $ easy_install hiredis\n\n### Response Callbacks\n\nThe client class uses a set of callbacks to cast Redis responses to the\nappropriate Python type. There are a number of these callbacks defined on\nthe Redis client class in a dictionary called RESPONSE_CALLBACKS.\n\nCustom callbacks can be added on a per-instance basis using the\nset_response_callback method. This method accepts two arguments: a command\nname and the callback. Callbacks added in this manner are only valid on the\ninstance the callback is added to. If you want to define or override a callback\nglobally, you should make a subclass of the Redis client and add your callback\nto its REDIS_CALLBACKS class dictionary.\n\nResponse callbacks take at least one parameter: the response from the Redis\nserver. Keyword arguments may also be accepted in order to further control\nhow to interpret the response. These keyword arguments are specified during the\ncommand's call to execute_command. The ZRANGE implementation demonstrates the\nuse of response callback keyword arguments with its \"withscores\" argument.\n\n## Thread Safety\n\nRedis client instances can safely be shared between threads. Internally,\nconnection instances are only retrieved from the connection pool during\ncommand execution, and returned to the pool directly after. Command execution\nnever modifies state on the client instance.\n\nHowever, there is one caveat: the Redis SELECT command. The SELECT command\nallows you to switch the database currently in use by the connection. That\ndatabase remains selected until another is selected or until the connection is\nclosed. This creates an issue in that connections could be returned to the pool\nthat are connected to a different database.\n\nAs a result, redis-py does not implement the SELECT command on client instances.\nIf you use multiple Redis databases within the same application, you should\ncreate a separate client instance (and possibly a separate connection pool) for\neach database.\n\nIt is not safe to pass PubSub or Pipeline objects between threads.\n\n## Pipelines\n\nPipelines are a subclass of the base Redis class that provide support for\nbuffering multiple commands to the server in a single request. They can be used\nto dramatically increase the performance of groups of commands by reducing the\nnumber of back-and-forth TCP packets between the client and server.\n\nPipelines are quite simple to use:\n\n    >>> r = redis.Redis(...)\n    >>> r.set('bing', 'baz')\n    >>> # Use the pipeline() method to create a pipeline instance\n    >>> pipe = r.pipeline()\n    >>> # The following SET commands are buffered\n    >>> pipe.set('foo', 'bar')\n    >>> pipe.get('bing')\n    >>> # the EXECUTE call sends all buffered commands to the server, returning\n    >>> # a list of responses, one for each command.\n    >>> pipe.execute()\n    [True, 'baz']\n\nFor ease of use, all commands being buffered into the pipeline return the\npipeline object itself. Therefore calls can be chained like:\n\n    >>> pipe.set('foo', 'bar').sadd('faz', 'baz').incr('auto_number').execute()\n    [True, True, 6]\n\nIn addition, pipelines can also ensure the buffered commands are executed\natomically as a group. This happens by default. If you want to disable the\natomic nature of a pipeline but still want to buffer commands, you can turn\noff transactions.\n\n    >>> pipe = r.pipeline(transaction=False)\n\nA common issue occurs when requiring atomic transactions but needing to\nretrieve values in Redis prior for use within the transaction. For instance,\nlet's assume that the INCR command didn't exist and we need to build an atomic\nversion of INCR in Python.\n\nThe completely naive implementation could GET the value, increment it in\nPython, and SET the new value back. However, this is not atomic because\nmultiple clients could be doing this at the same time, each getting the same\nvalue from GET.\n\nEnter the WATCH command. WATCH provides the ability to monitor one or more keys\nprior to starting a transaction. If any of those keys change prior the\nexecution of that transaction, the entire transaction will be canceled and a\nWatchError will be raised. To implement our own client-side INCR command, we\ncould do something like this:\n\n    >>> with r.pipeline() as pipe:\n    ...     while 1:\n    ...         try:\n    ...             # put a WATCH on the key that holds our sequence value\n    ...             pipe.watch('OUR-SEQUENCE-KEY')\n    ...             # after WATCHing, the pipeline is put into immediate execution\n    ...             # mode until we tell it to start buffering commands again.\n    ...             # this allows us to get the current value of our sequence\n    ...             current_value = pipe.get('OUR-SEQUENCE-KEY')\n    ...             next_value = int(current_value) + 1\n    ...             # now we can put the pipeline back into buffered mode with MULTI\n    ...             pipe.multi()\n    ...             pipe.set('OUR-SEQUENCE-KEY', next_value)\n    ...             # and finally, execute the pipeline (the set command)\n    ...             pipe.execute()\n    ...             # if a WatchError wasn't raised during execution, everything\n    ...             # we just did happened atomically.\n    ...             break\n    ...        except WatchError:\n    ...             # another client must have changed 'OUR-SEQUENCE-KEY' between\n    ...             # the time we started WATCHing it and the pipeline's execution.\n    ...             # our best bet is to just retry.\n    ...             continue\n\nNote that, because the Pipeline must bind to a single connection for the\nduration of a WATCH, care must be taken to ensure that the connection is\nreturned to the connection pool by calling the reset() method. If the\nPipeline is used as a context manager (as in the example above) reset()\nwill be called automatically. Of course you can do this the manual way by\nexplicity calling reset():\n\n    >>> pipe = r.pipeline()\n    >>> while 1:\n    ...     try:\n    ...         pipe.watch('OUR-SEQUENCE-KEY')\n    ...         ...\n    ...         pipe.execute()\n    ...         break\n    ...     except WatchError:\n    ...         continue\n    ...     finally:\n    ...         pipe.reset()\n\nA convenience method named \"transaction\" exists for handling all the\nboilerplate of handling and retrying watch errors. It takes a callable that\nshould expect a single parameter, a pipeline object, and any number of keys to\nbe WATCHed. Our client-side INCR command above can be written like this,\nwhich is much easier to read:\n\n    >>> def client_side_incr(pipe):\n    ...     current_value = pipe.get('OUR-SEQUENCE-KEY')\n    ...     next_value = int(current_value) + 1\n    ...     pipe.multi()\n    ...     pipe.set('OUR-SEQUENCE-KEY', next_value)\n    >>>\n    >>> r.transaction(client_side_incr, 'OUR-SEQUENCE-KEY')\n    [True]\n\n## LUA Scripting\n\nredis-py supports the EVAL, EVALSHA, and SCRIPT commands. However, there are\na number of edge cases that make these commands tedious to use in real world\nscenarios. Therefore, redis-py exposes a Script object that makes scripting\nmuch easier to use.\n\nTo create a Script instance, use the `register_script` function on a client\ninstance passing the LUA code as the first argument. `register_script` returns\na Script instance that you can use throughout your code.\n\nThe following trivial LUA script accepts two parameters: the name of a key and a\nmultiplier value. The script fetches the value stored in the key, multiplies\nit with the multiplier value and returns the result.\n\n    >>> r = redis.StrictRedis()\n    >>> lua = \"\"\"\n    ... local value = redis.call('GET', KEYS[1])\n    ... value = tonumber(value)\n    ... return value * ARGV[1]\"\"\"\n    >>> multiply = r.register_script(lua)\n\n`multiply` is now a Script instance that is invoked by calling it like a\nfunction. Script instances accept the following optional arguments:\n\n* keys: A list of key names that the script will access. This becomes the\n        KEYS list in LUA.\n* args: A list of argument values. This becomes the ARGV list in LUA.\n* client: A redis-py Client or Pipeline instance that will invoke the\n          script. If client isn't specified, the client that intiially\n          created the Script instance (the one that `register_script` was\n          invoked from) will be used.\n\nContinuing the example from above:\n\n    >>> r.set('foo', 2)\n    >>> multiply(keys=['foo'], args=[5])\n    10\n\nThe value of key 'foo' is set to 2. When multiply is invoked, the 'foo' key is\npassed to the script along with the multiplier value of 5. LUA executes the\nscript and returns the result, 10.\n\nScript instances can be executed using a different client instance, even one\nthat points to a completely different Redis server.\n\n    >>> r2 = redis.StrictRedis('redis2.example.com')\n    >>> r2.set('foo', 3)\n    >>> multiply(keys=['foo'], args=[5], client=r2)\n    15\n\nThe Script object ensures that the LUA script is loaded into Redis's script\ncache. In the event of a NOSCRIPT error, it will load the script and retry\nexecuting it.\n\nScript objects can also be used in pipelines. The pipeline instance should be\npassed as the client argument when calling the script. Care is taken to ensure\nthat the script is registered in Redis's script cache just prior to pipeline\nexecution.\n\n    >>> pipe = r.pipeline()\n    >>> pipe.set('foo', 5)\n    >>> multiply(keys=['foo'], args=[5], client=pipe)\n    >>> pipe.execute()\n    [True, 25]\n\nAuthor\n------\n\nredis-py is developed and maintained by Andy McCurdy (sedrik@gmail.com).\nIt can be found here: http://github.com/andymccurdy/redis-py\n\nSpecial thanks to:\n\n* Ludovico Magnocavallo, author of the original Python Redis client, from\n  which some of the socket code is still used.\n* Alexander Solovyov for ideas on the generic response callback system.\n* Paul Hubbard for initial packaging support.",
+      "description_content_type": null,
+      "docs_url": null,
+      "download_url": "UNKNOWN",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "http://github.com/andymccurdy/redis-py",
+      "keywords": "Redis,key-value store",
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "redis",
+      "package_url": "https://pypi.org/project/redis/",
+      "platform": "UNKNOWN",
+      "project_url": "https://pypi.org/project/redis/",
+      "project_urls": {
+        "Download": "UNKNOWN",
+        "Homepage": "http://github.com/andymccurdy/redis-py"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/redis/2.7.3/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "Python client for Redis key-value store",
+      "version": "2.7.3",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 39515671,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "RedisLabs"
+        },
+        {
+          "role": "Owner",
+          "user": "dmaier-redislabs"
+        },
+        {
+          "role": "Maintainer",
+          "user": "elenakolevska"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "ebdeb49b23b4d846893fc2739215cabe01502e47d0827aa50823c8c4e0024234",
+          "md5": "213c66f6d68bfed4d812bbbec6cc740d",
+          "sha256": "3cf41f108f9b0ebd0ae01adc85cf54bafc6825d47b8eda9461235ad68b6fad6f"
+        },
+        "downloads": -1,
+        "filename": "redis-2.7.3.tar.gz",
+        "has_sig": false,
+        "md5_digest": "213c66f6d68bfed4d812bbbec6cc740d",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 78480,
+        "upload_time": "2013-04-23T05:31:30",
+        "upload_time_iso_8601": "2013-04-23T05:31:30.830988Z",
+        "url": "https://files.pythonhosted.org/packages/eb/de/b49b23b4d846893fc2739215cabe01502e47d0827aa50823c8c4e0024234/redis-2.7.3.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

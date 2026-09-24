@@ -1,0 +1,181 @@
+{
+  "package": "guardrails-ai",
+  "version": "0.1.0rc3",
+  "status_code": 200,
+  "url": "https://pypi.org/pypi/guardrails-ai/0.1.0rc3/json",
+  "timestamp": "2026-09-22T05:48:26.845142+00:00",
+  "payload": {
+    "info": {
+      "author": "Shreya Rajpal",
+      "author_email": "shreya.rajpal@gmail.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence"
+      ],
+      "description": "\n# \ud83d\udee4\ufe0f Guardrails \n\n<div align=\"center\">\nGuardrails is an open-source Python package for specifying structure and type, validating and correcting the outputs of large language models (LLMs).\n\n[**Docs**](http://shreyar.github.io/guardrails/)\n</div>\n\n_Note: Guardrails is an alpha release, so expect sharp edges and bugs._\n\nGuardrails provides a format (`.rail`) for enforcing a specification on an LLM output, and a lightweight wrapper around LLM API calls to implement this spec.\n\n1. `rail` (`reliable AI markup language`) files for specifying structure and type information, validators and corrective actions over LLM outputs.\n2. `gd.Guard` wraps around LLM API calls to structure, validate and correct the outputs.\n\n## \ud83d\udce6 Installation\n\n```python\npip install guardrails-ai\n```\n\n## \ud83d\udee3\ufe0f Roadmap\n- adding more examples, new use cases and domains\n- integrations with langchain, gpt-index, minichain, manifest\n- expanding offered validators\n- more transpilers from `.rail` -> LLM prompt (e.g. `.rail` -> TypeScript)\n- informative logging\n- improving reasking logic\n- a guardrails.js implementation\n- VSCode extension for `.rail` files\n- next version of `.rail` format\n\n## \ud83d\ude80 Getting Started\nLet's go through an example where we ask an LLM to explain what a \"bank run\" is, and generate URL links to relevant news articles. We'll generate a `.rail` spec for this and then use Guardrails to enforce it. You can see more examples in the docs.\n\n### \ud83d\udcdd Creating a `RAIL` spec\n\n`RAIL` (with extension `.rail`) is a flavor of XML (stands for `Reliable AI Markup Language`) that describes the expected structure and types of the LLM output, the quality criteria for the output to be considered valid, and corrective actions to be taken if the output is invalid.\n\n- Create a `RAIL` spec that requests the LLM to generate an object with two fields: `explanation` and `follow_up_url`.\n- For the `explanation` field, the max length of the generated string should be 280 characters. If the explanation is not of valid length, reask the LLM.\n- For the `follow_up_url` field, the URL should be reachable. If the URL is not reachable, we will filter it out of the response.\n\n\n```xml\n<rail version=\"0.1\">\n<output>\n    <object name=\"bank_run\" format=\"length: 2\">\n        <string\n            name=\"explanation\"\n            description=\"A paragraph about what a bank run is.\"\n            format=\"length: 200 280\"\n            on-fail-length=\"reask\"\n        />\n        <url\n            name=\"follow_up_url\"\n            description=\"A web URL where I can read more about bank runs.\"\n            required=\"true\"\n            format=\"valid-url\"\n            on-fail-valid-url=\"filter\"\n        />\n    </object>\n</output>\n\n<prompt>\nExplain what a bank run is in a tweet.\n\n@xml_prefix_prompt\n\n{output_schema}\n\n@json_suffix_prompt_v2_wo_none\n</prompt>\n</rail>\n\"\"\"\n```\nWe specify our quality criteria (generated length, URL reachability) in the `format` fields of the `RAIL` spec below. We `reask` if `explanation` is not valid, and filter the `follow_up_url` if it is not valid.\n\n### \ud83d\udee0\ufe0f Using Guardrails to enforce the `RAIL` spec\n\nNext, we'll use the `RAIL` spec to create a `Guard` object. The `Guard` object will wrap the LLM API call and enforce the `RAIL` spec on its output.\n\n```python\nimport guardrails as gd\n\nguard = gd.Guard.from_rail(f.name)\n```\n\nThe `Guard` object compiles the `RAIL` specification and adds it to the prompt. (Right now this is a passthrough operation, more compilers are planned to find the best way to express the spec in a prompt.)\n\n\n```python\nprint(guard.base_prompt)\n```\n\n```xml\nExplain what a bank run is in a tweet.\n\nGiven below is XML that describes the information to extract from this document and the tags to extract it into.\n\n<output>\n    <object name=\"bank_run\" format=\"length: 2\">\n        <string name=\"explanation\" description=\"A paragraph about what a bank run is.\" format=\"length: 200 280\" on-fail-length=\"reask\" />\n        <url name=\"follow_up_url\" description=\"A web URL where I can read more about bank runs.\" required=\"true\" format=\"valid-url\" on-fail-valid-url=\"filter\" />\n    </object>\n</output>\n\nONLY return a valid JSON object (no other text is necessary). The JSON MUST conform to the XML format, including any types and format requests e.g. requests for lists, objects and specific types. Be correct and concise.\n\nJSON Output:\n```\n\nCall the `Guard` object with the LLM API call as the first argument and add any additional arguments to the LLM API call as the remaining arguments.\n\n\n```python\nimport openai\n\n# Wrap the OpenAI API call with the `guard` object\nraw_llm_output, validated_output = guard(openai.Completion.create, engine=\"text-davinci-003\", max_tokens=1024, temperature=0.3)\n\nprint(validated_output)\n```\n```python\n{\n    'bank_run': {\n        'explanation': 'A bank run is when a large number of people withdraw their deposits from a bank due to concerns about its solvency. This can cause a financial crisis if the bank is unable to meet the demand for withdrawals.',\n        'follow_up_url': 'https://www.investopedia.com/terms/b/bankrun.asp'\n    }\n}\n\n```\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/shreyar/guardrails",
+      "keywords": "",
+      "license": "Apache 2.0",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "guardrails-ai",
+      "package_url": "https://pypi.org/project/guardrails-ai/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/guardrails-ai/",
+      "project_urls": {
+        "Homepage": "https://github.com/shreyar/guardrails"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/guardrails-ai/0.1.0rc3/",
+      "requires_dist": [
+        "lxml",
+        "openai",
+        "rich",
+        "eliot"
+      ],
+      "requires_python": ">=3.7.0",
+      "summary": "Adding guardrails to large language models.",
+      "version": "0.1.0rc3",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 40025281,
+    "ownership": {
+      "organization": "guardrails",
+      "roles": []
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "0037b1cabfaa1a423804a51b0caf8e96b258d32761371d740e2435f40df5b183"
+        },
+        "digests": {
+          "blake2b_256": "431fd2758277c1f11544195628756c7504fa66c922ee6c24ebbf8ee3c60fb612",
+          "md5": "1aebce1ca164583c1c1f841434f17b9b",
+          "sha256": "635a2b90de490c0fb910849bc38cbd02378a7b60fcf6499589f7f5df940dbf09"
+        },
+        "downloads": -1,
+        "filename": "guardrails_ai-0.1.0rc3-py2.py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "1aebce1ca164583c1c1f841434f17b9b",
+        "packagetype": "bdist_wheel",
+        "python_version": "py2.py3",
+        "requires_python": ">=3.7.0",
+        "size": 24877,
+        "upload_time": "2023-03-13T07:06:43",
+        "upload_time_iso_8601": "2023-03-13T07:06:43.902556Z",
+        "url": "https://files.pythonhosted.org/packages/43/1f/d2758277c1f11544195628756c7504fa66c922ee6c24ebbf8ee3c60fb612/guardrails_ai-0.1.0rc3-py2.py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "d6ee37bf1c60d9ccaf55429c4ca14ebed7482de57d0f5a863be51d0d0925b116",
+          "md5": "512defe718152461b4040d81e0231178",
+          "sha256": "e5c50a5922db65666cef27e2f6bb71427b03fcf5fc498c4762e69b12a67312bb"
+        },
+        "downloads": -1,
+        "filename": "guardrails-ai-0.1.0rc3.tar.gz",
+        "has_sig": false,
+        "md5_digest": "512defe718152461b4040d81e0231178",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.7.0",
+        "size": 24062,
+        "upload_time": "2023-03-13T07:06:47",
+        "upload_time_iso_8601": "2023-03-13T07:06:47.957770Z",
+        "url": "https://files.pythonhosted.org/packages/d6/ee/37bf1c60d9ccaf55429c4ca14ebed7482de57d0f5a863be51d0d0925b116/guardrails-ai-0.1.0rc3.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "aliases": [
+          "CVE-2024-6961",
+          "PYSEC-2026-1431"
+        ],
+        "details": "RAIL documents are an XML-based format invented by Guardrails AI to enforce formatting checks on LLM outputs. Guardrails users that consume RAIL documents from external sources are vulnerable to XXE, which may cause leakage of internal file data via the SYSTEM entity.",
+        "fixed_in": [
+          "0.5.0"
+        ],
+        "id": "GHSA-f8hx-f4xw-c646",
+        "link": "https://osv.dev/vulnerability/GHSA-f8hx-f4xw-c646",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-45758",
+          "GHSA-xmpw-2vmm-p4p6"
+        ],
+        "details": "Guardrails AI is a Python framework that helps build AI applications. On May 11, 2026 at approximately 6:00 PM Pacific, an attacker published a malicious version of `guardrails-ai` (0.10.1) to PyPI. Aany user who installed `guardrails-ai==0.10.1` from PyPI on May 11, 2026 may be affected. Security researchers identified the malicious package within approximately 2 hours of publication, and PyPI quarantined the repository. Based on our telemetry, Guardrails AI maintainers have observed no requests to Guardrails AI infrastructure originating from the malicious 0.10.1 version, and a review of system and access logs has produced no evidence of user data exfiltration through their systems. Users should upgrade to version 0.10.2 or downgrade to version 0.10.0, both of which are unaffected. Those who installed version 0.10.1 should rotate any credentials accessible from their machine (GitHub PATs, cloud provider keys, package registry tokens, API keys) and audit their GitHub account for unauthorized workflows or repositories.",
+        "fixed_in": [],
+        "id": "PYSEC-2026-206",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-206",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-31233",
+          "GHSA-r6hf-g5x6-7pv9"
+        ],
+        "details": "Guardrails AI thru 0.6.7 contains a code injection vulnerability (CWE-94) in its Hub package installation mechanism. When installing validator packages via guardrails hub install, the system retrieves a manifest from the Guardrails Hub and dynamically executes a script specified in the post_install field. The script path is constructed from untrusted manifest data and executed without proper validation or sanitization, allowing remote code execution. An attacker who can publish malicious packages to the Hub can inject arbitrary code that will be executed on any system where a victim installs the malicious package.",
+        "fixed_in": [],
+        "id": "PYSEC-2026-347",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-347",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-6961",
+          "GHSA-f8hx-f4xw-c646"
+        ],
+        "details": "RAIL documents are an XML-based format invented by Guardrails AI to enforce formatting checks on LLM outputs. Guardrails users that consume RAIL documents from external sources are vulnerable to XXE, which may cause leakage of internal file data via the SYSTEM entity.",
+        "fixed_in": [
+          "0.5.0"
+        ],
+        "id": "PYSEC-2026-1431",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1431",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-31233",
+          "PYSEC-2026-347"
+        ],
+        "details": "Guardrails AI thru 0.6.7 contains a code injection vulnerability (CWE-94) in its Hub package installation mechanism. When installing validator packages via guardrails hub install, the system retrieves a manifest from the Guardrails Hub and dynamically executes a script specified in the post_install field. The script path is constructed from untrusted manifest data and executed without proper validation or sanitization, allowing remote code execution. An attacker who can publish malicious packages to the Hub can inject arbitrary code that will be executed on any system where a victim installs the malicious package.",
+        "fixed_in": [],
+        "id": "GHSA-r6hf-g5x6-7pv9",
+        "link": "https://osv.dev/vulnerability/GHSA-r6hf-g5x6-7pv9",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "package": "rich",
+  "version": "0.3.0",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:25:41.956973+00:00",
+  "payload": {
+    "info": {
+      "author": "Will McGugan",
+      "author_email": "willmcgugan@gmail.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8"
+      ],
+      "description": "# Rich\n\nRich is a Python library for _rich_ text and high level formatting in the terminal.\n\nThe [Rich API](https://rich.readthedocs.io/en/latest/) make it easy to add colored text (up to 16.7million colors) and styles (bold, italic, underline etc.) to your script or application. Rich can also render pretty tables, markdown and source code with syntax highlighting.\n\n## Installing\n\nInstall with `pip` or your favorite PyPi package manager.\n\n```\npip install rich\n```\n\n## Console Printing\n\nThe first step to using the rich console is to import and construct the `Console` object.\n\n```python\nfrom rich.console import Console\n\nconsole = Console()\n```\n\nMost applications will require one `Console` instance. The easiest way to manage your console instance would be to construct an instance at the module level and import it where needed.\n\nThe Console object has a `print` method which has an intentionally similar interface to the builtin `print` function. Here's an example of use:\n\n```\nconsole.print(\"Hello\", \"World!\")\n```\n\nAs you might expect, this will print `\"Hello World!\"` to the terminal. Note that unlike the `print` function, Rich will word-wrap your test to fit within the terminal width.\n\nThere are a few ways of adding color and style to your output. You can set a style for the entire output by adding a `style` keyword argument. Here's an example:\n\n```\nconsole.print(\"Hello\", \"World!\", style=\"bold red\")\n```\n\nThe output will be something like the following:\n\n![Hello World](./imgs/hello_world.png)\n\nThat's fine for styling a line of text at a time. For more finely grained styling, Rich renders a special markup which is similar in syntax to [bbcode](https://en.wikipedia.org/wiki/BBCode). Here's an example:\n\n```python\nconsole.print(\"Where there is a [bold cyan]Will[/bold cyan] there [u]is[/u] a [i]way[/i].\")\n```\n\n![Console Markup](./imgs/where_there_is_a_will.png)\n\n## Console Logging\n\nThe Console object has a `log()` method which has a similar interface to `print()`, but also renders a column for the current time and the file and line which made the call. By default, Rich will do syntax highlighting for Python structures and for repr strings. If you log a collection (i.e. a dict or a list) Rich will pretty print it so that it fits in the available space. Here's an example of some of these features.\n\n```python\nfrom rich.console import Console\nconsole = Console()\n\ntest_data = [\n    {\"jsonrpc\": \"2.0\", \"method\": \"sum\", \"params\": [None, 1, 2, 4, False, True], \"id\": \"1\",},\n    {\"jsonrpc\": \"2.0\", \"method\": \"notify_hello\", \"params\": [7]},\n    {\"jsonrpc\": \"2.0\", \"method\": \"subtract\", \"params\": [42, 23], \"id\": \"2\"},\n]\n\ndef test_log():\n    enabled = False\n    context = {\n        \"foo\": \"bar\",\n    }\n    movies = [\"Deadpool\", \"Rise of the Skywalker\"]\n    console.log(\"Hello from\", console, \"!\")\n    console.log(test_data, log_locals=True)\n\n\ntest_log()\n```\n\nThe above produces the following output:\n\n![Log](./imgs/log.png)\n\nNote the `log_locals` argument, which outputs a table containing the local variables where the log method was called.\n\nThe log method could be used for logging to the terminal for long running applications such as servers, but is also a very nice debugging aid.\n\n## Emoji\n\nTo insert an emoji in to console output place the name between two colons. Here's an example:\n\n```python\n>>> console.print(\":smiley: :vampire: :pile_of_poo: :thumbs_up: :raccoon:\")\n\ud83d\ude03 \ud83e\udddb \ud83d\udca9 \ud83d\udc4d \ud83e\udd9d\n```\n\nPlease use this feature wisely.\n\n## Markdown\n\nRich can render markdown and does a reasonable job of translating the formatting to the terminal.\n\nTo render markdown import the `Markdown` class and construct it with a string containing markdown code. Then print it to the console. Here's an example:\n\n```python\nfrom rich.console import Console\nfrom rich.markdown import Markdown\n\nconsole = Console()\nwith open(\"README.md\") as readme:\n    markdown = Markdown(readme.read())\nconsole.print(markdown)\n```\n\nThis will produce output something like the following:\n\n![markdown](./imgs/markdown.png)\n\n## Syntax Highlighting\n\nRich uses the [pygments](https://pygments.org/) library to implement syntax highlighting. Usage is similar to rendering markdown; construct a `Syntax` object and print it to the console. Here's an example:\n\n```python\nfrom rich.console import Console\nfrom rich.syntax import Syntax\n\nmy_code = '''\ndef iter_first_last(values: Iterable[T]) -> Iterable[Tuple[bool, bool, T]]:\n    \"\"\"Iterate and generate a tuple with a flag for first and last value.\"\"\"\n    iter_values = iter(values)\n    try:\n        previous_value = next(iter_values)\n    except StopIteration:\n        return\n    first = True\n    for value in iter_values:\n        yield first, False, previous_value\n        first = False\n        previous_value = value\n    yield first, True, previous_value\n'''\nsyntax = Syntax(my_code, \"python\", theme=\"monokai\", line_numbers=True)\nconsole = Console()\nconsole.print(syntax)\n```\n\nThis will produce the following output:\n\n![syntax](./imgs/syntax.png)\n\n## Tables\n\nRich can render flexible tables with unicode box characters. There is a large variety of formatting options for borders, styles, cell alignment etc. Here's a simple example:\n\n```python\nfrom rich.console import Console\nfrom rich.table import Column, Table\n\nconsole = Console()\n\ntable = Table(show_header=True, header_style=\"bold magenta\")\ntable.add_column(\"Date\", style=\"dim\", width=12)\ntable.add_column(\"Title\")\ntable.add_column(\"Production Budget\", justify=\"right\")\ntable.add_column(\"Box Office\", justify=\"right\")\ntable.add_row(\n    \"Dev 20, 2019\", \"Star Wars: The Rise of Skywalker\", \"$275,000,0000\", \"$375,126,118\"\n)\ntable.add_row(\n    \"May 25, 2018\",\n    \"[red]Solo[/red]: A Star Wars Story\",\n    \"$275,000,0000\",\n    \"$393,151,347\",\n)\ntable.add_row(\n    \"Dec 15, 2017\",\n    \"Star Wars Ep. VIII: The Last Jedi\",\n    \"$262,000,000\",\n    \"[bold]$1,332,539,889[/bold]\",\n)\n\nconsole.print(table)\n```\n\nThis produces the following output:\n\n![table](./imgs/table.png)\n\nNote that console markup is rendered in the same was as `print()` and `log()`. In fact, anything that is renderable by Rich may be included in the headers / rows (even other tables).\n\nThe `Table` class is smart enough to resize columns to fit the available width of the terminal, wrapping text as required. Here's the same example, with the terminal made smaller than the table above:\n\n![table2](./imgs/table2.png)\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/willmcgugan/rich",
+      "keywords": "",
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "rich",
+      "package_url": "https://pypi.org/project/rich/",
+      "platform": "",
+      "project_url": "https://pypi.org/project/rich/",
+      "project_urls": {
+        "Documentation": "https://rich.readthedocs.io/en/latest/",
+        "Homepage": "https://github.com/willmcgugan/rich"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/rich/0.3.0/",
+      "requires_dist": [
+        "pprintpp (>=0.4.0,<0.5.0)",
+        "typing-extensions (>=3.7.4,<4.0.0)",
+        "dataclasses (>=0.7,<0.8); python_version >= \"3.6\" and python_version < \"3.7\""
+      ],
+      "requires_python": ">=3.6,<4.0",
+      "summary": "Render rich text, tables, syntax highlighting, markdown and more to the terminal",
+      "version": "0.3.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 36031239,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "willmcgugan"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "10a0e06ce92c64a9e903b8b01c497da411e66eee851831ac3058bfd872d5e1e3"
+        },
+        "digests": {
+          "blake2b_256": "07ff0cf8850a5ed21c51ddf2a4a1a30b37e084fd2cd697888299c28b70567788",
+          "md5": "5c883d4d5a1bfc8e14f53ddc35697b09",
+          "sha256": "dcf5790132fc3e6e5101de609e03c7fb007e32e33f87f7e3c33aeb6780992b46"
+        },
+        "downloads": -1,
+        "filename": "rich-0.3.0-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "5c883d4d5a1bfc8e14f53ddc35697b09",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.6,<4.0",
+        "size": 82845,
+        "upload_time": "2020-01-19T17:19:23",
+        "upload_time_iso_8601": "2020-01-19T17:19:23.625299Z",
+        "url": "https://files.pythonhosted.org/packages/07/ff/0cf8850a5ed21c51ddf2a4a1a30b37e084fd2cd697888299c28b70567788/rich-0.3.0-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "420c4d49f724277f3609622f50cd537993c68e1078a4bee72df3ecc978bb20ae",
+          "md5": "1c1bea0524f1694893b253fe16f184b4",
+          "sha256": "82616cea60e2ca4d96c03bbc7276b5cfcd7e61fb8ea4ed227658b3606763a2fa"
+        },
+        "downloads": -1,
+        "filename": "rich-0.3.0.tar.gz",
+        "has_sig": false,
+        "md5_digest": "1c1bea0524f1694893b253fe16f184b4",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.6,<4.0",
+        "size": 76805,
+        "upload_time": "2020-01-19T17:19:25",
+        "upload_time_iso_8601": "2020-01-19T17:19:25.308224Z",
+        "url": "https://files.pythonhosted.org/packages/42/0c/4d49f724277f3609622f50cd537993c68e1078a4bee72df3ecc978bb20ae/rich-0.3.0.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

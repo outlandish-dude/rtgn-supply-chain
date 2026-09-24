@@ -1,0 +1,166 @@
+{
+  "package": "idna",
+  "version": "3.12",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:38:44.125818+00:00",
+  "payload": {
+    "info": {
+      "author": null,
+      "author_email": "Kim Davies <kim+pypi@gumleaf.org>",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Intended Audience :: System Administrators",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy",
+        "Topic :: Internet :: Name Service (DNS)",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Utilities"
+      ],
+      "description": "Internationalized Domain Names in Applications (IDNA)\n=====================================================\n\nSupport for `Internationalized Domain Names in\nApplications (IDNA) <https://tools.ietf.org/html/rfc5891>`_\nand `Unicode IDNA Compatibility Processing\n<https://unicode.org/reports/tr46/>`_.\n\nThe latest versions of these standards supplied here provide\nmore comprehensive language coverage and reduce the potential of\nallowing domains with known security vulnerabilities. This library\nis a suitable replacement for the \u201cencodings.idna\u201d\nmodule that comes with the Python standard library, but which\nonly supports an older superseded IDNA specification from 2003.\n\nBasic functions are simply executed:\n\n.. code-block:: pycon\n\n    >>> import idna\n    >>> idna.encode('\u30c9\u30e1\u30a4\u30f3.\u30c6\u30b9\u30c8')\n    b'xn--eckwd4c7c.xn--zckzah'\n    >>> print(idna.decode('xn--eckwd4c7c.xn--zckzah'))\n    \u30c9\u30e1\u30a4\u30f3.\u30c6\u30b9\u30c8\n\n\nInstallation\n------------\n\nThis package is available for installation from PyPI via the\ntypical mechanisms, such as:\n\n.. code-block:: bash\n\n    $ python3 -m pip install idna\n\n\nUsage\n-----\n\nFor typical usage, the ``encode`` and ``decode`` functions will take a\ndomain name argument and perform a conversion to ASCII-compatible encoding\n(known as A-labels), or to Unicode strings (known as U-labels)\nrespectively.\n\n.. code-block:: pycon\n\n    >>> import idna\n    >>> idna.encode('\u30c9\u30e1\u30a4\u30f3.\u30c6\u30b9\u30c8')\n    b'xn--eckwd4c7c.xn--zckzah'\n    >>> print(idna.decode('xn--eckwd4c7c.xn--zckzah'))\n    \u30c9\u30e1\u30a4\u30f3.\u30c6\u30b9\u30c8\n\nConversions can be applied at a per-label basis using the ``ulabel`` or\n``alabel`` functions if necessary:\n\n.. code-block:: pycon\n\n    >>> idna.alabel('\u6d4b\u8bd5')\n    b'xn--0zwm56d'\n\n\nCompatibility Mapping (UTS #46)\n+++++++++++++++++++++++++++++++\n\nThis library provides support for `Unicode IDNA Compatibility\nProcessing <https://unicode.org/reports/tr46/>`_ which normalizes input from\ndifferent potential ways a user may input a domain prior to performing the IDNA\nconversion operations. This functionality, known as a \n`mapping <https://tools.ietf.org/html/rfc5895>`_, is considered by the\nspecification to be a local user-interface issue distinct from IDNA\nconversion functionality.\n\nFor example, \u201cK\u00f6nigsg\u00e4\u00dfchen\u201d is not a permissible label as *LATIN\nCAPITAL LETTER K* is not allowed (nor are capital letters in general).\nUTS 46 will convert this into lower case prior to applying the IDNA\nconversion.\n\n.. code-block:: pycon\n\n    >>> import idna\n    >>> idna.encode('K\u00f6nigsg\u00e4\u00dfchen')\n    ...\n    idna.core.InvalidCodepoint: Codepoint U+004B at position 1 of 'K\u00f6nigsg\u00e4\u00dfchen' not allowed\n    >>> idna.encode('K\u00f6nigsg\u00e4\u00dfchen', uts46=True)\n    b'xn--knigsgchen-b4a3dun'\n    >>> print(idna.decode('xn--knigsgchen-b4a3dun'))\n    k\u00f6nigsg\u00e4\u00dfchen\n\n\nExceptions\n----------\n\nAll errors raised during the conversion following the specification\nshould raise an exception derived from the ``idna.IDNAError`` base\nclass.\n\nMore specific exceptions that may be generated as ``idna.IDNABidiError``\nwhen the error reflects an illegal combination of left-to-right and\nright-to-left characters in a label; ``idna.InvalidCodepoint`` when\na specific codepoint is an illegal character in an IDN label (i.e.\nINVALID); and ``idna.InvalidCodepointContext`` when the codepoint is\nillegal based on its position in the string (i.e. it is CONTEXTO or CONTEXTJ\nbut the contextual requirements are not satisfied.)\n\nBuilding and Diagnostics\n------------------------\n\nThe IDNA and UTS 46 functionality relies upon pre-calculated lookup\ntables for performance. These tables are derived from computing against\neligibility criteria in the respective standards using the command-line\nscript ``tools/idna-data``.\n\nThis tool will fetch relevant codepoint data from the Unicode repository\nand perform the required calculations to identify eligibility. There are\nthree main modes:\n\n* ``idna-data make-libdata``. Generates ``idnadata.py`` and\n  ``uts46data.py``, the pre-calculated lookup tables used for IDNA and\n  UTS 46 conversions. Implementers who wish to track this library against\n  a different Unicode version may use this tool to manually generate a\n  different version of the ``idnadata.py`` and ``uts46data.py`` files.\n\n* ``idna-data make-table``. Generate a table of the IDNA disposition\n  (e.g. PVALID, CONTEXTJ, CONTEXTO) in the format found in Appendix\n  B.1 of RFC 5892 and the pre-computed tables published by `IANA\n  <https://www.iana.org/>`_.\n\n* ``idna-data U+0061``. Prints debugging output on the various\n  properties associated with an individual Unicode codepoint (in this\n  case, U+0061), that are used to assess the IDNA and UTS 46 status of a\n  codepoint. This is helpful in debugging or analysis.\n\nThe tool accepts a number of arguments, described using ``idna-data -h``.\nMost notably, the ``--version`` argument allows the specification\nof the version of Unicode to be used in computing the table data. For\nexample, ``idna-data --version 9.0.0 make-libdata`` will generate\nlibrary data against Unicode 9.0.0.\n\n\nAdditional Notes\n----------------\n\n* **Packages**. The latest tagged release version is published in the\n  `Python Package Index <https://pypi.org/project/idna/>`_.\n\n* **Version support**. This library supports Python 3.8 and higher.\n  As this library serves as a low-level toolkit for a variety of\n  applications, many of which strive for broad compatibility with older\n  Python versions, there is no rush to remove older interpreter support.\n  Support for older versions are likely to be removed from new releases\n  as automated tests can no longer easily be run, i.e. once the Python\n  version is officially end-of-life.\n\n* **Testing**. The library has a test suite based on each rule of the\n  IDNA specification, as well as tests that are provided as part of the\n  Unicode Technical Standard 46, `Unicode IDNA Compatibility Processing\n  <https://unicode.org/reports/tr46/>`_.\n\n* **Emoji**. It is an occasional request to support emoji domains in\n  this library. Encoding of symbols like emoji is expressly prohibited by\n  the IDNA technical standard, and emoji domains are broadly phased\n  out across the domain industry due to associated security risks.\n\n* **Transitional processing**. Unicode 16.0.0 removed transitional\n  processing so the `transitional` argument for the encode() method\n  no longer has any effect and will be removed at a later date.\n\n",
+      "description_content_type": "text/x-rst",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": null,
+      "keywords": null,
+      "license": null,
+      "license_expression": "BSD-3-Clause",
+      "license_files": [
+        "LICENSE.md"
+      ],
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "idna",
+      "package_url": "https://pypi.org/project/idna/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/idna/",
+      "project_urls": {
+        "Changelog": "https://github.com/kjd/idna/blob/master/HISTORY.rst",
+        "Issue tracker": "https://github.com/kjd/idna/issues",
+        "Source": "https://github.com/kjd/idna"
+      },
+      "provides_extra": [
+        "all"
+      ],
+      "release_url": "https://pypi.org/project/idna/3.12/",
+      "requires_dist": [
+        "ruff>=0.6.2; extra == \"all\"",
+        "mypy>=1.11.2; extra == \"all\"",
+        "pytest>=8.3.2; extra == \"all\""
+      ],
+      "requires_python": ">=3.8",
+      "summary": "Internationalized Domain Names in Applications (IDNA)",
+      "version": "3.12",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41170495,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "kjd"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "6b525cc9f78f1dc04dd06f5c9dfd78d75ca20fedff338deb82afaa2bea414891"
+        },
+        "digests": {
+          "blake2b_256": "53b2acc33950394b3becb2b664741a0c0889c7ef9f9ffbfa8d47eddb53a50abd",
+          "md5": "fe2ef1d87f453833adb381f898d3b5be",
+          "sha256": "60ffaa1858fac94c9c124728c24fcde8160f3fb4a7f79aa8cdd33a9d1af60a67"
+        },
+        "downloads": -1,
+        "filename": "idna-3.12-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "fe2ef1d87f453833adb381f898d3b5be",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.8",
+        "size": 68634,
+        "upload_time": "2026-04-21T13:32:47",
+        "upload_time_iso_8601": "2026-04-21T13:32:47.403471Z",
+        "url": "https://files.pythonhosted.org/packages/53/b2/acc33950394b3becb2b664741a0c0889c7ef9f9ffbfa8d47eddb53a50abd/idna-3.12-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "22122948fbe5513d062169bd91f7d7b1cd97bc8894f32946b71fa39f6e63ca0c",
+          "md5": "4d8509aa0dfb70f931c8908dd827d819",
+          "sha256": "724e9952cc9e2bd7550ea784adb098d837ab5267ef67a1ab9cf7846bdbdd8254"
+        },
+        "downloads": -1,
+        "filename": "idna-3.12.tar.gz",
+        "has_sig": false,
+        "md5_digest": "4d8509aa0dfb70f931c8908dd827d819",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.8",
+        "size": 194350,
+        "upload_time": "2026-04-21T13:32:48",
+        "upload_time_iso_8601": "2026-04-21T13:32:48.916284Z",
+        "url": "https://files.pythonhosted.org/packages/22/12/2948fbe5513d062169bd91f7d7b1cd97bc8894f32946b71fa39f6e63ca0c/idna-3.12.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "aliases": [
+          "CVE-2026-45409",
+          "PYSEC-2026-215"
+        ],
+        "details": "This is the same issue as CVE-2024-3651, however the original remediation in 2024 was not a complete fix. Payloads such as `\"\\u0660\" * N` or `\"\\u30fb\" * N + \"\\u6f22\"` utilize the `valid_contexto` function prior to length rejection, and for high values of `N` will take a long time to process.\n\n### Impact\nA specially crafted argument to the `idna.encode()` function could consume significant resources. This may lead to a denial-of-service.\n\n### Patches\nStarting in version 3.14, the function rejects long inputs as soon as practicable prior to any further processing to minimize resource consumption. In version 3.15, this approach was extended to lesser used alternate functions (i.e. per-label conversions and codec support).\n\n### Workarounds\nDomain names cannot exceed 253 characters in length, if this length limit is enforced prior to passing the domain to the `idna.encode()` function it should no longer consume significant resources. This is triggered by arbitrarily large inputs that would not occur in normal usage, but may be passed to the library assuming there is no preliminary input validation by the higher-level application.",
+        "fixed_in": [
+          "3.15"
+        ],
+        "id": "GHSA-65pc-fj4g-8rjx",
+        "link": "https://osv.dev/vulnerability/GHSA-65pc-fj4g-8rjx",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-45409",
+          "GHSA-65pc-fj4g-8rjx"
+        ],
+        "details": "Internationalized Domain Names in Applications (IDNA) for Python provides support for Internationalized Domain Names in Applications (IDNA) and Unicode IDNA Compatibility Processing. In versions prior to 3.15, payloads such as `\"\\u0660\" * N` or `\"\\u30fb\" * N + \"\\u6f22\"` utilize the `valid_contexto` function prior to length rejection, and for high values of `N` will take a long time to process. This is the same issue as CVE-2024-3651, however the original remediation in 2024 was not a complete fix. A specially crafted argument to the `idna.encode()` function could consume significant resources. This may lead to a denial-of-service. Starting in version 3.14, the function rejects long inputs as soon as practicable prior to any further processing to minimize resource consumption. In version 3.15, this approach was extended to lesser used alternate functions (i.e. per-label conversions and codec support). A workaround is available. Domain names cannot exceed 253 characters in length. If this length limit is enforced prior to passing the domain to the `idna.encode()` function, it should no longer consume significant resources. This is triggered by arbitrarily large inputs that would not occur in normal usage, but may be passed to the library assuming there is no preliminary input validation by the higher-level application.",
+        "fixed_in": [
+          "3.15"
+        ],
+        "id": "PYSEC-2026-215",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-215",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      }
+    ]
+  }
+}

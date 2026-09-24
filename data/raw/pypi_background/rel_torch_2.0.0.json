@@ -1,0 +1,1108 @@
+{
+  "package": "torch",
+  "version": "2.0.0",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:20:29.700661+00:00",
+  "payload": {
+    "info": {
+      "author": "PyTorch Team",
+      "author_email": "packages@pytorch.org",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Education",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: BSD License",
+        "Programming Language :: C++",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Software Development",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Libraries :: Python Modules"
+      ],
+      "description": "![PyTorch Logo](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/pytorch-logo-dark.png)\n\n--------------------------------------------------------------------------------\n\nPyTorch is a Python package that provides two high-level features:\n- Tensor computation (like NumPy) with strong GPU acceleration\n- Deep neural networks built on a tape-based autograd system\n\nYou can reuse your favorite Python packages such as NumPy, SciPy, and Cython to extend PyTorch when needed.\n\nOur trunk health (Continuous Integration signals) can be found at [hud.pytorch.org](https://hud.pytorch.org/ci/pytorch/pytorch/master).\n\n<!-- toc -->\n\n- [More About PyTorch](#more-about-pytorch)\n  - [A GPU-Ready Tensor Library](#a-gpu-ready-tensor-library)\n  - [Dynamic Neural Networks: Tape-Based Autograd](#dynamic-neural-networks-tape-based-autograd)\n  - [Python First](#python-first)\n  - [Imperative Experiences](#imperative-experiences)\n  - [Fast and Lean](#fast-and-lean)\n  - [Extensions Without Pain](#extensions-without-pain)\n- [Installation](#installation)\n  - [Binaries](#binaries)\n    - [NVIDIA Jetson Platforms](#nvidia-jetson-platforms)\n  - [From Source](#from-source)\n    - [Prerequisites](#prerequisites)\n    - [Install Dependencies](#install-dependencies)\n    - [Get the PyTorch Source](#get-the-pytorch-source)\n    - [Install PyTorch](#install-pytorch)\n      - [Adjust Build Options (Optional)](#adjust-build-options-optional)\n  - [Docker Image](#docker-image)\n    - [Using pre-built images](#using-pre-built-images)\n    - [Building the image yourself](#building-the-image-yourself)\n  - [Building the Documentation](#building-the-documentation)\n  - [Previous Versions](#previous-versions)\n- [Getting Started](#getting-started)\n- [Resources](#resources)\n- [Communication](#communication)\n- [Releases and Contributing](#releases-and-contributing)\n- [The Team](#the-team)\n- [License](#license)\n\n<!-- tocstop -->\n\n## More About PyTorch\n\nAt a granular level, PyTorch is a library that consists of the following components:\n\n| Component | Description |\n| ---- | --- |\n| [**torch**](https://pytorch.org/docs/stable/torch.html) | A Tensor library like NumPy, with strong GPU support |\n| [**torch.autograd**](https://pytorch.org/docs/stable/autograd.html) | A tape-based automatic differentiation library that supports all differentiable Tensor operations in torch |\n| [**torch.jit**](https://pytorch.org/docs/stable/jit.html) | A compilation stack (TorchScript) to create serializable and optimizable models from PyTorch code  |\n| [**torch.nn**](https://pytorch.org/docs/stable/nn.html) | A neural networks library deeply integrated with autograd designed for maximum flexibility |\n| [**torch.multiprocessing**](https://pytorch.org/docs/stable/multiprocessing.html) | Python multiprocessing, but with magical memory sharing of torch Tensors across processes. Useful for data loading and Hogwild training |\n| [**torch.utils**](https://pytorch.org/docs/stable/data.html) | DataLoader and other utility functions for convenience |\n\nUsually, PyTorch is used either as:\n\n- A replacement for NumPy to use the power of GPUs.\n- A deep learning research platform that provides maximum flexibility and speed.\n\nElaborating Further:\n\n### A GPU-Ready Tensor Library\n\nIf you use NumPy, then you have used Tensors (a.k.a. ndarray).\n\n![Tensor illustration](./docs/source/_static/img/tensor_illustration.png)\n\nPyTorch provides Tensors that can live either on the CPU or the GPU and accelerates the\ncomputation by a huge amount.\n\nWe provide a wide variety of tensor routines to accelerate and fit your scientific computation needs\nsuch as slicing, indexing, mathematical operations, linear algebra, reductions.\nAnd they are fast!\n\n### Dynamic Neural Networks: Tape-Based Autograd\n\nPyTorch has a unique way of building neural networks: using and replaying a tape recorder.\n\nMost frameworks such as TensorFlow, Theano, Caffe, and CNTK have a static view of the world.\nOne has to build a neural network and reuse the same structure again and again.\nChanging the way the network behaves means that one has to start from scratch.\n\nWith PyTorch, we use a technique called reverse-mode auto-differentiation, which allows you to\nchange the way your network behaves arbitrarily with zero lag or overhead. Our inspiration comes\nfrom several research papers on this topic, as well as current and past work such as\n[torch-autograd](https://github.com/twitter/torch-autograd),\n[autograd](https://github.com/HIPS/autograd),\n[Chainer](https://chainer.org), etc.\n\nWhile this technique is not unique to PyTorch, it's one of the fastest implementations of it to date.\nYou get the best of speed and flexibility for your crazy research.\n\n![Dynamic graph](https://github.com/pytorch/pytorch/blob/master/docs/source/_static/img/dynamic_graph.gif)\n\n### Python First\n\nPyTorch is not a Python binding into a monolithic C++ framework.\nIt is built to be deeply integrated into Python.\nYou can use it naturally like you would use [NumPy](https://www.numpy.org/) / [SciPy](https://www.scipy.org/) / [scikit-learn](https://scikit-learn.org) etc.\nYou can write your new neural network layers in Python itself, using your favorite libraries\nand use packages such as [Cython](https://cython.org/) and [Numba](http://numba.pydata.org/).\nOur goal is to not reinvent the wheel where appropriate.\n\n### Imperative Experiences\n\nPyTorch is designed to be intuitive, linear in thought, and easy to use.\nWhen you execute a line of code, it gets executed. There isn't an asynchronous view of the world.\nWhen you drop into a debugger or receive error messages and stack traces, understanding them is straightforward.\nThe stack trace points to exactly where your code was defined.\nWe hope you never spend hours debugging your code because of bad stack traces or asynchronous and opaque execution engines.\n\n### Fast and Lean\n\nPyTorch has minimal framework overhead. We integrate acceleration libraries\nsuch as [Intel MKL](https://software.intel.com/mkl) and NVIDIA ([cuDNN](https://developer.nvidia.com/cudnn), [NCCL](https://developer.nvidia.com/nccl)) to maximize speed.\nAt the core, its CPU and GPU Tensor and neural network backends\nare mature and have been tested for years.\n\nHence, PyTorch is quite fast \u2013 whether you run small or large neural networks.\n\nThe memory usage in PyTorch is extremely efficient compared to Torch or some of the alternatives.\nWe've written custom memory allocators for the GPU to make sure that\nyour deep learning models are maximally memory efficient.\nThis enables you to train bigger deep learning models than before.\n\n### Extensions Without Pain\n\nWriting new neural network modules, or interfacing with PyTorch's Tensor API was designed to be straightforward\nand with minimal abstractions.\n\nYou can write new neural network layers in Python using the torch API\n[or your favorite NumPy-based libraries such as SciPy](https://pytorch.org/tutorials/advanced/numpy_extensions_tutorial.html).\n\nIf you want to write your layers in C/C++, we provide a convenient extension API that is efficient and with minimal boilerplate.\nNo wrapper code needs to be written. You can see [a tutorial here](https://pytorch.org/tutorials/advanced/cpp_extension.html) and [an example here](https://github.com/pytorch/extension-cpp).\n\n\n## Installation\n\n### Binaries\nCommands to install binaries via Conda or pip wheels are on our website: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/)\n\n\n#### NVIDIA Jetson Platforms\n\nPython wheels for NVIDIA's Jetson Nano, Jetson TX1/TX2, Jetson Xavier NX/AGX, and Jetson AGX Orin are provided [here](https://forums.developer.nvidia.com/t/pytorch-for-jetson-version-1-10-now-available/72048) and the L4T container is published [here](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-pytorch)\n\nThey require JetPack 4.2 and above, and [@dusty-nv](https://github.com/dusty-nv) and [@ptrblck](https://github.com/ptrblck) are maintaining them.\n\n\n### From Source\n\n#### Prerequisites\nIf you are installing from source, you will need:\n- Python 3.8 or later (for Linux, Python 3.8.1+ is needed)\n- A C++17 compatible compiler, such as clang\n\nWe highly recommend installing an [Anaconda](https://www.anaconda.com/distribution/#download-section) environment. You will get a high-quality BLAS library (MKL) and you get controlled dependency versions regardless of your Linux distro.\n\nIf you want to compile with CUDA support, install the following (note that CUDA is not supported on macOS)\n- [NVIDIA CUDA](https://developer.nvidia.com/cuda-downloads) 11.0 or above\n- [NVIDIA cuDNN](https://developer.nvidia.com/cudnn) v7 or above\n- [Compiler](https://gist.github.com/ax3l/9489132) compatible with CUDA\n\nNote: You could refer to the [cuDNN Support Matrix](https://docs.nvidia.com/deeplearning/cudnn/pdf/cuDNN-Support-Matrix.pdf) for cuDNN versions with the various supported CUDA, CUDA driver and NVIDIA hardware\n\nIf you want to disable CUDA support, export the environment variable `USE_CUDA=0`.\nOther potentially useful environment variables may be found in `setup.py`.\n\nIf you are building for NVIDIA's Jetson platforms (Jetson Nano, TX1, TX2, AGX Xavier), Instructions to install PyTorch for Jetson Nano are [available here](https://devtalk.nvidia.com/default/topic/1049071/jetson-nano/pytorch-for-jetson-nano/)\n\nIf you want to compile with ROCm support, install\n- [AMD ROCm](https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html) 4.0 and above installation\n- ROCm is currently supported only for Linux systems.\n\nIf you want to disable ROCm support, export the environment variable `USE_ROCM=0`.\nOther potentially useful environment variables may be found in `setup.py`.\n\n#### Install Dependencies\n\n**Common**\n\n```bash\nconda install cmake ninja\n# Run this command from the PyTorch directory after cloning the source code using the \u201cGet the PyTorch Source\u201c section below\npip install -r requirements.txt\n```\n\n**On Linux**\n\n```bash\nconda install mkl mkl-include\n# CUDA only: Add LAPACK support for the GPU if needed\nconda install -c pytorch magma-cuda110  # or the magma-cuda* that matches your CUDA version from https://anaconda.org/pytorch/repo\n```\n\n**On MacOS**\n\n```bash\n# Add this package on intel x86 processor machines only\nconda install mkl mkl-include\n# Add these packages if torch.distributed is needed\nconda install pkg-config libuv\n```\n\n**On Windows**\n\n```bash\nconda install mkl mkl-include\n# Add these packages if torch.distributed is needed.\n# Distributed package support on Windows is a prototype feature and is subject to changes.\nconda install -c conda-forge libuv=1.39\n```\n\n#### Get the PyTorch Source\n```bash\ngit clone --recursive https://github.com/pytorch/pytorch\ncd pytorch\n# if you are updating an existing checkout\ngit submodule sync\ngit submodule update --init --recursive\n```\n\n#### Install PyTorch\n**On Linux**\n\nIf you're compiling for AMD ROCm then first run this command:\n```bash\n# Only run this if you're compiling for ROCm\npython tools/amd_build/build_amd.py\n```\n\nInstall PyTorch\n```bash\nexport CMAKE_PREFIX_PATH=${CONDA_PREFIX:-\"$(dirname $(which conda))/../\"}\npython setup.py develop\n```\n\n> _Aside:_ If you are using [Anaconda](https://www.anaconda.com/distribution/#download-section), you may experience an error caused by the linker:\n>\n> ```plaintext\n> build/temp.linux-x86_64-3.7/torch/csrc/stub.o: file not recognized: file format not recognized\n> collect2: error: ld returned 1 exit status\n> error: command 'g++' failed with exit status 1\n> ```\n>\n> This is caused by `ld` from the Conda environment shadowing the system `ld`. You should use a newer version of Python that fixes this issue. The recommended Python version is 3.8.1+.\n\n**On macOS**\n\n```bash\npython3 setup.py develop\n```\n\n**On Windows**\n\nChoose Correct Visual Studio Version.\n\nPyTorch CI uses Visual C++ BuildTools, which come with Visual Studio Enterprise,\nProfessional, or Community Editions. You can also install the build tools from\nhttps://visualstudio.microsoft.com/visual-cpp-build-tools/. The build tools *do not*\ncome with Visual Studio Code by default.\n\nIf you want to build legacy python code, please refer to [Building on legacy code and CUDA](https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md#building-on-legacy-code-and-cuda)\n\n**CPU-only builds**\n\nIn this mode PyTorch computations will run on your CPU, not your GPU\n\n```cmd\nconda activate\npython setup.py develop\n```\n\nNote on OpenMP: The desired OpenMP implementation is Intel OpenMP (iomp). In order to link against iomp, you'll need to manually download the library and set up the building environment by tweaking `CMAKE_INCLUDE_PATH` and `LIB`. The instruction [here](https://github.com/pytorch/pytorch/blob/master/docs/source/notes/windows.rst#building-from-source) is an example for setting up both MKL and Intel OpenMP. Without these configurations for CMake, Microsoft Visual C OpenMP runtime (vcomp) will be used.\n\n**CUDA based build**\n\nIn this mode PyTorch computations will leverage your GPU via CUDA for faster number crunching\n\n[NVTX](https://docs.nvidia.com/gameworks/content/gameworkslibrary/nvtx/nvidia_tools_extension_library_nvtx.htm) is needed to build Pytorch with CUDA.\nNVTX is a part of CUDA distributive, where it is called \"Nsight Compute\". To install it onto an already installed CUDA run CUDA installation once again and check the corresponding checkbox.\nMake sure that CUDA with Nsight Compute is installed after Visual Studio.\n\nCurrently, VS 2017 / 2019, and Ninja are supported as the generator of CMake. If `ninja.exe` is detected in `PATH`, then Ninja will be used as the default generator, otherwise, it will use VS 2017 / 2019.\n<br/> If Ninja is selected as the generator, the latest MSVC will get selected as the underlying toolchain.\n\nAdditional libraries such as\n[Magma](https://developer.nvidia.com/magma), [oneDNN, a.k.a MKLDNN or DNNL](https://github.com/oneapi-src/oneDNN), and [Sccache](https://github.com/mozilla/sccache) are often needed. Please refer to the [installation-helper](https://github.com/pytorch/pytorch/tree/master/.ci/pytorch/win-test-helpers/installation-helpers) to install them.\n\nYou can refer to the [build_pytorch.bat](https://github.com/pytorch/pytorch/blob/master/.ci/pytorch/win-test-helpers/build_pytorch.bat) script for some other environment variables configurations\n\n\n```cmd\ncmd\n\n:: Set the environment variables after you have downloaded and unzipped the mkl package,\n:: else CMake would throw an error as `Could NOT find OpenMP`.\nset CMAKE_INCLUDE_PATH={Your directory}\\mkl\\include\nset LIB={Your directory}\\mkl\\lib;%LIB%\n\n:: Read the content in the previous section carefully before you proceed.\n:: [Optional] If you want to override the underlying toolset used by Ninja and Visual Studio with CUDA, please run the following script block.\n:: \"Visual Studio 2019 Developer Command Prompt\" will be run automatically.\n:: Make sure you have CMake >= 3.12 before you do this when you use the Visual Studio generator.\nset CMAKE_GENERATOR_TOOLSET_VERSION=14.27\nset DISTUTILS_USE_SDK=1\nfor /f \"usebackq tokens=*\" %i in (`\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -version [15^,17^) -products * -latest -property installationPath`) do call \"%i\\VC\\Auxiliary\\Build\\vcvarsall.bat\" x64 -vcvars_ver=%CMAKE_GENERATOR_TOOLSET_VERSION%\n\n:: [Optional] If you want to override the CUDA host compiler\nset CUDAHOSTCXX=C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\14.27.29110\\bin\\HostX64\\x64\\cl.exe\n\npython setup.py develop\n\n```\n\n##### Adjust Build Options (Optional)\n\nYou can adjust the configuration of cmake variables optionally (without building first), by doing\nthe following. For example, adjusting the pre-detected directories for CuDNN or BLAS can be done\nwith such a step.\n\nOn Linux\n```bash\nexport CMAKE_PREFIX_PATH=${CONDA_PREFIX:-\"$(dirname $(which conda))/../\"}\npython setup.py build --cmake-only\nccmake build  # or cmake-gui build\n```\n\nOn macOS\n```bash\nexport CMAKE_PREFIX_PATH=${CONDA_PREFIX:-\"$(dirname $(which conda))/../\"}\nMACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ python setup.py build --cmake-only\nccmake build  # or cmake-gui build\n```\n\n### Docker Image\n\n#### Using pre-built images\n\nYou can also pull a pre-built docker image from Docker Hub and run with docker v19.03+\n\n```bash\ndocker run --gpus all --rm -ti --ipc=host pytorch/pytorch:latest\n```\n\nPlease note that PyTorch uses shared memory to share data between processes, so if torch multiprocessing is used (e.g.\nfor multithreaded data loaders) the default shared memory segment size that container runs with is not enough, and you\nshould increase shared memory size either with `--ipc=host` or `--shm-size` command line options to `nvidia-docker run`.\n\n#### Building the image yourself\n\n**NOTE:** Must be built with a docker version > 18.06\n\nThe `Dockerfile` is supplied to build images with CUDA 11.1 support and cuDNN v8.\nYou can pass `PYTHON_VERSION=x.y` make variable to specify which Python version is to be used by Miniconda, or leave it\nunset to use the default.\n```bash\nmake -f docker.Makefile\n# images are tagged as docker.io/${your_docker_username}/pytorch\n```\n\n### Building the Documentation\n\nTo build documentation in various formats, you will need [Sphinx](http://www.sphinx-doc.org) and the\nreadthedocs theme.\n\n```bash\ncd docs/\npip install -r requirements.txt\n```\nYou can then build the documentation by running `make <format>` from the\n`docs/` folder. Run `make` to get a list of all available output formats.\n\nIf you get a katex error run `npm install katex`.  If it persists, try\n`npm install -g katex`\n\n> Note: if you installed `nodejs` with a different package manager (e.g.,\n`conda`) then `npm` will probably install a version of `katex` that is not\ncompatible with your version of `nodejs` and doc builds will fail.\nA combination of versions that is known to work is `node@6.13.1` and\n`katex@0.13.18`. To install the latter with `npm` you can run\n```npm install -g katex@0.13.18```\n\n### Previous Versions\n\nInstallation instructions and binaries for previous PyTorch versions may be found\non [our website](https://pytorch.org/previous-versions).\n\n\n## Getting Started\n\nThree-pointers to get you started:\n- [Tutorials: get you started with understanding and using PyTorch](https://pytorch.org/tutorials/)\n- [Examples: easy to understand PyTorch code across all domains](https://github.com/pytorch/examples)\n- [The API Reference](https://pytorch.org/docs/)\n- [Glossary](https://github.com/pytorch/pytorch/blob/master/GLOSSARY.md)\n\n## Resources\n\n* [PyTorch.org](https://pytorch.org/)\n* [PyTorch Tutorials](https://pytorch.org/tutorials/)\n* [PyTorch Examples](https://github.com/pytorch/examples)\n* [PyTorch Models](https://pytorch.org/hub/)\n* [Intro to Deep Learning with PyTorch from Udacity](https://www.udacity.com/course/deep-learning-pytorch--ud188)\n* [Intro to Machine Learning with PyTorch from Udacity](https://www.udacity.com/course/intro-to-machine-learning-nanodegree--nd229)\n* [Deep Neural Networks with PyTorch from Coursera](https://www.coursera.org/learn/deep-neural-networks-with-pytorch)\n* [PyTorch Twitter](https://twitter.com/PyTorch)\n* [PyTorch Blog](https://pytorch.org/blog/)\n* [PyTorch YouTube](https://www.youtube.com/channel/UCWXI5YeOsh03QvJ59PMaXFw)\n\n## Communication\n* Forums: Discuss implementations, research, etc. https://discuss.pytorch.org\n* GitHub Issues: Bug reports, feature requests, install issues, RFCs, thoughts, etc.\n* Slack: The [PyTorch Slack](https://pytorch.slack.com/) hosts a primary audience of moderate to experienced PyTorch users and developers for general chat, online discussions, collaboration, etc. If you are a beginner looking for help, the primary medium is [PyTorch Forums](https://discuss.pytorch.org). If you need a slack invite, please fill this form: https://goo.gl/forms/PP1AGvNHpSaJP8to1\n* Newsletter: No-noise, a one-way email newsletter with important announcements about PyTorch. You can sign-up here: https://eepurl.com/cbG0rv\n* Facebook Page: Important announcements about PyTorch. https://www.facebook.com/pytorch\n* For brand guidelines, please visit our website at [pytorch.org](https://pytorch.org/)\n\n## Releases and Contributing\n\nPyTorch has a 90-day release cycle (major releases). Please let us know if you encounter a bug by [filing an issue](https://github.com/pytorch/pytorch/issues).\n\nWe appreciate all contributions. If you are planning to contribute back bug-fixes, please do so without any further discussion.\n\nIf you plan to contribute new features, utility functions, or extensions to the core, please first open an issue and discuss the feature with us.\nSending a PR without discussion might end up resulting in a rejected PR because we might be taking the core in a different direction than you might be aware of.\n\nTo learn more about making a contribution to Pytorch, please see our [Contribution page](CONTRIBUTING.md).\n\n## The Team\n\nPyTorch is a community-driven project with several skillful engineers and researchers contributing to it.\n\nPyTorch is currently maintained by [Adam Paszke](https://apaszke.github.io/), [Sam Gross](https://github.com/colesbury), [Soumith Chintala](http://soumith.ch) and [Gregory Chanan](https://github.com/gchanan) with major contributions coming from hundreds of talented individuals in various forms and means.\nA non-exhaustive but growing list needs to mention: Trevor Killeen, Sasank Chilamkurthy, Sergey Zagoruyko, Adam Lerer, Francisco Massa, Alykhan Tejani, Luca Antiga, Alban Desmaison, Andreas Koepf, James Bradbury, Zeming Lin, Yuandong Tian, Guillaume Lample, Marat Dukhan, Natalia Gimelshein, Christian Sarofeen, Martin Raison, Edward Yang, Zachary Devito.\n\nNote: This project is unrelated to [hughperkins/pytorch](https://github.com/hughperkins/pytorch) with the same name. Hugh is a valuable contributor to the Torch community and has helped with many things Torch and PyTorch.\n\n## License\n\nPyTorch has a BSD-style license, as found in the [LICENSE](LICENSE) file.\n\n\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "https://github.com/pytorch/pytorch/tags",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://pytorch.org/",
+      "keywords": "pytorch,machine learning",
+      "license": "BSD-3",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "torch",
+      "package_url": "https://pypi.org/project/torch/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/torch/",
+      "project_urls": {
+        "Download": "https://github.com/pytorch/pytorch/tags",
+        "Homepage": "https://pytorch.org/"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/torch/2.0.0/",
+      "requires_dist": [
+        "filelock",
+        "typing-extensions",
+        "sympy",
+        "networkx",
+        "jinja2",
+        "nvidia-cuda-nvrtc-cu11 (==11.7.99) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-cuda-runtime-cu11 (==11.7.99) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-cuda-cupti-cu11 (==11.7.101) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-cudnn-cu11 (==8.5.0.96) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-cublas-cu11 (==11.10.3.66) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-cufft-cu11 (==10.9.0.58) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-curand-cu11 (==10.2.10.91) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-cusolver-cu11 (==11.4.0.1) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-cusparse-cu11 (==11.7.4.91) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-nccl-cu11 (==2.14.3) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "nvidia-nvtx-cu11 (==11.7.91) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "triton (==2.0.0) ; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+        "opt-einsum (>=3.3) ; extra == 'opt-einsum'"
+      ],
+      "requires_python": ">=3.8.0",
+      "summary": "Tensors and Dynamic neural networks in Python with strong GPU acceleration",
+      "version": "2.0.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 40652270,
+    "ownership": {
+      "organization": "meta-platforms",
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "atalman"
+        },
+        {
+          "role": "Owner",
+          "user": "malfet"
+        },
+        {
+          "role": "Owner",
+          "user": "seemethere"
+        },
+        {
+          "role": "Owner",
+          "user": "soumith"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "8b42f85d28e5796e926e04fbdbd24d4b2cf27eb9c70424cdabc94293d49fe0c4"
+        },
+        "digests": {
+          "blake2b_256": "9fcd670e5e178db87065ee60f60fb35b040abbb819a1f686a91d9ff799fc5048",
+          "md5": "fef7c42824b29ad845e75ebedc293eda",
+          "sha256": "c9090bda7d2eeeecd74f51b721420dbeb44f838d4536cc1b284e879417e3064a"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-1-cp310-cp310-manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "fef7c42824b29ad845e75ebedc293eda",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8.0",
+        "size": 74256435,
+        "upload_time": "2023-03-17T22:43:08",
+        "upload_time_iso_8601": "2023-03-17T22:43:08.937505Z",
+        "url": "https://files.pythonhosted.org/packages/9f/cd/670e5e178db87065ee60f60fb35b040abbb819a1f686a91d9ff799fc5048/torch-2.0.0-1-cp310-cp310-manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "f6e7a404e7cfeb9d02459d7a5d043090f6c5f4d268d32ed8f5c9a09c645ebcf2"
+        },
+        "digests": {
+          "blake2b_256": "217af43f2f490836dfc2de466dbc86cd75357d9ae3945c084efa290fad15976f",
+          "md5": "c0806110736fb4380e5b3faaa6614b00",
+          "sha256": "bd42db2a48a20574d2c33489e120e9f32789c4dc13c514b0c44272972d14a2d7"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-1-cp311-cp311-manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "c0806110736fb4380e5b3faaa6614b00",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8.0",
+        "size": 74257960,
+        "upload_time": "2023-03-17T22:55:29",
+        "upload_time_iso_8601": "2023-03-17T22:55:29.337324Z",
+        "url": "https://files.pythonhosted.org/packages/21/7a/f43f2f490836dfc2de466dbc86cd75357d9ae3945c084efa290fad15976f/torch-2.0.0-1-cp311-cp311-manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "8b42f85d28e5796e926e04fbdbd24d4b2cf27eb9c70424cdabc94293d49fe0c4"
+        },
+        "digests": {
+          "blake2b_256": "adb5449aa2a51b48dc389b50deae7d9260377a5925e63359cd0dd96d7ebc81a9",
+          "md5": "24c1d1ed7b67d1619bd530cad78d739e",
+          "sha256": "8969aa8375bcbc0c2993e7ede0a7f889df9515f18b9b548433f412affed478d9"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-1-cp38-cp38-manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "24c1d1ed7b67d1619bd530cad78d739e",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8.0",
+        "size": 74263470,
+        "upload_time": "2023-03-17T22:55:45",
+        "upload_time_iso_8601": "2023-03-17T22:55:45.515515Z",
+        "url": "https://files.pythonhosted.org/packages/ad/b5/449aa2a51b48dc389b50deae7d9260377a5925e63359cd0dd96d7ebc81a9/torch-2.0.0-1-cp38-cp38-manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "8b42f85d28e5796e926e04fbdbd24d4b2cf27eb9c70424cdabc94293d49fe0c4"
+        },
+        "digests": {
+          "blake2b_256": "faf4c90ede3d6ea4dd0f056c11d9d0bdac2408f51ac7de194539453f3f572a51",
+          "md5": "e914bf7718e33b80b718cf21a7639eeb",
+          "sha256": "ab2da16567cb55b67ae39e32d520d68ec736191d88ac79526ca5874754c32203"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-1-cp39-cp39-manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "e914bf7718e33b80b718cf21a7639eeb",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8.0",
+        "size": 74259956,
+        "upload_time": "2023-03-17T22:55:58",
+        "upload_time_iso_8601": "2023-03-17T22:55:58.777992Z",
+        "url": "https://files.pythonhosted.org/packages/fa/f4/c90ede3d6ea4dd0f056c11d9d0bdac2408f51ac7de194539453f3f572a51/torch-2.0.0-1-cp39-cp39-manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "da22ea61a9d566d4d441af3070fb109b4c2ca83b4c008405aff1e224233091a3"
+        },
+        "digests": {
+          "blake2b_256": "b6b1f562cb533751c272d23f605858cd17d6a6c50fa8cd3c1f99539e2acd359f",
+          "md5": "64e7be87eaba8dc007cee6c26388e058",
+          "sha256": "7a9319a67294ef02459a19738bbfa8727bb5307b822dadd708bc2ccf6c901aca"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp310-cp310-manylinux1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "64e7be87eaba8dc007cee6c26388e058",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8.0",
+        "size": 619894634,
+        "upload_time": "2023-03-15T16:02:39",
+        "upload_time_iso_8601": "2023-03-15T16:02:39.246282Z",
+        "url": "https://files.pythonhosted.org/packages/b6/b1/f562cb533751c272d23f605858cd17d6a6c50fa8cd3c1f99539e2acd359f/torch-2.0.0-cp310-cp310-manylinux1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "8b42f85d28e5796e926e04fbdbd24d4b2cf27eb9c70424cdabc94293d49fe0c4"
+        },
+        "digests": {
+          "blake2b_256": "471f0213a42f0e290b3057601bd6f03f54712b1c39bdd014fb4d594455503dfa",
+          "md5": "5407ed2ee3c615b51d777fd61fe40e31",
+          "sha256": "9f01fe1f6263f31bd04e1757946fd63ad531ae37f28bb2dbf66f5c826ee089f4"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp310-cp310-manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "5407ed2ee3c615b51d777fd61fe40e31",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8.0",
+        "size": 63204166,
+        "upload_time": "2023-03-15T16:06:21",
+        "upload_time_iso_8601": "2023-03-15T16:06:21.545037Z",
+        "url": "https://files.pythonhosted.org/packages/47/1f/0213a42f0e290b3057601bd6f03f54712b1c39bdd014fb4d594455503dfa/torch-2.0.0-cp310-cp310-manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "c85f8c4cd890aa32d65d87ac63e11d8a5560bc745bd599bfb1cd66e289243c5a"
+        },
+        "digests": {
+          "blake2b_256": "87e262dbdfc85d3b8f771bc4b1a979ee6a157dbaa8928981dabbf45afc6d13dc",
+          "md5": "07c52551f19ee7443acd43cad63eccab",
+          "sha256": "527f4ae68df7b8301ee6b1158ca56350282ea633686537b30dbb5d7b4a52622a"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp310-cp310-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "07c52551f19ee7443acd43cad63eccab",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8.0",
+        "size": 172307267,
+        "upload_time": "2023-03-15T16:05:28",
+        "upload_time_iso_8601": "2023-03-15T16:05:28.270735Z",
+        "url": "https://files.pythonhosted.org/packages/87/e2/62dbdfc85d3b8f771bc4b1a979ee6a157dbaa8928981dabbf45afc6d13dc/torch-2.0.0-cp310-cp310-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "f004506ebf38ea8a761adc4472edd12bff521ef83f927af65b7f18413717fc5c"
+        },
+        "digests": {
+          "blake2b_256": "c6208200a1c143aca65c72f820a5e7ba4cb3121ad655ad96c5e88395ba381f1f",
+          "md5": "484f2d02e9b835fd2ed821353cf2a2fa",
+          "sha256": "ce9b5a49bd513dff7950a5a07d6e26594dd51989cee05ba388b03e8e366fd5d5"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp310-none-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "484f2d02e9b835fd2ed821353cf2a2fa",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8.0",
+        "size": 139828552,
+        "upload_time": "2023-03-15T16:05:52",
+        "upload_time_iso_8601": "2023-03-15T16:05:52.245782Z",
+        "url": "https://files.pythonhosted.org/packages/c6/20/8200a1c143aca65c72f820a5e7ba4cb3121ad655ad96c5e88395ba381f1f/torch-2.0.0-cp310-none-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "f004506ebf38ea8a761adc4472edd12bff521ef83f927af65b7f18413717fc5c"
+        },
+        "digests": {
+          "blake2b_256": "595cb032a68257189c0b9398bfd7542efa50b3f9a2d08b537167f4c02a69a4b6",
+          "md5": "7f79fb0974b663929929012b65548c0e",
+          "sha256": "53e1c33c6896583cdb9a583693e22e99266444c4a43392dddc562640d39e542b"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp310-none-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "7f79fb0974b663929929012b65548c0e",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8.0",
+        "size": 55832064,
+        "upload_time": "2023-03-15T16:06:33",
+        "upload_time_iso_8601": "2023-03-15T16:06:33.788917Z",
+        "url": "https://files.pythonhosted.org/packages/59/5c/b032a68257189c0b9398bfd7542efa50b3f9a2d08b537167f4c02a69a4b6/torch-2.0.0-cp310-none-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "9ef1ccafc2886d63051932bba45faf0e36458bddba43277e59bbae0a76ef4069"
+        },
+        "digests": {
+          "blake2b_256": "830bb83dfba34421cfb1fc41583a479fbeaec0733ec9f59465702997d8de5e10",
+          "md5": "2c57e4dbe498986bc4ae63bc628eeb46",
+          "sha256": "09651bff72e439d004c991f15add0c397c66f98ab36fe60d5514b44e4da722e8"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp311-cp311-manylinux1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "2c57e4dbe498986bc4ae63bc628eeb46",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8.0",
+        "size": 619895084,
+        "upload_time": "2023-03-15T16:01:03",
+        "upload_time_iso_8601": "2023-03-15T16:01:03.768814Z",
+        "url": "https://files.pythonhosted.org/packages/83/0b/b83dfba34421cfb1fc41583a479fbeaec0733ec9f59465702997d8de5e10/torch-2.0.0-cp311-cp311-manylinux1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "f6e7a404e7cfeb9d02459d7a5d043090f6c5f4d268d32ed8f5c9a09c645ebcf2"
+        },
+        "digests": {
+          "blake2b_256": "dac2cbac2af26537b82c265a4d53330c540e805185ca2272f33a918a3dedc3a0",
+          "md5": "df90b70643ffeb0d6a524593a460e840",
+          "sha256": "d439aec349c98f12819e8564b8c54008e4613dd4428582af0e6e14c24ca85870"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp311-cp311-manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "df90b70643ffeb0d6a524593a460e840",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8.0",
+        "size": 63204594,
+        "upload_time": "2023-03-15T16:06:06",
+        "upload_time_iso_8601": "2023-03-15T16:06:06.133409Z",
+        "url": "https://files.pythonhosted.org/packages/da/c2/cbac2af26537b82c265a4d53330c540e805185ca2272f33a918a3dedc3a0/torch-2.0.0-cp311-cp311-manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "213feeb2014e0f7eae1ea8f090793740824567047cf356fd0d5b4f25a4df18d4"
+        },
+        "digests": {
+          "blake2b_256": "7ffd1438b0c44639d106892b19d386611fefd5add11d339ff623ac7a177b8323",
+          "md5": "725e7196b65e29a290aed0e94a2bc929",
+          "sha256": "2802f84f021907deee7e9470ed10c0e78af7457ac9a08a6cd7d55adef835fede"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp311-cp311-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "725e7196b65e29a290aed0e94a2bc929",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8.0",
+        "size": 172305868,
+        "upload_time": "2023-03-15T16:04:25",
+        "upload_time_iso_8601": "2023-03-15T16:04:25.469722Z",
+        "url": "https://files.pythonhosted.org/packages/7f/fd/1438b0c44639d106892b19d386611fefd5add11d339ff623ac7a177b8323/torch-2.0.0-cp311-cp311-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "c75261644a7946d47de873c1056d612f6138ddcdfb67aeacf28b2efa9da93e8f"
+        },
+        "digests": {
+          "blake2b_256": "6323b2c6f3ef643c0a9a1d22ed2be9b5fe023d6cd1fe1729d5b03e9a695ab3d7",
+          "md5": "85665ad3831a39a18c4be199b3e28985",
+          "sha256": "01858620f25f25e7a9ec4b547ff38e5e27c92d38ec4ccba9cfbfb31d7071ed9c"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp311-none-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "85665ad3831a39a18c4be199b3e28985",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8.0",
+        "size": 139533501,
+        "upload_time": "2023-03-15T16:04:45",
+        "upload_time_iso_8601": "2023-03-15T16:04:45.347300Z",
+        "url": "https://files.pythonhosted.org/packages/63/23/b2c6f3ef643c0a9a1d22ed2be9b5fe023d6cd1fe1729d5b03e9a695ab3d7/torch-2.0.0-cp311-none-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "c75261644a7946d47de873c1056d612f6138ddcdfb67aeacf28b2efa9da93e8f"
+        },
+        "digests": {
+          "blake2b_256": "eea943610ad590dad7109c3890bf9ffffaea76dab590a0e2cf6d6e957fee4613",
+          "md5": "14b0302ea7c465ecf3e373c0baa8b85f",
+          "sha256": "9a2e53b5783ef5896a6af338b36d782f28e83c8ddfc2ac44b67b066d9d76f498"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp311-none-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "14b0302ea7c465ecf3e373c0baa8b85f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8.0",
+        "size": 55834652,
+        "upload_time": "2023-03-15T16:04:57",
+        "upload_time_iso_8601": "2023-03-15T16:04:57.988353Z",
+        "url": "https://files.pythonhosted.org/packages/ee/a9/43610ad590dad7109c3890bf9ffffaea76dab590a0e2cf6d6e957fee4613/torch-2.0.0-cp311-none-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "4c35e824a2c8776bea0aaf2352ddce600da3f493893e8a7d7b690cf3ac728347"
+        },
+        "digests": {
+          "blake2b_256": "895a0d017d8d45cc309f9de8e5b8edc9b6b204d8c47936a3f2b84cf01650cf98",
+          "md5": "4cfa9acc66659cb140f9c445539152a0",
+          "sha256": "ec5fff2447663e369682838ff0f82187b4d846057ef4d119a8dea7772a0b17dd"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp38-cp38-manylinux1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "4cfa9acc66659cb140f9c445539152a0",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8.0",
+        "size": 619877846,
+        "upload_time": "2023-03-15T15:58:23",
+        "upload_time_iso_8601": "2023-03-15T15:58:23.187164Z",
+        "url": "https://files.pythonhosted.org/packages/89/5a/0d017d8d45cc309f9de8e5b8edc9b6b204d8c47936a3f2b84cf01650cf98/torch-2.0.0-cp38-cp38-manylinux1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "8b42f85d28e5796e926e04fbdbd24d4b2cf27eb9c70424cdabc94293d49fe0c4"
+        },
+        "digests": {
+          "blake2b_256": "47af8266ea35c6a4e8a59b5e348288debdfc7d9a91356dd674b838131546aa6e",
+          "md5": "5888463141c5a58d85203aedd00cd9ef",
+          "sha256": "11b0384fe3c18c01b8fc5992e70fc519cde65e44c51cc87be1838c1803daf42f"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp38-cp38-manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "5888463141c5a58d85203aedd00cd9ef",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8.0",
+        "size": 63206408,
+        "upload_time": "2023-03-15T16:04:08",
+        "upload_time_iso_8601": "2023-03-15T16:04:08.793118Z",
+        "url": "https://files.pythonhosted.org/packages/47/af/8266ea35c6a4e8a59b5e348288debdfc7d9a91356dd674b838131546aa6e/torch-2.0.0-cp38-cp38-manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "c85f8c4cd890aa32d65d87ac63e11d8a5560bc745bd599bfb1cd66e289243c5a"
+        },
+        "digests": {
+          "blake2b_256": "4997fdb166f3123b4c3017d301e972a9ef10effd050ffc725ba0df6f962176d7",
+          "md5": "dff954ece62784b5de59b34bed021702",
+          "sha256": "e54846aa63855298cfb1195487f032e413e7ac9cbfa978fda32354cc39551475"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp38-cp38-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "dff954ece62784b5de59b34bed021702",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8.0",
+        "size": 172333281,
+        "upload_time": "2023-03-15T16:03:39",
+        "upload_time_iso_8601": "2023-03-15T16:03:39.105459Z",
+        "url": "https://files.pythonhosted.org/packages/49/97/fdb166f3123b4c3017d301e972a9ef10effd050ffc725ba0df6f962176d7/torch-2.0.0-cp38-cp38-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "ef6a2a7ef538a1cf7bda8cf9dbc4f3621e3033d7e8edb917b6da6a1c930a7535"
+        },
+        "digests": {
+          "blake2b_256": "f7eee00f3fab0383fccf8ee1697ba468e0248bd36a9942d00d6c12fb08cb393a",
+          "md5": "d739055d980edef22a36b1c21cb78a25",
+          "sha256": "cc788cbbbbc6eb4c90e52c550efd067586c2693092cf367c135b34893a64ae78"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp38-none-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "d739055d980edef22a36b1c21cb78a25",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8.0",
+        "size": 139531957,
+        "upload_time": "2023-03-15T16:03:58",
+        "upload_time_iso_8601": "2023-03-15T16:03:58.458697Z",
+        "url": "https://files.pythonhosted.org/packages/f7/ee/e00f3fab0383fccf8ee1697ba468e0248bd36a9942d00d6c12fb08cb393a/torch-2.0.0-cp38-none-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "ef6a2a7ef538a1cf7bda8cf9dbc4f3621e3033d7e8edb917b6da6a1c930a7535"
+        },
+        "digests": {
+          "blake2b_256": "6714f4b5fb08f3fe59c610e07daa798d194dc40158b2011229dea7e7f5ab182b",
+          "md5": "ed5ff18f36ce7777c556fd56b19ad81b",
+          "sha256": "d292640f0fd72b7a31b2a6e3b635eb5065fcbedd4478f9cad1a1e7a9ec861d35"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp38-none-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "ed5ff18f36ce7777c556fd56b19ad81b",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8.0",
+        "size": 55830206,
+        "upload_time": "2023-03-15T16:03:09",
+        "upload_time_iso_8601": "2023-03-15T16:03:09.513360Z",
+        "url": "https://files.pythonhosted.org/packages/67/14/f4b5fb08f3fe59c610e07daa798d194dc40158b2011229dea7e7f5ab182b/torch-2.0.0-cp38-none-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "4c35e824a2c8776bea0aaf2352ddce600da3f493893e8a7d7b690cf3ac728347"
+        },
+        "digests": {
+          "blake2b_256": "5f2416e94ac3a470027a2f6cf56dbbe2ce1b2742fa0ac98844f039fad103e142",
+          "md5": "564228d5215e609c27f77de268e3a9eb",
+          "sha256": "6befaad784004b7af357e3d87fa0863c1f642866291f12a4c2af2de435e8ac5c"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp39-cp39-manylinux1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "564228d5215e609c27f77de268e3a9eb",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8.0",
+        "size": 619883578,
+        "upload_time": "2023-03-15T15:56:59",
+        "upload_time_iso_8601": "2023-03-15T15:56:59.881375Z",
+        "url": "https://files.pythonhosted.org/packages/5f/24/16e94ac3a470027a2f6cf56dbbe2ce1b2742fa0ac98844f039fad103e142/torch-2.0.0-cp39-cp39-manylinux1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "8b42f85d28e5796e926e04fbdbd24d4b2cf27eb9c70424cdabc94293d49fe0c4"
+        },
+        "digests": {
+          "blake2b_256": "3660aa7bf18070611e7b019886d34516337ce6a2fe9da60745bc90b448642a10",
+          "md5": "c2badcaa37149cb5a11f8688a4310633",
+          "sha256": "a83b26bd6ae36fbf5fee3d56973d9816e2002e8a3b7d9205531167c28aaa38a7"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp39-cp39-manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "c2badcaa37149cb5a11f8688a4310633",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8.0",
+        "size": 63203859,
+        "upload_time": "2023-03-15T16:01:34",
+        "upload_time_iso_8601": "2023-03-15T16:01:34.506373Z",
+        "url": "https://files.pythonhosted.org/packages/36/60/aa7bf18070611e7b019886d34516337ce6a2fe9da60745bc90b448642a10/torch-2.0.0-cp39-cp39-manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "c85f8c4cd890aa32d65d87ac63e11d8a5560bc745bd599bfb1cd66e289243c5a"
+        },
+        "digests": {
+          "blake2b_256": "2545b91c4bf6b4b6325e9c758ef1203978ae5455c71e52054a7aca23befe33df",
+          "md5": "94a598fad283b6a580e25c901ab3c722",
+          "sha256": "c7e67195e1c3e33da53954b026e89a8e1ff3bc1aeb9eb32b677172d4a9b5dcbf"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp39-cp39-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "94a598fad283b6a580e25c901ab3c722",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8.0",
+        "size": 172333273,
+        "upload_time": "2023-03-15T15:59:03",
+        "upload_time_iso_8601": "2023-03-15T15:59:03.288657Z",
+        "url": "https://files.pythonhosted.org/packages/25/45/b91c4bf6b4b6325e9c758ef1203978ae5455c71e52054a7aca23befe33df/torch-2.0.0-cp39-cp39-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "f004506ebf38ea8a761adc4472edd12bff521ef83f927af65b7f18413717fc5c"
+        },
+        "digests": {
+          "blake2b_256": "d755fd0f058d5d7d912a0a360cbb1fbf60940c0589eaa0cc08bcd530cb08b86e",
+          "md5": "c17137928ca544066189d18534c2b275",
+          "sha256": "6e0b97beb037a165669c312591f242382e9109a240e20054d5a5782d9236cad0"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp39-none-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "c17137928ca544066189d18534c2b275",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8.0",
+        "size": 139828281,
+        "upload_time": "2023-03-15T15:59:30",
+        "upload_time_iso_8601": "2023-03-15T15:59:30.509338Z",
+        "url": "https://files.pythonhosted.org/packages/d7/55/fd0f058d5d7d912a0a360cbb1fbf60940c0589eaa0cc08bcd530cb08b86e/torch-2.0.0-cp39-none-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "f004506ebf38ea8a761adc4472edd12bff521ef83f927af65b7f18413717fc5c"
+        },
+        "digests": {
+          "blake2b_256": "4d80760f3edcf0179c3111fae496b97ee3fa9171116b4bccae6e073efe928e72",
+          "md5": "a8c1083b718cd389557faac44bacb95c",
+          "sha256": "297a4919aff1c0f98a58ebe969200f71350a1d4d4f986dbfd60c02ffce780e99"
+        },
+        "downloads": -1,
+        "filename": "torch-2.0.0-cp39-none-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "a8c1083b718cd389557faac44bacb95c",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8.0",
+        "size": 55833824,
+        "upload_time": "2023-03-15T15:59:43",
+        "upload_time_iso_8601": "2023-03-15T15:59:43.584534Z",
+        "url": "https://files.pythonhosted.org/packages/4d/80/760f3edcf0179c3111fae496b97ee3fa9171116b4bccae6e073efe928e72/torch-2.0.0-cp39-none-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "aliases": [
+          "BIT-pytorch-2024-31583",
+          "CVE-2024-31583",
+          "PYSEC-2024-251"
+        ],
+        "details": "Pytorch before version v2.2.0 was discovered to contain a use-after-free vulnerability in torch/csrc/jit/mobile/interpreter.cpp.",
+        "fixed_in": [
+          "2.2.0"
+        ],
+        "id": "GHSA-pg7h-5qx3-wjr3",
+        "link": "https://osv.dev/vulnerability/GHSA-pg7h-5qx3-wjr3",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-2953",
+          "CVE-2025-2953",
+          "PYSEC-2025-191"
+        ],
+        "details": "A vulnerability, which was classified as problematic, has been found in PyTorch 2.6.0+cu124. Affected by this issue is the function torch.mkldnn_max_pool2d. The manipulation leads to denial of service. An attack has to be approached locally. The exploit has been disclosed to the public and may be used.",
+        "fixed_in": [
+          "2.7.1-rc1"
+        ],
+        "id": "GHSA-3749-ghw9-m3mg",
+        "link": "https://osv.dev/vulnerability/GHSA-3749-ghw9-m3mg",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-3730",
+          "CVE-2025-3730",
+          "PYSEC-2026-1970"
+        ],
+        "details": "A vulnerability, which was classified as problematic, was found in PyTorch 2.6.0. Affected is the function torch.nn.functional.ctc_loss of the file aten/src/ATen/native/LossCTC.cpp. The manipulation leads to denial of service. An attack has to be approached locally. The exploit has been disclosed to the public and may be used. The name of the patch is 46fc5d8e360127361211cb237d5f9eef0223e567. It is recommended to apply a patch to fix this issue.",
+        "fixed_in": [
+          "2.8.0"
+        ],
+        "id": "GHSA-887c-mr87-cxwp",
+        "link": "https://osv.dev/vulnerability/GHSA-887c-mr87-cxwp",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-32434",
+          "CVE-2025-32434",
+          "PYSEC-2025-41"
+        ],
+        "details": "# Description\nI found a Remote Command Execution (RCE) vulnerability in PyTorch. When loading model using torch.load with weights_only=True, it can still achieve RCE.  \n\n# Background knowledge\nhttps://github.com/pytorch/pytorch/security \n As you can see, the PyTorch official documentation considers using `torch.load()` with `weights_only=True` to be safe.\n![image](https://github.com/user-attachments/assets/fdaa8520-d66a-473a-ab1f-163d793de298)\nSince everyone knows that weights_only=False is unsafe, so they will use the  weights_only=True to mitigate the seucirty issue.\nBut now, I just proved that even if you use weights_only=True, it can still achieve RCE.\n\n# Credit\nThis vulnerability was found by Ji'an Zhou.",
+        "fixed_in": [
+          "2.6.0"
+        ],
+        "id": "GHSA-53q9-r3pm-6pq6",
+        "link": "https://osv.dev/vulnerability/GHSA-53q9-r3pm-6pq6",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2025-32434",
+          "GHSA-53q9-r3pm-6pq6"
+        ],
+        "details": "PyTorch is a Python package that provides tensor computation with strong GPU acceleration and deep neural networks built on a tape-based autograd system. In version 2.5.1 and prior, a Remote Command Execution (RCE) vulnerability exists in PyTorch when loading a model using torch.load with weights_only=True. This issue has been patched in version 2.6.0.",
+        "fixed_in": [
+          "2.6.0"
+        ],
+        "id": "PYSEC-2025-41",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-41",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-31584"
+        ],
+        "details": "Pytorch before v2.2.0 has an Out-of-bounds Read vulnerability via the component torch/csrc/jit/mobile/flatbuffer_loader.cpp.",
+        "fixed_in": [
+          "2.2.0"
+        ],
+        "id": "PYSEC-2024-250",
+        "link": "https://osv.dev/vulnerability/PYSEC-2024-250",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2024-31583",
+          "CVE-2024-31583",
+          "GHSA-pg7h-5qx3-wjr3"
+        ],
+        "details": "Pytorch before version v2.2.0 was discovered to contain a use-after-free vulnerability in torch/csrc/jit/mobile/interpreter.cpp.",
+        "fixed_in": [
+          "2.2.0"
+        ],
+        "id": "PYSEC-2024-251",
+        "link": "https://osv.dev/vulnerability/PYSEC-2024-251",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2024-31580",
+          "CVE-2024-31580",
+          "GHSA-5pcm-hx3q-hm94"
+        ],
+        "details": "PyTorch before v2.2.0 was discovered to contain a heap buffer overflow vulnerability in the component /runtime/vararg_functions.cpp. This vulnerability allows attackers to cause a Denial of Service (DoS) via a crafted input.",
+        "fixed_in": [
+          "2.2.0"
+        ],
+        "id": "PYSEC-2024-252",
+        "link": "https://osv.dev/vulnerability/PYSEC-2024-252",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2024-31580",
+          "CVE-2024-31580",
+          "PYSEC-2024-252",
+          "PYSEC-2024-328"
+        ],
+        "details": "PyTorch before v2.2.0 was discovered to contain a heap buffer overflow vulnerability in the component /runtime/vararg_functions.cpp. This vulnerability allows attackers to cause a Denial of Service (DoS) via a crafted input.",
+        "fixed_in": [
+          "2.2.0"
+        ],
+        "id": "GHSA-5pcm-hx3q-hm94",
+        "link": "https://osv.dev/vulnerability/GHSA-5pcm-hx3q-hm94",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-48063"
+        ],
+        "details": "In PyTorch <=2.4.1, the RemoteModule has Deserialization RCE. NOTE: this is disputed by multiple parties because this is intended behavior in PyTorch distributed computing.",
+        "fixed_in": [
+          "2.5.0"
+        ],
+        "id": "PYSEC-2024-259",
+        "link": "https://osv.dev/vulnerability/PYSEC-2024-259",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-55553",
+          "CVE-2025-55553"
+        ],
+        "details": "A syntax error in the component proxy_tensor.py of pytorch v2.7.0 allows attackers to cause a Denial of Service (DoS).",
+        "fixed_in": [
+          "2.7.1"
+        ],
+        "id": "PYSEC-2025-205",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-205",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-55554",
+          "CVE-2025-55554"
+        ],
+        "details": "pytorch v2.8.0 was discovered to contain an integer overflow in the component torch.nan_to_num-.long().",
+        "fixed_in": [
+          "2.9.0"
+        ],
+        "id": "PYSEC-2025-206",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-206",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-55557",
+          "CVE-2025-55557"
+        ],
+        "details": "A Name Error occurs in pytorch v2.7.0 when a PyTorch model consists of torch.cummin and is compiled by Inductor, leading to a Denial of Service (DoS).",
+        "fixed_in": [
+          "2.7.1"
+        ],
+        "id": "PYSEC-2025-207",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-207",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-55552",
+          "CVE-2025-55552"
+        ],
+        "details": "pytorch v2.8.0 was discovered to display unexpected behavior when the components torch.rot90 and torch.randn_like are used together.",
+        "fixed_in": [
+          "2.9.0"
+        ],
+        "id": "PYSEC-2025-204",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-204",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2026-4538",
+          "CVE-2026-4538"
+        ],
+        "details": "A vulnerability was identified in PyTorch 2.10.0. The affected element is an unknown function of the component pt2 Loading Handler. The manipulation leads to deserialization. The attack can only be performed from a local environment. The exploit is publicly available and might be used. The project was informed of the problem early through a pull request but has not reacted yet.",
+        "fixed_in": [],
+        "id": "PYSEC-2026-139",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-139",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-55560",
+          "CVE-2025-55560"
+        ],
+        "details": "An issue in pytorch v2.7.0 can lead to a Denial of Service (DoS) when a PyTorch model consists of torch.Tensor.to_sparse() and torch.Tensor.to_dense() and is compiled by Inductor.",
+        "fixed_in": [
+          "2.7.1"
+        ],
+        "id": "PYSEC-2025-209",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-209",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-55558",
+          "CVE-2025-55558"
+        ],
+        "details": "A buffer overflow occurs in pytorch v2.7.0 when a PyTorch model consists of torch.nn.Conv2d, torch.nn.functional.hardshrink, and torch.Tensor.view-torch.mv() and is compiled by Inductor, leading to a Denial of Service (DoS).",
+        "fixed_in": [
+          "2.7.1"
+        ],
+        "id": "PYSEC-2025-208",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-208",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-2953",
+          "CVE-2025-2953",
+          "GHSA-3749-ghw9-m3mg"
+        ],
+        "details": "A vulnerability, which was classified as problematic, has been found in PyTorch 2.6.0+cu124. Affected by this issue is the function torch.mkldnn_max_pool2d. The manipulation leads to denial of service. An attack has to be approached locally. The exploit has been disclosed to the public and may be used. The real existence of this vulnerability is still doubted at the moment. The security policy of the project warns to use unknown models which might establish malicious effects.",
+        "fixed_in": [],
+        "id": "PYSEC-2025-191",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-191",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-46148",
+          "CVE-2025-46148"
+        ],
+        "details": "In PyTorch through 2.6.0, when eager is used, nn.PairwiseDistance(p=2) produces incorrect results.",
+        "fixed_in": [
+          "2.7.0"
+        ],
+        "id": "PYSEC-2025-198",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-198",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-55551",
+          "CVE-2025-55551"
+        ],
+        "details": "An issue in the component torch.linalg.lu of pytorch v2.8.0 allows attackers to cause a Denial of Service (DoS) when performing a slice operation.",
+        "fixed_in": [
+          "2.9.0"
+        ],
+        "id": "PYSEC-2025-203",
+        "link": "https://osv.dev/vulnerability/PYSEC-2025-203",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-2148",
+          "CVE-2025-2148",
+          "PYSEC-2025-189"
+        ],
+        "details": "A vulnerability was found in PyTorch 2.6.0+cu124. It has been declared as critical. Affected by this vulnerability is the function torch.ops.profiler._call_end_callbacks_on_jit_fut of the component Tuple Handler. The manipulation of the argument None leads to memory corruption. The attack can be launched remotely. The complexity of an attack is rather high. The exploitation appears to be difficult.",
+        "fixed_in": [],
+        "id": "GHSA-c678-jfcj-6jmf",
+        "link": "https://osv.dev/vulnerability/GHSA-c678-jfcj-6jmf",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-2149",
+          "CVE-2025-2149",
+          "PYSEC-2025-190"
+        ],
+        "details": "A vulnerability was found in PyTorch 2.6.0+cu124. It has been rated as problematic. Affected by this issue is the function nnq_Sigmoid of the component Quantized Sigmoid Module. The manipulation of the argument scale/zero_point leads to improper initialization. The attack needs to be approached locally. The complexity of an attack is rather high. The exploitation is known to be difficult. The exploit has been disclosed to the public and may be used.",
+        "fixed_in": [],
+        "id": "GHSA-x3gm-94wq-g975",
+        "link": "https://osv.dev/vulnerability/GHSA-x3gm-94wq-g975",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-2998",
+          "CVE-2025-2998",
+          "PYSEC-2025-192"
+        ],
+        "details": "A vulnerability was found in PyTorch 2.6.0. It has been declared as critical. Affected by this vulnerability is the function torch.nn.utils.rnn.pad_packed_sequence. The manipulation leads to memory corruption. Local access is required to approach this attack. The exploit has been disclosed to the public and may be used.",
+        "fixed_in": [],
+        "id": "GHSA-f4hp-rmr7-r7v8",
+        "link": "https://osv.dev/vulnerability/GHSA-f4hp-rmr7-r7v8",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-2999",
+          "CVE-2025-2999",
+          "PYSEC-2025-193"
+        ],
+        "details": "A vulnerability was found in PyTorch 2.6.0. It has been rated as critical. Affected by this issue is the function torch.nn.utils.rnn.unpack_sequence. The manipulation leads to memory corruption. Attacking locally is a requirement. The exploit has been disclosed to the public and may be used.\n\nA patch is available through commit [4945180](https://github.com/pytorch/pytorch/commit/494518046816d29099b7d056a74ffa5c244fdcdd).",
+        "fixed_in": [
+          "2.9.1"
+        ],
+        "id": "GHSA-vgrw-7cvw-pwgx",
+        "link": "https://osv.dev/vulnerability/GHSA-vgrw-7cvw-pwgx",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-3000",
+          "CVE-2025-3000",
+          "PYSEC-2025-194"
+        ],
+        "details": "A vulnerability classified as critical has been found in PyTorch 2.6.0. This affects the function torch.jit.script. The manipulation leads to memory corruption. It is possible to launch the attack on the local host. The exploit has been disclosed to the public and may be used.",
+        "fixed_in": [
+          "2.13.0"
+        ],
+        "id": "GHSA-rrmf-rvhw-rf47",
+        "link": "https://osv.dev/vulnerability/GHSA-rrmf-rvhw-rf47",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "BIT-pytorch-2025-3001",
+          "CVE-2025-3001",
+          "PYSEC-2025-195"
+        ],
+        "details": "A vulnerability classified as critical was found in PyTorch 2.6.0. This vulnerability affects the function torch.lstm_cell. The manipulation leads to memory corruption. The attack needs to be approached locally. The exploit has been disclosed to the public and may be used.\n\nA patch is available through commit [999d94b](https://github.com/pytorch/pytorch/commit/999d94b5ede5f4ec111ba7dd144129e2c2725b03).",
+        "fixed_in": [
+          "2.10.0"
+        ],
+        "id": "GHSA-qfhq-4f3w-5fph",
+        "link": "https://osv.dev/vulnerability/GHSA-qfhq-4f3w-5fph",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2025-3730",
+          "GHSA-887c-mr87-cxwp"
+        ],
+        "details": "A vulnerability, which was classified as problematic, was found in PyTorch 2.6.0. Affected is the function torch.nn.functional.ctc_loss of the file aten/src/ATen/native/LossCTC.cpp. The manipulation leads to denial of service. An attack has to be approached locally. The exploit has been disclosed to the public and may be used. The name of the patch is 46fc5d8e360127361211cb237d5f9eef0223e567. It is recommended to apply a patch to fix this issue.",
+        "fixed_in": [
+          "2.8.0"
+        ],
+        "id": "PYSEC-2026-1970",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1970",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-24747",
+          "GHSA-63cw-57p8-fm3p"
+        ],
+        "details": "PyTorch is a Python package that provides tensor computation. Prior to version 2.10.0, a vulnerability in PyTorch's `weights_only` unpickler allows an attacker to craft a malicious checkpoint file (`.pth`) that, when loaded with `torch.load(..., weights_only=True)`, can corrupt memory and potentially lead to arbitrary code execution. Version 2.10.0 fixes the issue.",
+        "fixed_in": [
+          "2.10.0"
+        ],
+        "id": "PYSEC-2026-2286",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-2286",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      }
+    ]
+  }
+}

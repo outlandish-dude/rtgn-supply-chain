@@ -1,0 +1,96 @@
+{
+  "package": "wcwidth",
+  "version": "0.0.1",
+  "status_code": 200,
+  "timestamp": "2026-09-22T19:01:26.690191+00:00",
+  "payload": {
+    "info": {
+      "author": "Jeff Quast",
+      "author_email": "contact@jeffquast.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 2 - Pre-Alpha",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Operating System :: POSIX",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Topic :: Software Development :: Internationalization",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Localization",
+        "Topic :: Terminals"
+      ],
+      "description": ".. image:: http://img.shields.io/travis/jquast/wcwidth.svg\n   :target: https://travis-ci.org/jquast/wcwidth\n   :alt: Travis Continous Integration\n\n.. image:: http://img.shields.io/coveralls/jquast/wcwidth/badge.svg\n   :target: http://coveralls.io/r/jquast/wcwidth\n   :alt: Coveralls Code Coveraage\n\n.. image:: http://img.shields.io/pypi/v/wcwidth/badge.svg\n   :target: https://pypi.python.org/pypi/wcwidth/\n   :alt: Latest Version\n\n.. image:: https://pypip.in/license/wcwidth/badge.svg\n   :target: https://pypi.python.org/pypi/wcwidth/\n   :alt: License\n\n.. image:: http://img.shields.io/pypi/dm/wcwidth/badge.svg\n   :target: https://pypi.python.org/pypi/wcwidth/\n   :alt: Downloads\n\n\n============\nIntroduction\n============\n\nThis API is mainly for Terminal Emulator implementors -- any python program\nthat attempts to determine the printable width of a string on a Terminal.\n\nIt is certainly possible to use your Operating System's ``wcwidth()`` and\n``wcswidth()`` calls if it is POSIX-conforming, but this would not be possible\non non-POSIX platforms, such as Windows, or for alternative Python\nimplementations, such as jython.\n\nProblem\n-------\n\nYou may have noticed some characters especially Chinese, Japanese, and\nKorean (collectively known as the *CJK Unified Ideographs*) consume more\nthan 1 terminal cell.\n\nIn python, if you ask for the length of the string, ``u'\u30b3\u30f3\u30cb\u30c1\u30cf'``\n(Japanese: Hello), it is correctly determined to be a length of **5**.\n\nHowever, if you were to print this to a Terminal Emulator, such as xterm,\nurxvt, Terminal.app, or PuTTY, it would consume **10** *cells* (columns) --\ntwo for each symbol.\n\nOn an 80-wide terminal, the following would wrap along the margin, instead\nof displaying it right-aligned as desired::\n\n    >>> text = u'\u30b3\u30f3\u30cb\u30c1\u30cf'\n    >>> print(text.rjust(80))\n                                                                                 \u30b3\u30f3\n    \u30cb\u30c1\u30cf\n\nSolution\n--------\n\nThis API allows one to determine the printable length of these strings,\nthat the length of ``wcwidth(u'\u30b3')`` is reported as ``2``, and\n``wcswidth(u'\u30b3\u30f3\u30cb\u30c1\u30cf')`` as ``10``.\n\nThis allows one to determine the printable effects of displaying *CJK*\ncharacters on a terminal emulator.\n\nInstallation\n------------\n\nThe stable version of this package is maintained on pypi, install using pip::\n\n    pip install wcwidth\n\nwcwidth, wcswidth\n-----------------\nUse ``wcwidth`` to determine the length of a single character,\nand ``wcswidth`` to determine the length of a string of characters.\n\nTo Display ``u'\u30b3\u30f3\u30cb\u30c1\u30cf'`` right-adjusted on screen of 80 columns::\n\n    >>> from wcwidth import wcswidth\n    >>> text = u'\u30b3\u30f3\u30cb\u30c1\u30cf'\n    >>> print(u' ' * (80 - wcswidth(text)) + text)\n                                                                           \u30b3\u30f3\u30cb\u30c1\u30cf\n\n\nValues\n------\n\nSee the docstring for ``wcwidth()``,\ngeneral overview of return values:\n\n   - ``-1``: indeterminate, such as combining_ characters.\n\n   - ``0``: do not advance the cursor, such as NULL.\n\n   - ``2``: East_Asian_Width property values W and F (Wide and Full-width).\n\n   - ``1``: all others.\n\n==========\nDeveloping\n==========\n\nUpdating Tables\n---------------\n\nThe command ``python setup.py update`` will fetch the following resources:\n\n    - http://www.unicode.org/Public/UNIDATA/EastAsianWidth.txt\n    - http://www.unicode.org/Public/UNIDATA/extracted/DerivedCombiningClass.txt\n\nGenerating the table files `wcwidth/table_wide.py`_ and `wcwidth/table_comb.py`_.\n\nwcwidth.c\n---------\n\nThis code was originally derived directly from C code of the same name,\nwhose latest version is available at: `wcwidth.c`_ And is authored by\nMarkus Kuhn -- 2007-05-26 (Unicode 5.0)\n\nAny subsequent changes were done by directly testing against the various libc\nimplementations of POSIX-compliant Operating Systems, such as Mac OSX, Linux,\nand OpenSolaris.\n\nExamples\n--------\n\nThis library is used in `jquast/blessed`_ so that strings containing both\nterminal sequences and CJK characters may be word-wrapped or right-adjusted\non a terminal.\n\nAdditional tools for displaying and testing wcwidth is found in the ``bin/``\nfolder of this project (github link: `wcwidth/bin`_). They are not\ndistributed as a script or part of the module.\n\nTodo\n----\n\nIt is my wish that `combining`_ characters are understood. Currently,\nany string containing combining characters will always return ``-1``.\n\n\nLicense\n-------\n\nThe original license is as follows::\n\n    Permission to use, copy, modify, and distribute this software\n    for any purpose and without fee is hereby granted. The author\n    disclaims all warranties with regard to this software.\n\nNo specific licensing is specified, and Mr. Kuhn resides in the UK which allows\nsome protection from Copyrighting. As this derivative is based on US Soil,\nan OSI-approved license that appears most-alike has been chosen, the MIT license::\n\n    The MIT License (MIT)\n\n    Copyright (c) 2014 <contact@jeffquast.com>\n\n    Permission is hereby granted, free of charge, to any person obtaining a copy\n    of this software and associated documentation files (the \"Software\"), to deal\n    in the Software without restriction, including without limitation the rights\n    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n    copies of the Software, and to permit persons to whom the Software is\n    furnished to do so, subject to the following conditions:\n\n    The above copyright notice and this permission notice shall be included in\n    all copies or substantial portions of the Software.\n\n    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN\n    THE SOFTWARE.\n\n.. _`jquast/blessed`: https://github.com/jquast/blessed\n.. _`wcwidth/bin`: https://github.com/jquast/wcwidth/tree/master/bin\n.. _`wcwidth/table_wide.py`: https://github.com/jquast/wcwidth/tree/master/wcwidth/table_wide.py\n.. _`wcwidth/table_comb.py`: https://github.com/jquast/wcwidth/tree/master/wcwidth/table_comb.py\n.. _`combining`: https://en.wikipedia.org/wiki/Combining_character\n.. _`wcwidth.c`: http://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c",
+      "description_content_type": null,
+      "docs_url": null,
+      "download_url": "UNKNOWN",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/jquast/wcwidth",
+      "keywords": "terminal,emulator,wcwidth,wcswidth,cjk,combining,xterm,console",
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "wcwidth",
+      "package_url": "https://pypi.org/project/wcwidth/",
+      "platform": "UNKNOWN",
+      "project_url": "https://pypi.org/project/wcwidth/",
+      "project_urls": {
+        "Download": "UNKNOWN",
+        "Homepage": "https://github.com/jquast/wcwidth"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/wcwidth/0.0.1/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "Measures number of Terminal column cells of wide-character codes",
+      "version": "0.0.1",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41188569,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "jquast"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "1e87432c601218773d2dd202e5b8bf80ff457586974e566992869fadb7092ca1",
+          "md5": "0fd1ab9ad1d2021545dd4ef12da67fc0",
+          "sha256": "7e6f252e18af0d6fde002502e0fc4b83feaf0150d4bcc976c8b7f4fc1f57c84e"
+        },
+        "downloads": -1,
+        "filename": "wcwidth-0.0.1.tar.gz",
+        "has_sig": false,
+        "md5_digest": "0fd1ab9ad1d2021545dd4ef12da67fc0",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 15875,
+        "upload_time": "2014-05-05T02:00:07",
+        "upload_time_iso_8601": "2014-05-05T02:00:07.995917Z",
+        "url": "https://files.pythonhosted.org/packages/1e/87/432c601218773d2dd202e5b8bf80ff457586974e566992869fadb7092ca1/wcwidth-0.0.1.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

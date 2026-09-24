@@ -1,0 +1,932 @@
+{
+  "package": "litellm",
+  "version": "1.8.1",
+  "status_code": 200,
+  "url": "https://pypi.org/pypi/litellm/1.8.1/json",
+  "timestamp": "2026-09-22T06:39:04.116854+00:00",
+  "payload": {
+    "info": {
+      "author": "BerriAI",
+      "author_email": "",
+      "bugtrack_url": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9"
+      ],
+      "description": "<h1 align=\"center\">\n        \ud83d\ude85 LiteLLM\n    </h1>\n    <p align=\"center\">\n        <p align=\"center\">Call all LLM APIs using the OpenAI format [Bedrock, Huggingface, Cohere, TogetherAI, Azure, OpenAI, etc.]\n        <br>\n    </p>\n<h4 align=\"center\"><a href=\"https://github.com/BerriAI/litellm/tree/main/litellm/proxy\" target=\"_blank\">OpenAI-Compatible Server</a></h4>\n<h4 align=\"center\">\n    <a href=\"https://pypi.org/project/litellm/\" target=\"_blank\">\n        <img src=\"https://img.shields.io/pypi/v/litellm.svg\" alt=\"PyPI Version\">\n    </a>\n    <a href=\"https://dl.circleci.com/status-badge/redirect/gh/BerriAI/litellm/tree/main\" target=\"_blank\">\n        <img src=\"https://dl.circleci.com/status-badge/img/gh/BerriAI/litellm/tree/main.svg?style=svg\" alt=\"CircleCI\">\n    </a>\n    <a href=\"https://www.ycombinator.com/companies/berriai\">\n        <img src=\"https://img.shields.io/badge/Y%20Combinator-W23-orange?style=flat-square\" alt=\"Y Combinator W23\">\n    </a>\n    <a href=\"https://wa.link/huol9n\">\n        <img src=\"https://img.shields.io/static/v1?label=Chat%20on&message=WhatsApp&color=success&logo=WhatsApp&style=flat-square\" alt=\"Whatsapp\">\n    </a>\n    <a href=\"https://discord.gg/wuPM9dRgDw\">\n        <img src=\"https://img.shields.io/static/v1?label=Chat%20on&message=Discord&color=blue&logo=Discord&style=flat-square\" alt=\"Discord\">\n    </a>\n</h4>\n\nLiteLLM manages\n- Translating inputs to the provider's `completion` and `embedding` endpoints\n- Guarantees [consistent output](https://docs.litellm.ai/docs/completion/output), text responses will always be available at `['choices'][0]['message']['content']`\n- Exception mapping - common exceptions across providers are mapped to the OpenAI exception types.\n- Load-balance across multiple deployments (e.g. Azure/OpenAI) - `Router` **1k+ requests/second**\n\n# Usage ([**Docs**](https://docs.litellm.ai/docs/))\n\n> [!IMPORTANT]\n> LiteLLM v1.0.0 now requires `openai>=1.0.0`. Migration guide [here](https://docs.litellm.ai/docs/migration)\n\n\n<a target=\"_blank\" href=\"https://colab.research.google.com/github/BerriAI/litellm/blob/main/cookbook/liteLLM_Getting_Started.ipynb\">\n  <img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/>\n</a>\n\n```\npip install litellm\n```\n\n```python\nfrom litellm import completion\nimport os\n\n## set ENV variables \nos.environ[\"OPENAI_API_KEY\"] = \"your-openai-key\" \nos.environ[\"COHERE_API_KEY\"] = \"your-cohere-key\" \n\nmessages = [{ \"content\": \"Hello, how are you?\",\"role\": \"user\"}]\n\n# openai call\nresponse = completion(model=\"gpt-3.5-turbo\", messages=messages)\n\n# cohere call\nresponse = completion(model=\"command-nightly\", messages=messages)\nprint(response)\n```\n\n## Streaming ([Docs](https://docs.litellm.ai/docs/completion/stream))\nliteLLM supports streaming the model response back, pass `stream=True` to get a streaming iterator in response.  \nStreaming is supported for all models (Bedrock, Huggingface, TogetherAI, Azure, OpenAI, etc.)\n```python\nfrom litellm import completion\nresponse = completion(model=\"gpt-3.5-turbo\", messages=messages, stream=True)\nfor part in response:\n    print(part.choices[0].delta.content or \"\")\n\n# claude 2\nresponse = completion('claude-2', messages, stream=True)\nfor part in response:\n    print(part.choices[0].delta.content or \"\")\n```\n\n# Router - load balancing([Docs](https://docs.litellm.ai/docs/routing))\nLiteLLM allows you to load balance between multiple deployments (Azure, OpenAI). It picks the deployment which is below rate-limit and has the least amount of tokens used.\n```python\nfrom litellm import Router\n\nmodel_list = [{ # list of model deployments \n    \"model_name\": \"gpt-3.5-turbo\", # model alias \n    \"litellm_params\": { # params for litellm completion/embedding call \n        \"model\": \"azure/chatgpt-v-2\", # actual model name\n        \"api_key\": os.getenv(\"AZURE_API_KEY\"),\n        \"api_version\": os.getenv(\"AZURE_API_VERSION\"),\n        \"api_base\": os.getenv(\"AZURE_API_BASE\")\n    }\n}, {\n    \"model_name\": \"gpt-3.5-turbo\", \n    \"litellm_params\": { # params for litellm completion/embedding call \n        \"model\": \"azure/chatgpt-functioncalling\", \n        \"api_key\": os.getenv(\"AZURE_API_KEY\"),\n        \"api_version\": os.getenv(\"AZURE_API_VERSION\"),\n        \"api_base\": os.getenv(\"AZURE_API_BASE\")\n    }\n}, {\n    \"model_name\": \"gpt-3.5-turbo\", \n    \"litellm_params\": { # params for litellm completion/embedding call \n        \"model\": \"gpt-3.5-turbo\", \n        \"api_key\": os.getenv(\"OPENAI_API_KEY\"),\n    }\n}]\n\nrouter = Router(model_list=model_list)\n\n# openai.ChatCompletion.create replacement\nresponse = router.completion(model=\"gpt-3.5-turbo\", \n                messages=[{\"role\": \"user\", \"content\": \"Hey, how's it going?\"}])\n\nprint(response)\n```\n\n## OpenAI Proxy - ([Docs](https://docs.litellm.ai/docs/simple_proxy))\nLiteLLM Proxy manages:\n* Calling 100+ LLMs Huggingface/Bedrock/TogetherAI/etc. in the OpenAI ChatCompletions & Completions format\n* Load balancing - between Multiple Models + Deployments of the same model LiteLLM proxy can handle 1k+ requests/second during load tests\n* Authentication & Spend Tracking Virtual Keys\n\n### Step 1: Start litellm proxy\n```shell\n$ litellm --model huggingface/bigcode/starcoder\n\n#INFO: Proxy running on http://0.0.0.0:8000\n```\n\n### Step 2: Replace openai base\n```python\nimport openai # openai v1.0.0+\nclient = openai.OpenAI(api_key=\"anything\",base_url=\"http://0.0.0.0:8000\") # set proxy to base_url\n# request sent to model set on litellm proxy, `litellm --model`\nresponse = client.chat.completions.create(model=\"gpt-3.5-turbo\", messages = [\n    {\n        \"role\": \"user\",\n        \"content\": \"this is a test request, write a short poem\"\n    }\n])\n\nprint(response)\n```\n\n## Logging Observability ([Docs](https://docs.litellm.ai/docs/observability/callbacks))\nLiteLLM exposes pre defined callbacks to send data to Langfuse, LLMonitor, Helicone, Promptlayer, Traceloop, Slack\n```python\nfrom litellm import completion\n\n## set env variables for logging tools\nos.environ[\"LANGFUSE_PUBLIC_KEY\"] = \"\"\nos.environ[\"LANGFUSE_SECRET_KEY\"] = \"\"\nos.environ[\"LLMONITOR_APP_ID\"] = \"your-llmonitor-app-id\"\n\nos.environ[\"OPENAI_API_KEY\"]\n\n# set callbacks\nlitellm.success_callback = [\"langfuse\", \"llmonitor\"] # log input/output to langfuse, llmonitor, supabase\n\n#openai call\nresponse = completion(model=\"gpt-3.5-turbo\", messages=[{\"role\": \"user\", \"content\": \"Hi \ud83d\udc4b - i'm openai\"}])\n```\n\n## Supported Provider ([Docs](https://docs.litellm.ai/docs/providers))\n| Provider      | [Completion](https://docs.litellm.ai/docs/#basic-usage) | [Streaming](https://docs.litellm.ai/docs/completion/stream#streaming-responses)  | [Async Completion](https://docs.litellm.ai/docs/completion/stream#async-completion)  | [Async Streaming](https://docs.litellm.ai/docs/completion/stream#async-streaming)  |\n| ------------- | ------------- | ------------- | ------------- | ------------- |\n| [openai](https://docs.litellm.ai/docs/providers/openai)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [azure](https://docs.litellm.ai/docs/providers/azure)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [aws - sagemaker](https://docs.litellm.ai/docs/providers/aws_sagemaker)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [aws - bedrock](https://docs.litellm.ai/docs/providers/bedrock)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [cohere](https://docs.litellm.ai/docs/providers/cohere)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [anthropic](https://docs.litellm.ai/docs/providers/anthropic)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [huggingface](https://docs.litellm.ai/docs/providers/huggingface)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [replicate](https://docs.litellm.ai/docs/providers/replicate)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [together_ai](https://docs.litellm.ai/docs/providers/togetherai)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [openrouter](https://docs.litellm.ai/docs/providers/openrouter)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [google - vertex_ai](https://docs.litellm.ai/docs/providers/vertex)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [google - palm](https://docs.litellm.ai/docs/providers/palm)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [ai21](https://docs.litellm.ai/docs/providers/ai21)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [baseten](https://docs.litellm.ai/docs/providers/baseten)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [vllm](https://docs.litellm.ai/docs/providers/vllm)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [nlp_cloud](https://docs.litellm.ai/docs/providers/nlp_cloud)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [aleph alpha](https://docs.litellm.ai/docs/providers/aleph_alpha)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [petals](https://docs.litellm.ai/docs/providers/petals)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [ollama](https://docs.litellm.ai/docs/providers/ollama)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [deepinfra](https://docs.litellm.ai/docs/providers/deepinfra)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [perplexity-ai](https://docs.litellm.ai/docs/providers/perplexity)  | \u2705 | \u2705 | \u2705 | \u2705 |\n| [anyscale](https://docs.litellm.ai/docs/providers/anyscale)  | \u2705 | \u2705 | \u2705 | \u2705 |\n\n[**Read the Docs**](https://docs.litellm.ai/docs/)\n\n## Contributing\nTo contribute: Clone the repo locally -> Make a change -> Submit a PR with the change. \n\nHere's how to modify the repo locally: \nStep 1: Clone the repo \n```\ngit clone https://github.com/BerriAI/litellm.git\n```\n\nStep 2: Navigate into the project, and install dependencies: \n```\ncd litellm\npoetry install\n```\n\nStep 3: Test your change:\n```\ncd litellm/tests # pwd: Documents/litellm/litellm/tests\npytest .\n```\n\nStep 4: Submit a PR with your changes! \ud83d\ude80\n- push your fork to your GitHub repo \n- submit a PR from there \n\n# Support / talk with founders\n- [Schedule Demo \ud83d\udc4b](https://calendly.com/d/4mp-gd3-k5k/berriai-1-1-onboarding-litellm-hosted-version)\n- [Community Discord \ud83d\udcad](https://discord.gg/wuPM9dRgDw)\n- Our numbers \ud83d\udcde +1 (770) 8783-106 / \u202d+1 (412) 618-6238\u202c\n- Our emails \u2709\ufe0f ishaan@berri.ai / krrish@berri.ai\n\n# Why did we build this \n- **Need for simplicity**: Our code started to get extremely complicated managing & translating calls between Azure, OpenAI and Cohere.\n\n# Contributors\n\n<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->\n<!-- prettier-ignore-start -->\n<!-- markdownlint-disable -->\n\n<!-- markdownlint-restore -->\n<!-- prettier-ignore-end -->\n\n<!-- ALL-CONTRIBUTORS-LIST:END -->\n\n<a href=\"https://github.com/BerriAI/litellm/graphs/contributors\">\n  <img src=\"https://contrib.rocks/image?repo=BerriAI/litellm\" />\n</a>\n\n\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "",
+      "keywords": "",
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "litellm",
+      "package_url": "https://pypi.org/project/litellm/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/litellm/",
+      "project_urls": null,
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/litellm/1.8.1/",
+      "requires_dist": [
+        "aiohttp",
+        "appdirs (>=1.4.4,<2.0.0)",
+        "certifi (>=2023.7.22,<2024.0.0)",
+        "click",
+        "importlib-metadata (>=6.8.0)",
+        "jinja2 (>=3.1.2,<4.0.0)",
+        "openai (>=1.0.0)",
+        "python-dotenv (>=0.2.0)",
+        "tiktoken (>=0.4.0)",
+        "tokenizers"
+      ],
+      "requires_python": ">=3.8,<4.0",
+      "summary": "Library to easily interface with LLM API providers",
+      "version": "1.8.1",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41255669,
+    "ownership": {
+      "organization": "LiteLLM",
+      "roles": []
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "f44055e15310f08fb1482e4680df6d37f09fb176c28e8f949acb48394fdeb004"
+        },
+        "digests": {
+          "blake2b_256": "a5a206dfc0cebfde3da44b5bc82dc80db2e5d1269b59fce898d191349d420c2b",
+          "md5": "a91467b49a188ff2dc2e1242a8660c0a",
+          "sha256": "8f8c148f7584358df9de7ec1e673ad6da7ac5969366d5781665326438891ca36"
+        },
+        "downloads": -1,
+        "filename": "litellm-1.8.1-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "a91467b49a188ff2dc2e1242a8660c0a",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.8,<4.0",
+        "size": 1488236,
+        "upload_time": "2023-11-30T17:41:22",
+        "upload_time_iso_8601": "2023-11-30T17:41:22.949981Z",
+        "url": "https://files.pythonhosted.org/packages/a5/a2/06dfc0cebfde3da44b5bc82dc80db2e5d1269b59fce898d191349d420c2b/litellm-1.8.1-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "68ab4070cd64a26e434000a29910d72649250dcf382b96443067937737817be7",
+          "md5": "9b6cef1255998b7bb4a0d2d5820b5351",
+          "sha256": "ca640e3c3c2d9214e5397d80c997bc66e7cf8bb240e87506b1e9228215de93c2"
+        },
+        "downloads": -1,
+        "filename": "litellm-1.8.1.tar.gz",
+        "has_sig": false,
+        "md5_digest": "9b6cef1255998b7bb4a0d2d5820b5351",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.8,<4.0",
+        "size": 1408163,
+        "upload_time": "2023-11-30T17:41:26",
+        "upload_time_iso_8601": "2023-11-30T17:41:26.583739Z",
+        "url": "https://files.pythonhosted.org/packages/68/ab/4070cd64a26e434000a29910d72649250dcf382b96443067937737817be7/litellm-1.8.1.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "aliases": [
+          "CVE-2025-0628",
+          "PYSEC-2026-1546"
+        ],
+        "details": "An improper authorization vulnerability exists in the main-latest version of BerriAI/litellm. When a user with the role 'internal_user_viewer' logs into the application, they are provided with an overly privileged API key. This key can be used to access all the admin functionality of the application, including endpoints such as '/users/list' and '/users/get_users'. This vulnerability allows for privilege escalation within the application, enabling any account to become a PROXY ADMIN.",
+        "fixed_in": [
+          "1.61.15"
+        ],
+        "id": "GHSA-fjcf-3j3r-78rp",
+        "link": "https://osv.dev/vulnerability/GHSA-fjcf-3j3r-78rp",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2025-0330",
+          "PYSEC-2026-1543"
+        ],
+        "details": "In berriai/litellm version v1.52.1, an issue in proxy_server.py causes the leakage of Langfuse API keys when an error occurs while parsing team settings. This vulnerability exposes sensitive information, including langfuse_secret and langfuse_public_key, which can provide full access to the Langfuse project storing all requests.",
+        "fixed_in": [],
+        "id": "GHSA-879v-fggm-vxw2",
+        "link": "https://osv.dev/vulnerability/GHSA-879v-fggm-vxw2",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-2952",
+          "PYSEC-2026-387"
+        ],
+        "details": "BerriAI/litellm is vulnerable to Server-Side Template Injection (SSTI) via the `/completions` endpoint. The vulnerability arises from the `hf_chat_template` method processing the `chat_template` parameter from the `tokenizer_config.json` file through the Jinja template engine without proper sanitization. Attackers can exploit this by crafting malicious `tokenizer_config.json` files that execute arbitrary code on the server.",
+        "fixed_in": [
+          "1.34.42"
+        ],
+        "id": "GHSA-46cm-pfwv-cgf8",
+        "link": "https://osv.dev/vulnerability/GHSA-46cm-pfwv-cgf8",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-12772"
+        ],
+        "details": "A security flaw has been discovered in BerriAI litellm up to 1.82.2. This impacts the function authenticate_user of the file litellm/proxy/auth/login_utils.py of the component PROXY_ADMIN database API Key Generator. Performing a manipulation results in session expiration. The attack may be initiated remotely. The exploit has been released to the public and may be used for attacks. The vendor was contacted early about this disclosure.",
+        "fixed_in": [],
+        "id": "GHSA-mf52-j94g-746m",
+        "link": "https://osv.dev/vulnerability/GHSA-mf52-j94g-746m",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-4264",
+          "PYSEC-2026-1542"
+        ],
+        "details": "A remote code execution (RCE) vulnerability exists in the berriai/litellm project due to improper control of the generation of code when using the `eval` function unsafely in the `litellm.get_secret()` method. Specifically, when the server utilizes Google KMS, untrusted data is passed to the `eval` function without any sanitization. Attackers can exploit this vulnerability by injecting malicious values into environment variables through the `/config/update` endpoint, which allows for the update of settings in `proxy_server_config.yaml`.",
+        "fixed_in": [],
+        "id": "GHSA-7ggm-4rjg-594w",
+        "link": "https://osv.dev/vulnerability/GHSA-7ggm-4rjg-594w",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-4890",
+          "PYSEC-2026-1544"
+        ],
+        "details": "A blind SQL injection vulnerability exists in the berriai/litellm application, specifically within the '/team/update' process. The vulnerability arises due to the improper handling of the 'user_id' parameter in the raw SQL query used for deleting users. An attacker can exploit this vulnerability by injecting malicious SQL commands through the 'user_id' parameter, leading to potential unauthorized access to sensitive information such as API keys, user information, and tokens stored in the database. The affected version is 1.27.14.",
+        "fixed_in": [],
+        "id": "GHSA-8j42-pcfm-3467",
+        "link": "https://osv.dev/vulnerability/GHSA-8j42-pcfm-3467",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-5225",
+          "PYSEC-2026-1550"
+        ],
+        "details": "An SQL Injection vulnerability exists in the berriai/litellm repository, specifically within the `/global/spend/logs` endpoint. The vulnerability arises due to improper neutralization of special elements used in an SQL command. The affected code constructs an SQL query by concatenating an unvalidated `api_key` parameter directly into the query, making it susceptible to SQL Injection if the `api_key` contains malicious data. This issue affects the latest version of the repository. Successful exploitation of this vulnerability could lead to unauthorized access, data manipulation, exposure of confidential information, and denial of service (DoS).",
+        "fixed_in": [
+          "1.40.0"
+        ],
+        "id": "GHSA-h6m6-jj8v-94jj",
+        "link": "https://osv.dev/vulnerability/GHSA-h6m6-jj8v-94jj",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-12771"
+        ],
+        "details": "A vulnerability was identified in BerriAI litellm up to 1.82.2. This affects an unknown function of the file litellm/proxy/auth/user_api_key_auth.py of the component M2M JWT Handler. Such manipulation leads to improper authorization. The attack can be launched remotely. A high complexity level is associated with this attack. The exploitability is reported as difficult. The exploit is publicly available and might be used. The vendor was contacted early about this disclosure.",
+        "fixed_in": [],
+        "id": "GHSA-qmf3-4767-5fg3",
+        "link": "https://osv.dev/vulnerability/GHSA-qmf3-4767-5fg3",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-4888",
+          "PYSEC-2026-1540"
+        ],
+        "details": "BerriAI's litellm, in its latest version, is vulnerable to arbitrary file deletion due to improper input validation on the `/audio/transcriptions` endpoint. An attacker can exploit this vulnerability by sending a specially crafted request that includes a file path to the server, which then deletes the specified file without proper authorization or validation. This vulnerability is present in the code where `os.remove(file.filename)` is used to delete a file, allowing any user to delete critical files on the server such as SSH keys, SQLite databases, or configuration files. ",
+        "fixed_in": [
+          "1.35.36"
+        ],
+        "id": "GHSA-3xr8-qfvj-9p9j",
+        "link": "https://osv.dev/vulnerability/GHSA-3xr8-qfvj-9p9j",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-5710",
+          "PYSEC-2026-1551"
+        ],
+        "details": "berriai/litellm version 1.34.34 is vulnerable to improper access control in its team management functionality. This vulnerability allows attackers to perform unauthorized actions such as creating, updating, viewing, deleting, blocking, and unblocking any teams, as well as adding or deleting any member to or from any teams. The vulnerability stems from insufficient access control checks in various team management endpoints, enabling attackers to exploit these functionalities without proper authorization.",
+        "fixed_in": [
+          "1.40.15"
+        ],
+        "id": "GHSA-qqcv-vg9f-5rr3",
+        "link": "https://osv.dev/vulnerability/GHSA-qqcv-vg9f-5rr3",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-5751",
+          "PYSEC-2026-389"
+        ],
+        "details": "BerriAI/litellm version v1.35.8 contains a vulnerability where an attacker can achieve remote code execution. The vulnerability exists in the `add_deployment` function, which decodes and decrypts environment variables from base64 and assigns them to `os.environ`. An attacker can exploit this by sending a malicious payload to the `/config/update` endpoint, which is then processed and executed by the server when the `get_secret` function is triggered. This requires the server to use Google KMS and a database to store a model.",
+        "fixed_in": [
+          "1.40.16"
+        ],
+        "id": "GHSA-gppg-gqw8-wh9g",
+        "link": "https://osv.dev/vulnerability/GHSA-gppg-gqw8-wh9g",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-9606",
+          "PYSEC-2026-1548"
+        ],
+        "details": "In berriai/litellm before version 1.44.12, the `litellm/litellm_core_utils/litellm_logging.py` file contains a vulnerability where the API key masking code only masks the first 5 characters of the key. This results in the leakage of almost the entire API key in the logs, exposing a significant amount of the secret key. The issue affects version v1.44.9.",
+        "fixed_in": [
+          "1.44.12"
+        ],
+        "id": "GHSA-g5pg-73fc-hjwq",
+        "link": "https://osv.dev/vulnerability/GHSA-g5pg-73fc-hjwq",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-8984",
+          "PYSEC-2026-1545"
+        ],
+        "details": "A Denial of Service (DoS) vulnerability exists in berriai/litellm version v1.44.5. This vulnerability can be exploited by appending characters, such as dashes (-), to the end of a multipart boundary in an HTTP request. The server continuously processes each character, leading to excessive resource consumption and rendering the service unavailable. The issue is unauthenticated and does not require any user interaction, impacting all users of the service.",
+        "fixed_in": [
+          "1.56.2"
+        ],
+        "id": "GHSA-fh2c-86xm-pm2x",
+        "link": "https://osv.dev/vulnerability/GHSA-fh2c-86xm-pm2x",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-12795"
+        ],
+        "details": "A vulnerability was determined in BerriAI litellm up to 1.82.2. This affects the function json.dumps of the file litellm/proxy/management_endpoints/ui_sso.py of the component SSO Debug Flow. Executing a manipulation can lead to missing authentication. The attack can be executed remotely. The exploit has been publicly disclosed and may be utilized. The vendor was contacted early about this disclosure.",
+        "fixed_in": [],
+        "id": "GHSA-j37q-q7p9-vpwm",
+        "link": "https://osv.dev/vulnerability/GHSA-j37q-q7p9-vpwm",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-12770"
+        ],
+        "details": "A vulnerability was determined in BerriAI litellm up to 1.63.1. The impacted element is an unknown function of the file litellm/proxy/management_endpoints/key_management_endpoints.py of the component Admin Key Handler. This manipulation causes improper authorization. The attack can be initiated remotely. The exploit has been publicly disclosed and may be utilized. The vendor was contacted early about this disclosure.",
+        "fixed_in": [],
+        "id": "GHSA-6qr3-3g89-m4jj",
+        "link": "https://osv.dev/vulnerability/GHSA-6qr3-3g89-m4jj",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-12773"
+        ],
+        "details": "A weakness has been identified in BerriAI litellm up to 1.59.8. Affected is the function UserAPIKeyAuth of the file litellm/proxy/_experimental/mcp_server/auth/user_api_key_auth_mcp.py of the component MCP Proxy. Executing a manipulation can lead to improper authentication. The attack may be launched remotely. The exploit has been made available to the public and could be used for attacks. The vendor was contacted early about this disclosure.",
+        "fixed_in": [
+          "1.84.0"
+        ],
+        "id": "GHSA-4jcj-7x88-m979",
+        "link": "https://osv.dev/vulnerability/GHSA-4jcj-7x88-m979",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-10188",
+          "PYSEC-2026-1549"
+        ],
+        "details": "A vulnerability in BerriAI/litellm, as of commit 26c03c9, allows unauthenticated users to cause a Denial of Service (DoS) by exploiting the use of ast.literal_eval to parse user input. This function is not safe and is prone to DoS attacks, which can crash the litellm Python server.",
+        "fixed_in": [
+          "1.53.1.dev1"
+        ],
+        "id": "GHSA-gw2q-qw9j-rgv7",
+        "link": "https://osv.dev/vulnerability/GHSA-gw2q-qw9j-rgv7",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-35029",
+          "PYSEC-2026-2597"
+        ],
+        "details": "### Impact\n\nThe `/config/update endpoint` does not enforce admin role authorization. A user who is already authenticated into the platform can then use this endpoint to do the following:\n\n  - Modify proxy configuration and environment variables\n  - Register custom pass-through endpoint handlers pointing to attacker-controlled Python code, achieving remote code execution\n  - Read arbitrary server files by setting UI_LOGO_PATH and fetching via /get_image\n  - Take over other priveleged accounts by overwriting UI_USERNAME and UI_PASSWORD environment variables\n\n### Patches\n\nFixed in v1.83.0. The endpoint now requires `proxy_admin` role.\n\n### Workarounds\n\nRestrict API key distribution. There is no configuration-level workaround.",
+        "fixed_in": [
+          "1.83.0"
+        ],
+        "id": "GHSA-53mr-6c8q-9789",
+        "link": "https://osv.dev/vulnerability/GHSA-53mr-6c8q-9789",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-35030",
+          "PYSEC-2026-390"
+        ],
+        "details": "###  Impact\n\nWhen JWT authentication is enabled (`enable_jwt_auth: true`), the OIDC userinfo cache uses `token[:20]` as the cache key. JWT headers produced by the same signing algorithm generate identical first 20 characters.\n\nThis configuration option is not enabled by default. **Most instances are not affected.**\n\nAn unauthenticated attacker can craft a token whose first 20 characters match a legitimate user's cached token. On cache hit, the attacker inherits the legitimate user's identity and permissions. This affects deployments with JWT/OIDC authentication enabled.\n\n###  Patches\n\nFixed in v1.83.0. The cache key now uses the full hash of the JWT token.\n\n###  Workarounds\n\nDisable OIDC userinfo caching by setting the cache TTL to 0, or disable JWT authentication entirely.",
+        "fixed_in": [
+          "1.83.0"
+        ],
+        "id": "GHSA-jjhc-v7c2-5hh6",
+        "link": "https://osv.dev/vulnerability/GHSA-jjhc-v7c2-5hh6",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [],
+        "details": "### Impact\n\nThree issues combine into a full authentication bypass chain:\n\n1. Weak hashing: User passwords are stored as unsalted SHA-256 hashes, making them vulnerable to rainbow table attacks and trivially identifying users with identical passwords.\n2. Hash exposure: Multiple API endpoints (/user/info, /user/update, /spend/users) return the password hash field in responses to any authenticated user regardless of role. Plaintext passwords could also potentially be exposed in certain scenarios.\n4. Pass-the-hash: The /v2/login endpoint accepts the raw SHA-256 hash as a valid password without re-hashing, allowing direct login with a stolen\n\nAn already authenticated user can retrieve another user's password hash from the API and use it to log in as that user. This enables full privilege escalation in three HTTP requests.\n\n### Patches\n\nFixed in v1.83.0. Passwords are now hashed with scrypt (random 16-byte salt, n=16384, r=8, p=1). Password hashes are stripped from all API responses. Existing SHA-256 hashes are transparently migrated on next login.",
+        "fixed_in": [
+          "1.83.0"
+        ],
+        "id": "GHSA-69x8-hrgq-fjj8",
+        "link": "https://osv.dev/vulnerability/GHSA-69x8-hrgq-fjj8",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-12796"
+        ],
+        "details": "A vulnerability was identified in BerriAI litellm up to 1.82.2. This impacts the function get_redirect_response_from_openid of the file litellm/proxy/management_endpoints/ui_sso.py of the component SSO Authentication Flow. The manipulation leads to session expiration. The attack is possible to be carried out remotely. The exploit is publicly available and might be used. The vendor was contacted early about this disclosure.",
+        "fixed_in": [],
+        "id": "GHSA-w2mh-qq9q-453x",
+        "link": "https://osv.dev/vulnerability/GHSA-w2mh-qq9q-453x",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-49468",
+          "PYSEC-2026-388"
+        ],
+        "details": "### Impact\n\nA Host-header parsing flaw in the LiteLLM proxy could, under specific conditions, allow unauthenticated access to protected management routes.\n\nThe auth layer derived the effective route from `request.url.path` in `litellm/proxy/auth/auth_utils.py::get_request_route()`, which Starlette reconstructs from the `Host` header. A crafted `Host` could therefore make the auth gate evaluate a different route from the one FastAPI dispatched.\n\n**Most deployments are not affected.** The bypass is blocked by any upstream layer that validates or normalizes `Host`, such as:\n\n- a CDN or WAF, such as Cloudflare\n- a reverse proxy with `server_name` allowlists\n- a host-based load balancer\n\n**LiteLLM Cloud customers are not affected.**\n\n### Patches\n\nFixed in **`1.84.0`**. Upgrade to `1.84.0` or later. No configuration change is required.\n\n### Workarounds\n\nIf upgrading is not immediately possible, place the proxy behind an upstream component that validates or normalizes the `Host` header before forwarding (a CDN/WAF, a reverse proxy with explicit `server_name` allowlists, or a cloud load balancer with host-based routing rules), or otherwise restrict network access to the proxy listener.\n\n### References\n\n- Patched release: [`v1.84.0`](https://github.com/BerriAI/litellm/releases/tag/v1.84.0)\n\n**Discovery Credit**: Le The Thang (KCSC) and Kim Ngoc Chung (One Mount Group)",
+        "fixed_in": [
+          "1.84.0"
+        ],
+        "id": "GHSA-4xpc-pv4p-pm3w",
+        "link": "https://osv.dev/vulnerability/GHSA-4xpc-pv4p-pm3w",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-12798"
+        ],
+        "details": "A weakness has been identified in BerriAI litellm up to 1.82.2. Affected by this vulnerability is the function load_openapi_spec_async of the file litellm/proxy/_experimental/mcp_server/openapi_to_mcp_generator.py of the component MCP OpenAPI Spec Loader. This manipulation of the argument spec_path causes server-side request forgery. It is possible to initiate the attack remotely. The exploit has been made available to the public and could be used for attacks. The vendor was contacted early about this disclosure.",
+        "fixed_in": [],
+        "id": "GHSA-c693-x898-5g4h",
+        "link": "https://osv.dev/vulnerability/GHSA-c693-x898-5g4h",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-12799"
+        ],
+        "details": "A security vulnerability has been detected in BerriAI litellm up to 1.82.2. Affected by this issue is the function ui_view_users of the file litellm/proxy/management_endpoints/internal_user_endpoints.py of the component Incomplete Fix CVE-2025-0628. Such manipulation leads to improper authorization. It is possible to launch the attack remotely. The exploit has been disclosed publicly and may be used. The vendor was contacted early about this disclosure.",
+        "fixed_in": [],
+        "id": "GHSA-m2v5-74w2-qhcj",
+        "link": "https://osv.dev/vulnerability/GHSA-m2v5-74w2-qhcj",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-47102",
+          "PYSEC-2026-2600"
+        ],
+        "details": "LiteLLM prior to 1.83.10 allows a user to modify their own user_role via the /user/update endpoint. While the endpoint correctly restricts users to updating only their own account, it does not restrict which fields may be changed. A user who can reach this endpoint can set their role to proxy_admin, gaining full administrative access to LiteLLM including all users, teams, keys, models, and prompt history. Users with the org_admin role have legitimate access to this endpoint and can exploit this vulnerability without chaining any additional flaw.",
+        "fixed_in": [
+          "1.83.10"
+        ],
+        "id": "GHSA-wpfp-gwwc-vwq6",
+        "link": "https://osv.dev/vulnerability/GHSA-wpfp-gwwc-vwq6",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-47101",
+          "PYSEC-2026-2598"
+        ],
+        "details": "LiteLLM prior to 1.83.14 allows an authenticated internal_user to create API keys with access to routes that their role does not permit. When generating a key, the allowed_routes field is stored without verifying that the specified routes fall within the user's own permissions. A key created with access to admin-only routes can then be used to reach those routes successfully, bypassing the role-based access controls that would otherwise block the request, enabling full privilege escalation from internal_user to proxy_admin.",
+        "fixed_in": [
+          "1.83.14"
+        ],
+        "id": "GHSA-qrc4-49gv-mv9m",
+        "link": "https://osv.dev/vulnerability/GHSA-qrc4-49gv-mv9m",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-2952",
+          "GHSA-46cm-pfwv-cgf8"
+        ],
+        "details": "BerriAI/litellm is vulnerable to Server-Side Template Injection (SSTI) via the `/completions` endpoint. The vulnerability arises from the `hf_chat_template` method processing the `chat_template` parameter from the `tokenizer_config.json` file through the Jinja template engine without proper sanitization. Attackers can exploit this by crafting malicious `tokenizer_config.json` files that execute arbitrary code on the server.",
+        "fixed_in": [
+          "1.34.42"
+        ],
+        "id": "PYSEC-2026-387",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-387",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-5751",
+          "GHSA-gppg-gqw8-wh9g"
+        ],
+        "details": "BerriAI/litellm version v1.35.8 contains a vulnerability where an attacker can achieve remote code execution. The vulnerability exists in the `add_deployment` function, which decodes and decrypts environment variables from base64 and assigns them to `os.environ`. An attacker can exploit this by sending a malicious payload to the `/config/update` endpoint, which is then processed and executed by the server when the `get_secret` function is triggered. This requires the server to use Google KMS and a database to store a model.",
+        "fixed_in": [
+          "1.40.16"
+        ],
+        "id": "PYSEC-2026-389",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-389",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-12797"
+        ],
+        "details": "A security flaw has been discovered in BerriAI litellm up to 1.82.5. Affected is the function async_pre_call_hook of the file enterprise/enterprise_hooks/banned_keywords.py of the component Completions Interface. The manipulation of the argument prompt results in incorrect authorization. The attack may be performed from remote. The exploit has been released to the public and may be used for attacks. The vendor was contacted early about this disclosure.",
+        "fixed_in": [],
+        "id": "GHSA-p897-vf7j-f5h8",
+        "link": "https://osv.dev/vulnerability/GHSA-p897-vf7j-f5h8",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-35030",
+          "GHSA-jjhc-v7c2-5hh6"
+        ],
+        "details": "###  Impact\n\nWhen JWT authentication is enabled (`enable_jwt_auth: true`), the OIDC userinfo cache uses `token[:20]` as the cache key. JWT headers produced by the same signing algorithm generate identical first 20 characters.\n\nThis configuration option is not enabled by default. **Most instances are not affected.**\n\nAn unauthenticated attacker can craft a token whose first 20 characters match a legitimate user's cached token. On cache hit, the attacker inherits the legitimate user's identity and permissions. This affects deployments with JWT/OIDC authentication enabled.\n\n###  Patches\n \nFixed in v1.83.0. The cache key now uses the full hash of the JWT token.\n\n###  Workarounds\n\nDisable OIDC userinfo caching by setting the cache TTL to 0, or disable JWT authentication entirely.",
+        "fixed_in": [
+          "1.83.0"
+        ],
+        "id": "PYSEC-2026-390",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-390",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-49468",
+          "GHSA-4xpc-pv4p-pm3w"
+        ],
+        "details": "### Impact\n\nA Host-header parsing flaw in the LiteLLM proxy could, under specific conditions, allow unauthenticated access to protected management routes.\n \nThe auth layer derived the effective route from `request.url.path` in `litellm/proxy/auth/auth_utils.py::get_request_route()`, which Starlette reconstructs from the `Host` header. A crafted `Host` could therefore make the auth gate evaluate a different route from the one FastAPI dispatched.\n \n**Most deployments are not affected.** The bypass is blocked by any upstream layer that validates or normalizes `Host`, such as:\n\n- a CDN or WAF, such as Cloudflare\n - a reverse proxy with `server_name` allowlists\n- a host-based load balancer\n\n **LiteLLM Cloud customers are not affected.**\n\n### Patches\n\nFixed in **`1.84.0`**. Upgrade to `1.84.0` or later. No configuration change is required.\n\n### Workarounds\n \nIf upgrading is not immediately possible, place the proxy behind an upstream component that validates or normalizes the `Host` header before forwarding (a CDN/WAF, a reverse proxy with explicit `server_name` allowlists, or a cloud load balancer with host-based routing rules), or otherwise restrict network access to the proxy listener.\n\n ### References\n\n- Patched release: [`v1.84.0`](https://github.com/BerriAI/litellm/releases/tag/v1.84.0)\n \n**Discovery Credit**: Le The Thang (KCSC) and Kim Ngoc Chung (One Mount Group)",
+        "fixed_in": [
+          "1.84.0"
+        ],
+        "id": "PYSEC-2026-388",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-388",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-5710",
+          "GHSA-qqcv-vg9f-5rr3"
+        ],
+        "details": "berriai/litellm version 1.34.34 is vulnerable to improper access control in its team management functionality. This vulnerability allows attackers to perform unauthorized actions such as creating, updating, viewing, deleting, blocking, and unblocking any teams, as well as adding or deleting any member to or from any teams. The vulnerability stems from insufficient access control checks in various team management endpoints, enabling attackers to exploit these functionalities without proper authorization.",
+        "fixed_in": [
+          "1.40.15"
+        ],
+        "id": "PYSEC-2026-1551",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1551",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-4888",
+          "GHSA-3xr8-qfvj-9p9j"
+        ],
+        "details": "BerriAI's litellm, in its latest version, is vulnerable to arbitrary file deletion due to improper input validation on the `/audio/transcriptions` endpoint. An attacker can exploit this vulnerability by sending a specially crafted request that includes a file path to the server, which then deletes the specified file without proper authorization or validation. This vulnerability is present in the code where `os.remove(file.filename)` is used to delete a file, allowing any user to delete critical files on the server such as SSH keys, SQLite databases, or configuration files. ",
+        "fixed_in": [
+          "1.35.36"
+        ],
+        "id": "PYSEC-2026-1540",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1540",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-4890",
+          "GHSA-8j42-pcfm-3467"
+        ],
+        "details": "A blind SQL injection vulnerability exists in the berriai/litellm application, specifically within the '/team/update' process. The vulnerability arises due to the improper handling of the 'user_id' parameter in the raw SQL query used for deleting users. An attacker can exploit this vulnerability by injecting malicious SQL commands through the 'user_id' parameter, leading to potential unauthorized access to sensitive information such as API keys, user information, and tokens stored in the database. The affected version is 1.27.14.",
+        "fixed_in": [],
+        "id": "PYSEC-2026-1544",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1544",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-4264",
+          "GHSA-7ggm-4rjg-594w"
+        ],
+        "details": "A remote code execution (RCE) vulnerability exists in the berriai/litellm project due to improper control of the generation of code when using the `eval` function unsafely in the `litellm.get_secret()` method. Specifically, when the server utilizes Google KMS, untrusted data is passed to the `eval` function without any sanitization. Attackers can exploit this vulnerability by injecting malicious values into environment variables through the `/config/update` endpoint, which allows for the update of settings in `proxy_server_config.yaml`.",
+        "fixed_in": [],
+        "id": "PYSEC-2026-1542",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1542",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2025-0330",
+          "GHSA-879v-fggm-vxw2"
+        ],
+        "details": "In berriai/litellm version v1.52.1, an issue in proxy_server.py causes the leakage of Langfuse API keys when an error occurs while parsing team settings. This vulnerability exposes sensitive information, including langfuse_secret and langfuse_public_key, which can provide full access to the Langfuse project storing all requests.",
+        "fixed_in": [],
+        "id": "PYSEC-2026-1543",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1543",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-8984",
+          "GHSA-fh2c-86xm-pm2x"
+        ],
+        "details": "A Denial of Service (DoS) vulnerability exists in berriai/litellm version v1.44.5. This vulnerability can be exploited by appending characters, such as dashes (-), to the end of a multipart boundary in an HTTP request. The server continuously processes each character, leading to excessive resource consumption and rendering the service unavailable. The issue is unauthenticated and does not require any user interaction, impacting all users of the service.",
+        "fixed_in": [
+          "1.56.2"
+        ],
+        "id": "PYSEC-2026-1545",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1545",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-9606",
+          "GHSA-g5pg-73fc-hjwq"
+        ],
+        "details": "In berriai/litellm before version 1.44.12, the `litellm/litellm_core_utils/litellm_logging.py` file contains a vulnerability where the API key masking code only masks the first 5 characters of the key. This results in the leakage of almost the entire API key in the logs, exposing a significant amount of the secret key. The issue affects version v1.44.9.",
+        "fixed_in": [
+          "1.44.12"
+        ],
+        "id": "PYSEC-2026-1548",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1548",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2025-0628",
+          "GHSA-fjcf-3j3r-78rp"
+        ],
+        "details": "An improper authorization vulnerability exists in the main-latest version of BerriAI/litellm. When a user with the role 'internal_user_viewer' logs into the application, they are provided with an overly privileged API key. This key can be used to access all the admin functionality of the application, including endpoints such as '/users/list' and '/users/get_users'. This vulnerability allows for privilege escalation within the application, enabling any account to become a PROXY ADMIN.",
+        "fixed_in": [
+          "1.61.15"
+        ],
+        "id": "PYSEC-2026-1546",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1546",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-6587",
+          "GHSA-g26j-5385-hhw3"
+        ],
+        "details": "A Server-Side Request Forgery (SSRF) vulnerability exists in berriai/litellm version 1.38.10. This vulnerability allows users to specify the `api_base` parameter when making requests to `POST /chat/completions`, causing the application to send the request to the domain specified by `api_base`. This request includes the OpenAI API key. A malicious user can set the `api_base` to their own domain and intercept the OpenAI API key, leading to unauthorized access and potential misuse of the API key.",
+        "fixed_in": [
+          "1.44.8"
+        ],
+        "id": "PYSEC-2026-1547",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1547",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-59823"
+        ],
+        "details": "### Summary\nA server-side request forgery in LiteLLM Proxy lets an authenticated caller redirect the\nproxy's outbound request to a host of their choosing by smuggling an `api_base` inside the\n`user_config` request body, bypassing the existing parameter guard.\n\n### Details\nLiteLLM Proxy validates request bodies with `is_request_body_safe`, which blocks the\n`api_base` and `base_url` parameters but does not cover `user_config`. The `user_config`\nobject is used to build the outbound router for a request, so a caller can place an\n`api_base` inside it and reach an arbitrary host. The guard only inspected the two\ntop-level keys, so the same `api_base` nested inside `user_config` was never checked.\n\nExploitation requires a valid virtual key.\n\n### Impact\nAn authenticated caller can make the proxy issue server-side requests to internal or\nexternal hosts of their choosing, reaching endpoints the caller cannot otherwise access.\n\n### Affected / Patched\nAffected: `<= 1.83.8`\nPatched: `1.83.9`\n\n### Remediation\nUpgrade to 1.83.9 or later (released 2026-04-17).",
+        "fixed_in": [
+          "1.83.9"
+        ],
+        "id": "GHSA-hx8v-g79f-8w5f",
+        "link": "https://osv.dev/vulnerability/GHSA-hx8v-g79f-8w5f",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-10188",
+          "GHSA-gw2q-qw9j-rgv7"
+        ],
+        "details": "A vulnerability in BerriAI/litellm, as of commit 26c03c9, allows unauthenticated users to cause a Denial of Service (DoS) by exploiting the use of ast.literal_eval to parse user input. This function is not safe and is prone to DoS attacks, which can crash the litellm Python server.",
+        "fixed_in": [
+          "1.53.1.dev1"
+        ],
+        "id": "PYSEC-2026-1549",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1549",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-5225",
+          "GHSA-h6m6-jj8v-94jj"
+        ],
+        "details": "An SQL Injection vulnerability exists in the berriai/litellm repository, specifically within the `/global/spend/logs` endpoint. The vulnerability arises due to improper neutralization of special elements used in an SQL command. The affected code constructs an SQL query by concatenating an unvalidated `api_key` parameter directly into the query, making it susceptible to SQL Injection if the `api_key` contains malicious data. This issue affects the latest version of the repository. Successful exploitation of this vulnerability could lead to unauthorized access, data manipulation, exposure of confidential information, and denial of service (DoS).",
+        "fixed_in": [
+          "1.40.0"
+        ],
+        "id": "PYSEC-2026-1550",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1550",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-35029",
+          "GHSA-53mr-6c8q-9789"
+        ],
+        "details": "### Impact\n\nThe `/config/update endpoint` does not enforce admin role authorization. A user who is already authenticated into the platform can then use this endpoint to do the following:\n\n  - Modify proxy configuration and environment variables\n  - Register custom pass-through endpoint handlers pointing to attacker-controlled Python code, achieving remote code execution\n  - Read arbitrary server files by setting UI_LOGO_PATH and fetching via /get_image\n  - Take over other priveleged accounts by overwriting UI_USERNAME and UI_PASSWORD environment variables\n\n### Patches\n\nFixed in v1.83.0. The endpoint now requires `proxy_admin` role.\n\n### Workarounds\n\nRestrict API key distribution. There is no configuration-level workaround.",
+        "fixed_in": [
+          "1.83.0"
+        ],
+        "id": "PYSEC-2026-2597",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-2597",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-47101",
+          "GHSA-qrc4-49gv-mv9m"
+        ],
+        "details": "LiteLLM prior to 1.83.14 allows an authenticated internal_user to create API keys with access to routes that their role does not permit. When generating a key, the allowed_routes field is stored without verifying that the specified routes fall within the user's own permissions. A key created with access to admin-only routes can then be used to reach those routes successfully, bypassing the role-based access controls that would otherwise block the request, enabling full privilege escalation from internal_user to proxy_admin.",
+        "fixed_in": [
+          "1.83.14"
+        ],
+        "id": "PYSEC-2026-2598",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-2598",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-47102",
+          "GHSA-wpfp-gwwc-vwq6"
+        ],
+        "details": "LiteLLM prior to 1.83.10 allows a user to modify their own user_role via the /user/update endpoint. While the endpoint correctly restricts users to updating only their own account, it does not restrict which fields may be changed. A user who can reach this endpoint can set their role to proxy_admin, gaining full administrative access to LiteLLM including all users, teams, keys, models, and prompt history. Users with the org_admin role have legitimate access to this endpoint and can exploit this vulnerability without chaining any additional flaw.",
+        "fixed_in": [
+          "1.83.10"
+        ],
+        "id": "PYSEC-2026-2600",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-2600",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-59820",
+          "PYSEC-2026-3477"
+        ],
+        "details": "### Impact\n\nLiteLLM Skills archive extraction did not sufficiently validate file paths from uploaded skill ZIP archives. An authenticated user with access to LiteLLM LLM API routes, or a key whose `allowed_routes` includes `/v1/skills`, `anthropic_routes`, or `llm_api_routes`, could upload a crafted skill archive containing path traversal entries.\n\nWhen the skill was processed for execution, those entries could be written outside the intended extraction/staging directory. This could allow arbitrary file write and may lead to code execution depending on deployment configuration and writable paths.\n\n### Patches\n\nThe issue is fixed in `1.83.7-stable`.\n\nLiteLLM recommens upgrading to `1.83.7-stable` or later.\n\n### Workarounds\n\nIf upgrading is not immediately possible:\n\n1. Block `POST /v1/skills` at your reverse proxy or API gateway.\n2. Restrict Skills API access to trusted users only.",
+        "fixed_in": [
+          "1.83.7"
+        ],
+        "id": "GHSA-5jmr-gcrj-2c9q",
+        "link": "https://osv.dev/vulnerability/GHSA-5jmr-gcrj-2c9q",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-59822",
+          "PYSEC-2026-3479"
+        ],
+        "details": "### Impact\n\nLiteLLM's MCP Streamable HTTP endpoint could allow an unauthenticated attacker to establish an authenticated MCP session using an arbitrary Bearer token.\n\nThe MCP auth handler supported OAuth2 passthrough for upstream MCP servers, but the fallback path could replace failed LiteLLM key validation with an empty `UserAPIKeyAuth()` object. This allowed requests with a fabricated `Authorization` header to reach MCP tooling without a valid LiteLLM key.\n\nAn attacker could use this to list and call configured MCP tools and access connected services exposed through MCP.\n\n### Patches\n\nThe issue is fixed in `1.84.0`.\n\nWe recommend upgrading to `1.84.0` or later.\n\n### Workarounds\n\nIf upgrading is not immediately possible, disable MCP routes or block access to `/mcp/` and related MCP endpoints at your reverse proxy or API gateway.\n\n### References\n\n* [v1.84.0](https://github.com/BerriAI/litellm/releases/tag/v1.84.0)",
+        "fixed_in": [
+          "1.84.0"
+        ],
+        "id": "GHSA-7488-6r32-c95q",
+        "link": "https://osv.dev/vulnerability/GHSA-7488-6r32-c95q",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-59819",
+          "PYSEC-2026-3476"
+        ],
+        "details": "### Impact\n\nLiteLLM's `/health/test_connection` endpoint resolved request-supplied environment and OIDC file references in `litellm_params`. A proxy administrator, or another privileged caller with permission to test model connections, could cause LiteLLM to read files from the local filesystem via an `oidc/file/` reference.\n\nBecause exploitation requires privileged proxy access, this is treated as a defense-in-depth issue rather than a cross-tenant privilege bypass.\n\n### Patches\n\nThe issue is fixed in `1.83.10-stable`.\n\nLiteLLM recommend upgrading to `1.83.10-stable` or later.\n\n### Workarounds\n\nRestrict `/health/test_connection` access to trusted administrators only.",
+        "fixed_in": [
+          "1.83.10"
+        ],
+        "id": "GHSA-4g5m-c9r5-49xf",
+        "link": "https://osv.dev/vulnerability/GHSA-4g5m-c9r5-49xf",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-59821",
+          "PYSEC-2026-3478"
+        ],
+        "details": "### Impact\n\nLiteLLM's Custom Code Guardrails production create/update paths did not apply the same sandboxing and validation used by the test endpoint.\n\nA privileged user with access to create or update guardrails could submit custom Python code that executed in the LiteLLM proxy environment. In deployments without a configured master key, callers could be treated as proxy administrators, making this reachable without intended administrative authorization.\n\nThis could allow arbitrary code execution in the LiteLLM proxy container and exposure of secrets available to the process.\n\n### Patches\n\nThe issue is fixed in `1.82.0-stable`.\n\nLiteLLM recommend upgrading to `1.82.0-stable` or later.\n\n### Workarounds\n\nIf upgrading is not immediately possible:\n\n1. Restrict access to `POST /guardrails` and `PUT /guardrails/{guardrail_id}` to trusted administrators only.\n2. Ensure `LITELLM_MASTER_KEY` is configured.\n3. Avoid enabling Custom Code Guardrails for untrusted users.",
+        "fixed_in": [
+          "1.82.0"
+        ],
+        "id": "GHSA-72m8-9m7m-h278",
+        "link": "https://osv.dev/vulnerability/GHSA-72m8-9m7m-h278",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-59820",
+          "GHSA-5jmr-gcrj-2c9q"
+        ],
+        "details": "### Impact\n\nLiteLLM Skills archive extraction did not sufficiently validate file paths from uploaded skill ZIP archives. An authenticated user with access to LiteLLM LLM API routes, or a key whose `allowed_routes` includes `/v1/skills`, `anthropic_routes`, or `llm_api_routes`, could upload a crafted skill archive containing path traversal entries.\n\nWhen the skill was processed for execution, those entries could be written outside the intended extraction/staging directory. This could allow arbitrary file write and may lead to code execution depending on deployment configuration and writable paths.\n\n### Patches\n\nThe issue is fixed in `1.83.7-stable`.\n\nLiteLLM recommens upgrading to `1.83.7-stable` or later.\n\n### Workarounds\n\nIf upgrading is not immediately possible:\n\n1. Block `POST /v1/skills` at your reverse proxy or API gateway.\n2. Restrict Skills API access to trusted users only.",
+        "fixed_in": [
+          "1.83.7"
+        ],
+        "id": "PYSEC-2026-3477",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-3477",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-59822",
+          "GHSA-7488-6r32-c95q"
+        ],
+        "details": "### Impact\n\nLiteLLM's MCP Streamable HTTP endpoint could allow an unauthenticated attacker to establish an authenticated MCP session using an arbitrary Bearer token.\n\nThe MCP auth handler supported OAuth2 passthrough for upstream MCP servers, but the fallback path could replace failed LiteLLM key validation with an empty `UserAPIKeyAuth()` object. This allowed requests with a fabricated `Authorization` header to reach MCP tooling without a valid LiteLLM key.\n\nAn attacker could use this to list and call configured MCP tools and access connected services exposed through MCP.\n\n### Patches\n\nThe issue is fixed in `1.84.0`.\n\nWe recommend upgrading to `1.84.0` or later.\n\n### Workarounds\n\nIf upgrading is not immediately possible, disable MCP routes or block access to `/mcp/` and related MCP endpoints at your reverse proxy or API gateway.\n\n### References\n\n* [v1.84.0](https://github.com/BerriAI/litellm/releases/tag/v1.84.0)",
+        "fixed_in": [
+          "1.84.0"
+        ],
+        "id": "PYSEC-2026-3479",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-3479",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-59821",
+          "GHSA-72m8-9m7m-h278"
+        ],
+        "details": "### Impact\n\nLiteLLM's Custom Code Guardrails production create/update paths did not apply the same sandboxing and validation used by the test endpoint.\n\nA privileged user with access to create or update guardrails could submit custom Python code that executed in the LiteLLM proxy environment. In deployments without a configured master key, callers could be treated as proxy administrators, making this reachable without intended administrative authorization.\n\nThis could allow arbitrary code execution in the LiteLLM proxy container and exposure of secrets available to the process.\n\n### Patches\n\nThe issue is fixed in `1.82.0-stable`.\n\nLiteLLM recommend upgrading to `1.82.0-stable` or later.\n\n### Workarounds\n\nIf upgrading is not immediately possible:\n\n1. Restrict access to `POST /guardrails` and `PUT /guardrails/{guardrail_id}` to trusted administrators only.\n2. Ensure `LITELLM_MASTER_KEY` is configured.\n3. Avoid enabling Custom Code Guardrails for untrusted users.",
+        "fixed_in": [
+          "1.82.0"
+        ],
+        "id": "PYSEC-2026-3478",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-3478",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-59819",
+          "GHSA-4g5m-c9r5-49xf"
+        ],
+        "details": "### Impact\n\nLiteLLM's `/health/test_connection` endpoint resolved request-supplied environment and OIDC file references in `litellm_params`. A proxy administrator, or another privileged caller with permission to test model connections, could cause LiteLLM to read files from the local filesystem via an `oidc/file/` reference.\n\nBecause exploitation requires privileged proxy access, this is treated as a defense-in-depth issue rather than a cross-tenant privilege bypass.\n\n### Patches\n\nThe issue is fixed in `1.83.10-stable`.\n\nLiteLLM recommend upgrading to `1.83.10-stable` or later.\n\n### Workarounds\n\nRestrict `/health/test_connection` access to trusted administrators only.",
+        "fixed_in": [
+          "1.83.10"
+        ],
+        "id": "PYSEC-2026-3476",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-3476",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-37004"
+        ],
+        "details": "BerriAI litellm <=1.82.4 is vulnerable to Server-Side Template Injection (SSTI), which allows unauthenticated remote attackers to execute arbitrary OS commands via a crafted dotprompt_content parameter in the /prompts/test endpoint due to use of an unsandboxed jinja2.Environment.",
+        "fixed_in": [
+          "1.83.7"
+        ],
+        "id": "GHSA-6wvf-77m9-58rm",
+        "link": "https://osv.dev/vulnerability/GHSA-6wvf-77m9-58rm",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-6587",
+          "PYSEC-2026-1547"
+        ],
+        "details": "A Server-Side Request Forgery (SSRF) vulnerability exists in berriai/litellm version 1.38.10. This vulnerability allows users to specify the `api_base` parameter when making requests to `POST /chat/completions`, causing the application to send the request to the domain specified by `api_base`. This request includes the OpenAI API key. A malicious user can set the `api_base` to their own domain and intercept the OpenAI API key, leading to unauthorized access and potential misuse of the API key.",
+        "fixed_in": [
+          "1.44.8"
+        ],
+        "id": "GHSA-g26j-5385-hhw3",
+        "link": "https://osv.dev/vulnerability/GHSA-g26j-5385-hhw3",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-37004",
+          "GHSA-6wvf-77m9-58rm"
+        ],
+        "details": "BerriAI litellm <=1.82.4 is vulnerable to Server-Side Template Injection (SSTI), which allows unauthenticated remote attackers to execute arbitrary OS commands via a crafted dotprompt_content parameter in the /prompts/test endpoint due to use of an unsandboxed jinja2.Environment.",
+        "fixed_in": [
+          "1.83.7"
+        ],
+        "id": "PYSEC-2026-3861",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-3861",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      }
+    ]
+  }
+}

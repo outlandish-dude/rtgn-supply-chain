@@ -1,0 +1,927 @@
+{
+  "package": "tiktoken",
+  "version": "0.6.0",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:29:29.406168+00:00",
+  "payload": {
+    "info": {
+      "author": "Shantanu Jain",
+      "author_email": "shantanu@openai.com",
+      "bugtrack_url": null,
+      "classifiers": [],
+      "description": "# \u23f3 tiktoken\n\ntiktoken is a fast [BPE](https://en.wikipedia.org/wiki/Byte_pair_encoding) tokeniser for use with\nOpenAI's models.\n\n```python\nimport tiktoken\nenc = tiktoken.get_encoding(\"cl100k_base\")\nassert enc.decode(enc.encode(\"hello world\")) == \"hello world\"\n\n# To get the tokeniser corresponding to a specific model in the OpenAI API:\nenc = tiktoken.encoding_for_model(\"gpt-4\")\n```\n\nThe open source version of `tiktoken` can be installed from PyPI:\n```\npip install tiktoken\n```\n\nThe tokeniser API is documented in `tiktoken/core.py`.\n\nExample code using `tiktoken` can be found in the\n[OpenAI Cookbook](https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb).\n\n\n## Performance\n\n`tiktoken` is between 3-6x faster than a comparable open source tokeniser:\n\n![image](https://raw.githubusercontent.com/openai/tiktoken/main/perf.svg)\n\nPerformance measured on 1GB of text using the GPT-2 tokeniser, using `GPT2TokenizerFast` from\n`tokenizers==0.13.2`, `transformers==4.24.0` and `tiktoken==0.2.0`.\n\n\n## Getting help\n\nPlease post questions in the [issue tracker](https://github.com/openai/tiktoken/issues).\n\nIf you work at OpenAI, make sure to check the internal documentation or feel free to contact\n@shantanu.\n\n## What is BPE anyway?\n\nLanguage models don't see text like you and I, instead they see a sequence of numbers (known as tokens).\nByte pair encoding (BPE) is a way of converting text into tokens. It has a couple desirable\nproperties:\n1) It's reversible and lossless, so you can convert tokens back into the original text\n2) It works on arbitrary text, even text that is not in the tokeniser's training data\n3) It compresses the text: the token sequence is shorter than the bytes corresponding to the\n   original text. On average, in practice, each token corresponds to about 4 bytes.\n4) It attempts to let the model see common subwords. For instance, \"ing\" is a common subword in\n   English, so BPE encodings will often split \"encoding\" into tokens like \"encod\" and \"ing\"\n   (instead of e.g. \"enc\" and \"oding\"). Because the model will then see the \"ing\" token again and\n   again in different contexts, it helps models generalise and better understand grammar.\n\n`tiktoken` contains an educational submodule that is friendlier if you want to learn more about\nthe details of BPE, including code that helps visualise the BPE procedure:\n```python\nfrom tiktoken._educational import *\n\n# Train a BPE tokeniser on a small amount of text\nenc = train_simple_encoding()\n\n# Visualise how the GPT-4 encoder encodes text\nenc = SimpleBytePairEncoding.from_tiktoken(\"cl100k_base\")\nenc.encode(\"hello world aaaaaaaaaaaa\")\n```\n\n\n## Extending tiktoken\n\nYou may wish to extend `tiktoken` to support new encodings. There are two ways to do this.\n\n\n**Create your `Encoding` object exactly the way you want and simply pass it around.**\n\n```python\ncl100k_base = tiktoken.get_encoding(\"cl100k_base\")\n\n# In production, load the arguments directly instead of accessing private attributes\n# See openai_public.py for examples of arguments for specific encodings\nenc = tiktoken.Encoding(\n    # If you're changing the set of special tokens, make sure to use a different name\n    # It should be clear from the name what behaviour to expect.\n    name=\"cl100k_im\",\n    pat_str=cl100k_base._pat_str,\n    mergeable_ranks=cl100k_base._mergeable_ranks,\n    special_tokens={\n        **cl100k_base._special_tokens,\n        \"<|im_start|>\": 100264,\n        \"<|im_end|>\": 100265,\n    }\n)\n```\n\n**Use the `tiktoken_ext` plugin mechanism to register your `Encoding` objects with `tiktoken`.**\n\nThis is only useful if you need `tiktoken.get_encoding` to find your encoding, otherwise prefer\noption 1.\n\nTo do this, you'll need to create a namespace package under `tiktoken_ext`.\n\nLayout your project like this, making sure to omit the `tiktoken_ext/__init__.py` file:\n```\nmy_tiktoken_extension\n\u251c\u2500\u2500 tiktoken_ext\n\u2502\u00a0\u00a0 \u2514\u2500\u2500 my_encodings.py\n\u2514\u2500\u2500 setup.py\n```\n\n`my_encodings.py` should be a module that contains a variable named `ENCODING_CONSTRUCTORS`.\nThis is a dictionary from an encoding name to a function that takes no arguments and returns\narguments that can be passed to `tiktoken.Encoding` to construct that encoding. For an example, see\n`tiktoken_ext/openai_public.py`. For precise details, see `tiktoken/registry.py`.\n\nYour `setup.py` should look something like this:\n```python\nfrom setuptools import setup, find_namespace_packages\n\nsetup(\n    name=\"my_tiktoken_extension\",\n    packages=find_namespace_packages(include=['tiktoken_ext*']),\n    install_requires=[\"tiktoken\"],\n    ...\n)\n```\n\nThen simply `pip install ./my_tiktoken_extension` and you should be able to use your\ncustom encodings! Make sure **not** to use an editable install.\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "",
+      "keywords": "",
+      "license": "MIT License  Copyright (c) 2022 OpenAI, Shantanu Jain  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.  THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. ",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "tiktoken",
+      "package_url": "https://pypi.org/project/tiktoken/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/tiktoken/",
+      "project_urls": {
+        "changelog": "https://github.com/openai/tiktoken/blob/main/CHANGELOG.md",
+        "homepage": "https://github.com/openai/tiktoken",
+        "repository": "https://github.com/openai/tiktoken"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/tiktoken/0.6.0/",
+      "requires_dist": [
+        "regex >=2022.1.18",
+        "requests >=2.26.0",
+        "blobfile >=2 ; extra == 'blobfile'"
+      ],
+      "requires_python": ">=3.8",
+      "summary": "tiktoken is a fast BPE tokeniser for use with OpenAI's models",
+      "version": "0.6.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 40115598,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "hauntsaninja"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "ab0471b56ad8f0938abb373ca20ff9641813b62441f3b5d21977704d0708e2e3",
+          "md5": "c052203f2c9f951ceddc1a882ccff49e",
+          "sha256": "277de84ccd8fa12730a6b4067456e5cf72fef6300bea61d506c09e45658d41ac"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp310-cp310-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "c052203f2c9f951ceddc1a882ccff49e",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8",
+        "size": 999897,
+        "upload_time": "2024-02-09T06:37:20",
+        "upload_time_iso_8601": "2024-02-09T06:37:20.706161Z",
+        "url": "https://files.pythonhosted.org/packages/ab/04/71b56ad8f0938abb373ca20ff9641813b62441f3b5d21977704d0708e2e3/tiktoken-0.6.0-cp310-cp310-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "0b8fc97a31d3b5f7096bb6b7ef44760596e4026e87c2065a2b43caea2dfaf82e",
+          "md5": "3fdcd1a593026f58af91566a2e2f3d3f",
+          "sha256": "9c44433f658064463650d61387623735641dcc4b6c999ca30bc0f8ba3fccaf5c"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp310-cp310-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "3fdcd1a593026f58af91566a2e2f3d3f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8",
+        "size": 949951,
+        "upload_time": "2024-02-09T06:37:22",
+        "upload_time_iso_8601": "2024-02-09T06:37:22.820827Z",
+        "url": "https://files.pythonhosted.org/packages/0b/8f/c97a31d3b5f7096bb6b7ef44760596e4026e87c2065a2b43caea2dfaf82e/tiktoken-0.6.0-cp310-cp310-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "078b8bde188df891941c83b7b6e6c3279f3bf10cb565bd9a69fa710207cf8d4c",
+          "md5": "582f20df3befe057f4eb6767bb7988db",
+          "sha256": "afb9a2a866ae6eef1995ab656744287a5ac95acc7e0491c33fad54d053288ad3"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "582f20df3befe057f4eb6767bb7988db",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8",
+        "size": 1792891,
+        "upload_time": "2024-02-09T06:37:24",
+        "upload_time_iso_8601": "2024-02-09T06:37:24.910186Z",
+        "url": "https://files.pythonhosted.org/packages/07/8b/8bde188df891941c83b7b6e6c3279f3bf10cb565bd9a69fa710207cf8d4c/tiktoken-0.6.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "16055efbd91252ffb1301ea393d88ef736b33d41e75d4bcf0bd31d660050e400",
+          "md5": "0b3d76cc4d28d3bbcfd7a147f4adf8c5",
+          "sha256": "c62c05b3109fefca26fedb2820452a050074ad8e5ad9803f4652977778177d9f"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "0b3d76cc4d28d3bbcfd7a147f4adf8c5",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8",
+        "size": 1837653,
+        "upload_time": "2024-02-09T06:37:26",
+        "upload_time_iso_8601": "2024-02-09T06:37:26.408732Z",
+        "url": "https://files.pythonhosted.org/packages/16/05/5efbd91252ffb1301ea393d88ef736b33d41e75d4bcf0bd31d660050e400/tiktoken-0.6.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "c6f17879347cde77160b9a68895e8047e13bb28252328c9a8e4749e77aec26c6",
+          "md5": "04432cc9714a025179df7da3c49c2e60",
+          "sha256": "0ef917fad0bccda07bfbad835525bbed5f3ab97a8a3e66526e48cdc3e7beacf7"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp310-cp310-musllinux_1_1_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "04432cc9714a025179df7da3c49c2e60",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8",
+        "size": 1814261,
+        "upload_time": "2024-02-09T06:37:28",
+        "upload_time_iso_8601": "2024-02-09T06:37:28.331462Z",
+        "url": "https://files.pythonhosted.org/packages/c6/f1/7879347cde77160b9a68895e8047e13bb28252328c9a8e4749e77aec26c6/tiktoken-0.6.0-cp310-cp310-musllinux_1_1_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "a1407ea9ec056b64059dde93b22e90634547be67f46d42810de9d55cddce0a1a",
+          "md5": "de7a9a93c1cff6ee93915fdf469f037c",
+          "sha256": "e095131ab6092d0769a2fda85aa260c7c383072daec599ba9d8b149d2a3f4d8b"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp310-cp310-musllinux_1_1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "de7a9a93c1cff6ee93915fdf469f037c",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8",
+        "size": 1866680,
+        "upload_time": "2024-02-09T06:37:30",
+        "upload_time_iso_8601": "2024-02-09T06:37:30.300926Z",
+        "url": "https://files.pythonhosted.org/packages/a1/40/7ea9ec056b64059dde93b22e90634547be67f46d42810de9d55cddce0a1a/tiktoken-0.6.0-cp310-cp310-musllinux_1_1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "461a5b9bad808b6583916794bd7b0e25c109d2512d595f8e91d31c5c645559d0"
+        },
+        "digests": {
+          "blake2b_256": "37263169fefd688c2172012557effd8258920e5faf0a6b1abd0852f2afa53173",
+          "md5": "ea0f8c161f9d39514f26bf99709e4a21",
+          "sha256": "05b344c61779f815038292a19a0c6eb7098b63c8f865ff205abb9ea1b656030e"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp310-cp310-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "ea0f8c161f9d39514f26bf99709e4a21",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp310",
+        "requires_python": ">=3.8",
+        "size": 798653,
+        "upload_time": "2024-02-09T06:37:31",
+        "upload_time_iso_8601": "2024-02-09T06:37:31.595064Z",
+        "url": "https://files.pythonhosted.org/packages/37/26/3169fefd688c2172012557effd8258920e5faf0a6b1abd0852f2afa53173/tiktoken-0.6.0-cp310-cp310-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "2aadd1c81988ca81bbf5faa79656b86fa9a9d08cd7f8c74b73775d29579a6da0",
+          "md5": "063bb69af8a673dd9e9ec588b552e88f",
+          "sha256": "cefb9870fb55dca9e450e54dbf61f904aab9180ff6fe568b61f4db9564e78871"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp311-cp311-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "063bb69af8a673dd9e9ec588b552e88f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 999782,
+        "upload_time": "2024-02-09T06:37:33",
+        "upload_time_iso_8601": "2024-02-09T06:37:33.640300Z",
+        "url": "https://files.pythonhosted.org/packages/2a/ad/d1c81988ca81bbf5faa79656b86fa9a9d08cd7f8c74b73775d29579a6da0/tiktoken-0.6.0-cp311-cp311-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "9e1183ca4e19bb6fc15971e543725ae1269a8a1c133e55b5952801ab9c0bcc9e",
+          "md5": "cfacbe2a9bb68e45cab4aa8be2acc58e",
+          "sha256": "702950d33d8cabc039845674107d2e6dcabbbb0990ef350f640661368df481bb"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp311-cp311-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "cfacbe2a9bb68e45cab4aa8be2acc58e",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 949842,
+        "upload_time": "2024-02-09T06:37:34",
+        "upload_time_iso_8601": "2024-02-09T06:37:34.963196Z",
+        "url": "https://files.pythonhosted.org/packages/9e/11/83ca4e19bb6fc15971e543725ae1269a8a1c133e55b5952801ab9c0bcc9e/tiktoken-0.6.0-cp311-cp311-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "39d16a47c1b18719efede9b06132759f1d09eb4f3e2f94a7311f4bf77968977f",
+          "md5": "7f8bab629ac873ec4ec90708cde31134",
+          "sha256": "e8d49d076058f23254f2aff9af603863c5c5f9ab095bc896bceed04f8f0b013a"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "7f8bab629ac873ec4ec90708cde31134",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 1793207,
+        "upload_time": "2024-02-09T06:37:36",
+        "upload_time_iso_8601": "2024-02-09T06:37:36.432751Z",
+        "url": "https://files.pythonhosted.org/packages/39/d1/6a47c1b18719efede9b06132759f1d09eb4f3e2f94a7311f4bf77968977f/tiktoken-0.6.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "63ec3856d242f580d0d755c3be9024dd11b17b3363dd0c7c3000e3bdecb40d84",
+          "md5": "c005111dde490acc4f8756e7befaad9c",
+          "sha256": "430bc4e650a2d23a789dc2cdca3b9e5e7eb3cd3935168d97d43518cbb1f9a911"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "c005111dde490acc4f8756e7befaad9c",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 1837955,
+        "upload_time": "2024-02-09T06:37:37",
+        "upload_time_iso_8601": "2024-02-09T06:37:37.851462Z",
+        "url": "https://files.pythonhosted.org/packages/63/ec/3856d242f580d0d755c3be9024dd11b17b3363dd0c7c3000e3bdecb40d84/tiktoken-0.6.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "14fa59833bbfb7d5bde7331c50ade573cefd152ee535a53f734e26665d1a12ad",
+          "md5": "362ca9a37206babcea0044e30fd96acf",
+          "sha256": "293cb8669757301a3019a12d6770bd55bec38a4d3ee9978ddbe599d68976aca7"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp311-cp311-musllinux_1_1_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "362ca9a37206babcea0044e30fd96acf",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 1814335,
+        "upload_time": "2024-02-09T06:37:39",
+        "upload_time_iso_8601": "2024-02-09T06:37:39.287484Z",
+        "url": "https://files.pythonhosted.org/packages/14/fa/59833bbfb7d5bde7331c50ade573cefd152ee535a53f734e26665d1a12ad/tiktoken-0.6.0-cp311-cp311-musllinux_1_1_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "16ceb1f3df64358256d205cd05270cfff530d453a5c57d228c8303d3ed43f9b9",
+          "md5": "e3d358e8c8493a63e5fd4d65a201f1f4",
+          "sha256": "7bd1a288b7903aadc054b0e16ea78e3171f70b670e7372432298c686ebf9dd47"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp311-cp311-musllinux_1_1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "e3d358e8c8493a63e5fd4d65a201f1f4",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 1867074,
+        "upload_time": "2024-02-09T06:37:40",
+        "upload_time_iso_8601": "2024-02-09T06:37:40.578772Z",
+        "url": "https://files.pythonhosted.org/packages/16/ce/b1f3df64358256d205cd05270cfff530d453a5c57d228c8303d3ed43f9b9/tiktoken-0.6.0-cp311-cp311-musllinux_1_1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "461a5b9bad808b6583916794bd7b0e25c109d2512d595f8e91d31c5c645559d0"
+        },
+        "digests": {
+          "blake2b_256": "69ca0a71c1cdbf36da977bd306d295042087187954c32bfa259fa7afede0608b",
+          "md5": "245303866af18497dfa37639dbff94fc",
+          "sha256": "ac76e000183e3b749634968a45c7169b351e99936ef46f0d2353cd0d46c3118d"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp311-cp311-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "245303866af18497dfa37639dbff94fc",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp311",
+        "requires_python": ">=3.8",
+        "size": 798661,
+        "upload_time": "2024-02-09T06:37:42",
+        "upload_time_iso_8601": "2024-02-09T06:37:42.819531Z",
+        "url": "https://files.pythonhosted.org/packages/69/ca/0a71c1cdbf36da977bd306d295042087187954c32bfa259fa7afede0608b/tiktoken-0.6.0-cp311-cp311-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "55578028b05cd47db34ea8d9f6ff7720018c523b507df702789b56e36f4c3cf6",
+          "md5": "d711873c74682841442f6788f842e20f",
+          "sha256": "17cc8a4a3245ab7d935c83a2db6bb71619099d7284b884f4b2aea4c74f2f83e3"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp312-cp312-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "d711873c74682841442f6788f842e20f",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 974686,
+        "upload_time": "2024-02-09T06:37:44",
+        "upload_time_iso_8601": "2024-02-09T06:37:44.076038Z",
+        "url": "https://files.pythonhosted.org/packages/55/57/8028b05cd47db34ea8d9f6ff7720018c523b507df702789b56e36f4c3cf6/tiktoken-0.6.0-cp312-cp312-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "da27b5e092440ec93f936c11be8cc1fac0bde7efde944bbc26aaf71837741e78",
+          "md5": "761df55d5afb4fb18d943a319fa90a25",
+          "sha256": "284aebcccffe1bba0d6571651317df6a5b376ff6cfed5aeb800c55df44c78177"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp312-cp312-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "761df55d5afb4fb18d943a319fa90a25",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 922361,
+        "upload_time": "2024-02-09T06:37:46",
+        "upload_time_iso_8601": "2024-02-09T06:37:46.011800Z",
+        "url": "https://files.pythonhosted.org/packages/da/27/b5e092440ec93f936c11be8cc1fac0bde7efde944bbc26aaf71837741e78/tiktoken-0.6.0-cp312-cp312-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "ab68d72a69dc8ff9909bd92b21eb2b6f5aa62ae9a5fe2eaa858d7426024006c4",
+          "md5": "a2cb2a191bf0f3bce0b7c01cf2ee563e",
+          "sha256": "0c1a3a5d33846f8cd9dd3b7897c1d45722f48625a587f8e6f3d3e85080559be8"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "a2cb2a191bf0f3bce0b7c01cf2ee563e",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 1792867,
+        "upload_time": "2024-02-09T06:37:47",
+        "upload_time_iso_8601": "2024-02-09T06:37:47.433082Z",
+        "url": "https://files.pythonhosted.org/packages/ab/68/d72a69dc8ff9909bd92b21eb2b6f5aa62ae9a5fe2eaa858d7426024006c4/tiktoken-0.6.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "aabaca12efe6fa6fde7ba30e27743b0d847838bc08d58e99faf11bae935ecbad",
+          "md5": "771adfdb7eccbad0d09fa9a5270c1ea6",
+          "sha256": "6318b2bb2337f38ee954fd5efa82632c6e5ced1d52a671370fa4b2eff1355e91"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "771adfdb7eccbad0d09fa9a5270c1ea6",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 1837909,
+        "upload_time": "2024-02-09T06:37:48",
+        "upload_time_iso_8601": "2024-02-09T06:37:48.914130Z",
+        "url": "https://files.pythonhosted.org/packages/aa/ba/ca12efe6fa6fde7ba30e27743b0d847838bc08d58e99faf11bae935ecbad/tiktoken-0.6.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "facc8e806932958713009db0726a0d13ccdccc5680b0a97f2ac6d3cefe4b003d",
+          "md5": "7ece3aa64d4eb29ee01d2e8cb32995d4",
+          "sha256": "1f5f0f2ed67ba16373f9a6013b68da298096b27cd4e1cf276d2d3868b5c7efd1"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp312-cp312-musllinux_1_1_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "7ece3aa64d4eb29ee01d2e8cb32995d4",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 1814227,
+        "upload_time": "2024-02-09T06:37:50",
+        "upload_time_iso_8601": "2024-02-09T06:37:50.348699Z",
+        "url": "https://files.pythonhosted.org/packages/fa/cc/8e806932958713009db0726a0d13ccdccc5680b0a97f2ac6d3cefe4b003d/tiktoken-0.6.0-cp312-cp312-musllinux_1_1_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "9f72ec63eff1005c3f4f91d4d26a7ea98a525b1a1dd7161cc3901b8d9abb8b08",
+          "md5": "de1772ce66bbfd0dfbe7d1fb52b0bee8",
+          "sha256": "75af4c0b16609c2ad02581f3cdcd1fb698c7565091370bf6c0cf8624ffaba6dc"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp312-cp312-musllinux_1_1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "de1772ce66bbfd0dfbe7d1fb52b0bee8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 1866626,
+        "upload_time": "2024-02-09T06:37:52",
+        "upload_time_iso_8601": "2024-02-09T06:37:52.075461Z",
+        "url": "https://files.pythonhosted.org/packages/9f/72/ec63eff1005c3f4f91d4d26a7ea98a525b1a1dd7161cc3901b8d9abb8b08/tiktoken-0.6.0-cp312-cp312-musllinux_1_1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "461a5b9bad808b6583916794bd7b0e25c109d2512d595f8e91d31c5c645559d0"
+        },
+        "digests": {
+          "blake2b_256": "132f3dd2eff71a6c057639723c9fc7ff4de9ec8a7cb9d444db3c069998b7df66",
+          "md5": "a16a9b0f7d271d1b5b37cf199c88b477",
+          "sha256": "45577faf9a9d383b8fd683e313cf6df88b6076c034f0a16da243bb1c139340c3"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp312-cp312-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "a16a9b0f7d271d1b5b37cf199c88b477",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp312",
+        "requires_python": ">=3.8",
+        "size": 798329,
+        "upload_time": "2024-02-09T06:37:54",
+        "upload_time_iso_8601": "2024-02-09T06:37:54.109485Z",
+        "url": "https://files.pythonhosted.org/packages/13/2f/3dd2eff71a6c057639723c9fc7ff4de9ec8a7cb9d444db3c069998b7df66/tiktoken-0.6.0-cp312-cp312-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "5af125d6ff4c8be45e44c78b8d81ddb3ca841c4dcc9574afe6c95884064ff354",
+          "md5": "eac4c9f9d0d5c93ced1d63a1ab49cbf8",
+          "sha256": "7c1492ab90c21ca4d11cef3a236ee31a3e279bb21b3fc5b0e2210588c4209e68"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp38-cp38-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "eac4c9f9d0d5c93ced1d63a1ab49cbf8",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8",
+        "size": 975139,
+        "upload_time": "2024-02-09T06:37:56",
+        "upload_time_iso_8601": "2024-02-09T06:37:56.163461Z",
+        "url": "https://files.pythonhosted.org/packages/5a/f1/25d6ff4c8be45e44c78b8d81ddb3ca841c4dcc9574afe6c95884064ff354/tiktoken-0.6.0-cp38-cp38-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "86bdb37a2fa290a334b280c8e3dc388970b90a70782496fc6a8a64719739d0d7",
+          "md5": "9e937a703923ea35454d3e84ceae476c",
+          "sha256": "e2b380c5b7751272015400b26144a2bab4066ebb8daae9c3cd2a92c3b508fe5a"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp38-cp38-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "9e937a703923ea35454d3e84ceae476c",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8",
+        "size": 922908,
+        "upload_time": "2024-02-09T06:37:58",
+        "upload_time_iso_8601": "2024-02-09T06:37:58.148952Z",
+        "url": "https://files.pythonhosted.org/packages/86/bd/b37a2fa290a334b280c8e3dc388970b90a70782496fc6a8a64719739d0d7/tiktoken-0.6.0-cp38-cp38-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "4d0f15e06d68458dfa361745c8039cb4353b2d6b881a68d68696c512d10b83a2",
+          "md5": "bb715a2aa99b6f31cb647a727cae4f52",
+          "sha256": "c9f497598b9f58c99cbc0eb764b4a92272c14d5203fc713dd650b896a03a50ad"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "bb715a2aa99b6f31cb647a727cae4f52",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8",
+        "size": 1792682,
+        "upload_time": "2024-02-09T06:37:59",
+        "upload_time_iso_8601": "2024-02-09T06:37:59.716532Z",
+        "url": "https://files.pythonhosted.org/packages/4d/0f/15e06d68458dfa361745c8039cb4353b2d6b881a68d68696c512d10b83a2/tiktoken-0.6.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "625d0adc459426364216cb25eeace411b18f820f11feb945a76a59eed2c67abd",
+          "md5": "4b905dff458e2ea6a3102054bbbfda13",
+          "sha256": "e65e8bd6f3f279d80f1e1fbd5f588f036b9a5fa27690b7f0cc07021f1dfa0839"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "4b905dff458e2ea6a3102054bbbfda13",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8",
+        "size": 1837598,
+        "upload_time": "2024-02-09T06:38:01",
+        "upload_time_iso_8601": "2024-02-09T06:38:01.843238Z",
+        "url": "https://files.pythonhosted.org/packages/62/5d/0adc459426364216cb25eeace411b18f820f11feb945a76a59eed2c67abd/tiktoken-0.6.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "056aed409b21efd81e732696b46b53c851c8d9c4d763c839855779a65a1c23df",
+          "md5": "2e85b28f3e870808b807b9ca5fb5c874",
+          "sha256": "5f1495450a54e564d236769d25bfefbf77727e232d7a8a378f97acddee08c1ae"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp38-cp38-musllinux_1_1_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "2e85b28f3e870808b807b9ca5fb5c874",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8",
+        "size": 1814188,
+        "upload_time": "2024-02-09T06:38:03",
+        "upload_time_iso_8601": "2024-02-09T06:38:03.295844Z",
+        "url": "https://files.pythonhosted.org/packages/05/6a/ed409b21efd81e732696b46b53c851c8d9c4d763c839855779a65a1c23df/tiktoken-0.6.0-cp38-cp38-musllinux_1_1_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "42709034a1c01c4e4f43b79d2283e40c462d152244a4140e2ef9c55dada47cb5",
+          "md5": "ba0945588c83739ac37461d9c8429642",
+          "sha256": "6c4e4857d99f6fb4670e928250835b21b68c59250520a1941618b5b4194e20c3"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp38-cp38-musllinux_1_1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "ba0945588c83739ac37461d9c8429642",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8",
+        "size": 1865662,
+        "upload_time": "2024-02-09T06:38:05",
+        "upload_time_iso_8601": "2024-02-09T06:38:05.356479Z",
+        "url": "https://files.pythonhosted.org/packages/42/70/9034a1c01c4e4f43b79d2283e40c462d152244a4140e2ef9c55dada47cb5/tiktoken-0.6.0-cp38-cp38-musllinux_1_1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "461a5b9bad808b6583916794bd7b0e25c109d2512d595f8e91d31c5c645559d0"
+        },
+        "digests": {
+          "blake2b_256": "22ef9aee13c039ecabce8a46e2e690a49207443cf68030136f9a6f1c66069fe7",
+          "md5": "dbc0a4dab5ecc7901a40defe3fb4fbbb",
+          "sha256": "168d718f07a39b013032741867e789971346df8e89983fe3c0ef3fbd5a0b1cb9"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp38-cp38-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "dbc0a4dab5ecc7901a40defe3fb4fbbb",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp38",
+        "requires_python": ">=3.8",
+        "size": 798031,
+        "upload_time": "2024-02-09T06:38:06",
+        "upload_time_iso_8601": "2024-02-09T06:38:06.838198Z",
+        "url": "https://files.pythonhosted.org/packages/22/ef/9aee13c039ecabce8a46e2e690a49207443cf68030136f9a6f1c66069fe7/tiktoken-0.6.0-cp38-cp38-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "f6d04147cb2fe8bf50dabdb4e90d38c53eebf696eec1f32506d5fa73c91236c5",
+          "md5": "651ebaeee735389634be97024a90e737",
+          "sha256": "47fdcfe11bd55376785a6aea8ad1db967db7f66ea81aed5c43fad497521819a4"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp39-cp39-macosx_10_9_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "651ebaeee735389634be97024a90e737",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8",
+        "size": 976712,
+        "upload_time": "2024-02-09T06:38:08",
+        "upload_time_iso_8601": "2024-02-09T06:38:08.771465Z",
+        "url": "https://files.pythonhosted.org/packages/f6/d0/4147cb2fe8bf50dabdb4e90d38c53eebf696eec1f32506d5fa73c91236c5/tiktoken-0.6.0-cp39-cp39-macosx_10_9_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "0766379658211d56cea968bf7c5972209de3ce15243799a23189c4368aac6256",
+          "md5": "fb1df156d138bd94e4b6bf02bb737d4a",
+          "sha256": "fb7d2ccbf1a7784810aff6b80b4012fb42c6fc37eaa68cb3b553801a5cc2d1fc"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp39-cp39-macosx_11_0_arm64.whl",
+        "has_sig": false,
+        "md5_digest": "fb1df156d138bd94e4b6bf02bb737d4a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8",
+        "size": 923422,
+        "upload_time": "2024-02-09T06:38:10",
+        "upload_time_iso_8601": "2024-02-09T06:38:10.119830Z",
+        "url": "https://files.pythonhosted.org/packages/07/66/379658211d56cea968bf7c5972209de3ce15243799a23189c4368aac6256/tiktoken-0.6.0-cp39-cp39-macosx_11_0_arm64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "73d80faa0c3888317da719d8ff79f9df27050cf748114dae913fa0e5b52e9bfc",
+          "md5": "e06450097b6e31fee3751a063ee51029",
+          "sha256": "1ccb7a111ee76af5d876a729a347f8747d5ad548e1487eeea90eaf58894b3138"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "e06450097b6e31fee3751a063ee51029",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8",
+        "size": 1793415,
+        "upload_time": "2024-02-09T06:38:12",
+        "upload_time_iso_8601": "2024-02-09T06:38:12.093363Z",
+        "url": "https://files.pythonhosted.org/packages/73/d8/0faa0c3888317da719d8ff79f9df27050cf748114dae913fa0e5b52e9bfc/tiktoken-0.6.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "eabeb935a91305aafdf6d475b63e1bcfba42257c750039338fe34068d29b28f0",
+          "md5": "31f12e14435e6165a81e3e4c0d0c8d98",
+          "sha256": "b2048e1086b48e3c8c6e2ceeac866561374cd57a84622fa49a6b245ffecb7744"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "31f12e14435e6165a81e3e4c0d0c8d98",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8",
+        "size": 1837711,
+        "upload_time": "2024-02-09T06:38:14",
+        "upload_time_iso_8601": "2024-02-09T06:38:14.515134Z",
+        "url": "https://files.pythonhosted.org/packages/ea/be/b935a91305aafdf6d475b63e1bcfba42257c750039338fe34068d29b28f0/tiktoken-0.6.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "139b3492a99c68926176d37b0c558ef92a4de934dc64d2f845e48f418b75fba3",
+          "md5": "32926c4e33d3db6f27cc30fac371162a",
+          "sha256": "07f229a5eb250b6403a61200199cecf0aac4aa23c3ecc1c11c1ca002cbb8f159"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp39-cp39-musllinux_1_1_aarch64.whl",
+        "has_sig": false,
+        "md5_digest": "32926c4e33d3db6f27cc30fac371162a",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8",
+        "size": 1815035,
+        "upload_time": "2024-02-09T06:38:16",
+        "upload_time_iso_8601": "2024-02-09T06:38:16.558932Z",
+        "url": "https://files.pythonhosted.org/packages/13/9b/3492a99c68926176d37b0c558ef92a4de934dc64d2f845e48f418b75fba3/tiktoken-0.6.0-cp39-cp39-musllinux_1_1_aarch64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "411b1f469f2a987bfa8558d77f458d883f2accbc73560ce3cfe532d47d5f5408"
+        },
+        "digests": {
+          "blake2b_256": "aafb8c12b63794d8d64102058a5ebb2b0890f205f2fc75ccbe7e0ae0e3666ae2",
+          "md5": "fa0e12a454b7e97bb590d2403de1c9e0",
+          "sha256": "432aa3be8436177b0db5a2b3e7cc28fd6c693f783b2f8722539ba16a867d0c6a"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp39-cp39-musllinux_1_1_x86_64.whl",
+        "has_sig": false,
+        "md5_digest": "fa0e12a454b7e97bb590d2403de1c9e0",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8",
+        "size": 1866772,
+        "upload_time": "2024-02-09T06:38:18",
+        "upload_time_iso_8601": "2024-02-09T06:38:18.218426Z",
+        "url": "https://files.pythonhosted.org/packages/aa/fb/8c12b63794d8d64102058a5ebb2b0890f205f2fc75ccbe7e0ae0e3666ae2/tiktoken-0.6.0-cp39-cp39-musllinux_1_1_x86_64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "461a5b9bad808b6583916794bd7b0e25c109d2512d595f8e91d31c5c645559d0"
+        },
+        "digests": {
+          "blake2b_256": "76d996d7207447c7ec7b8ecb50bf0497c736e058a5415990c1ca3ab71b40c0d3",
+          "md5": "99d6409db8b8584a37c0cabb04e2ef21",
+          "sha256": "8bfe8a19c8b5c40d121ee7938cd9c6a278e5b97dc035fd61714b4f0399d2f7a1"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0-cp39-cp39-win_amd64.whl",
+        "has_sig": false,
+        "md5_digest": "99d6409db8b8584a37c0cabb04e2ef21",
+        "packagetype": "bdist_wheel",
+        "python_version": "cp39",
+        "requires_python": ">=3.8",
+        "size": 798710,
+        "upload_time": "2024-02-09T06:38:19",
+        "upload_time_iso_8601": "2024-02-09T06:38:19.708422Z",
+        "url": "https://files.pythonhosted.org/packages/76/d9/96d7207447c7ec7b8ecb50bf0497c736e058a5415990c1ca3ab71b40c0d3/tiktoken-0.6.0-cp39-cp39-win_amd64.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "3a7ba8f49a8fb3f7dd70c77ab1d90b0514ab534db43cbcf8ac0a7ece57c64d87",
+          "md5": "ea8e1a27b15f61ed4d4ecde571b64449",
+          "sha256": "ace62a4ede83c75b0374a2ddfa4b76903cf483e9cb06247f566be3bf14e6beed"
+        },
+        "downloads": -1,
+        "filename": "tiktoken-0.6.0.tar.gz",
+        "has_sig": false,
+        "md5_digest": "ea8e1a27b15f61ed4d4ecde571b64449",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.8",
+        "size": 33404,
+        "upload_time": "2024-02-09T06:38:20",
+        "upload_time_iso_8601": "2024-02-09T06:38:20.999458Z",
+        "url": "https://files.pythonhosted.org/packages/3a/7b/a8f49a8fb3f7dd70c77ab1d90b0514ab534db43cbcf8ac0a7ece57c64d87/tiktoken-0.6.0.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

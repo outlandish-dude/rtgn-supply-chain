@@ -1,0 +1,120 @@
+{
+  "package": "colorama",
+  "version": "0.1.11",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:40:02.732839+00:00",
+  "payload": {
+    "info": {
+      "author": "Jonathan Hartley",
+      "author_email": "tartley@tartley.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 2 - Pre-Alpha",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.5",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.1",
+        "Topic :: Terminals"
+      ],
+      "description": "Download and docs:\n    http://pypi.python.org/pypi/colorama\nDevelopment:\n    http://code.google.com/p/colorama\n\nDescription\n===========\n\nMakes ANSI escape character sequences for producing colored terminal text work\nunder MS Windows.\n\nANSI escape character sequences have long been used to produce colored terminal\ntext on Unix and Macs. Colorama makes this work on Windows, too. It also\nprovides some shortcuts to help generate ANSI sequences, and works fine in\nconjunction with any other ANSI sequence generation library, such as Termcolor\n(http://pypi.python.org/pypi/termcolor.)\n\nThis has the upshot of providing a simple cross-platform API for printing\ncolored terminal text from Python, and has the happy side-effect that existing\napplications or libraries which use ANSI sequences to produce colored output on\nLinux or Macs can now also work on Windows, simply by calling\n``colorama.init()``.\n\nDependencies\n============\n\nNone, other than Python. Tested on Python 2.5.5, 2.6.5 & 3.1.2.\n\n\nUsage\n=====\n\nInitialisation\n--------------\n\nApplications should initialise Colorama using::\n\n    from colorama import init\n    init()\n\nIf you are on Windows, the call to ``init()`` will start filtering ANSI escape\nsequences out of any text sent to stdout or stderr, and will replace them with\nequivalent Win32 calls.\n\nCalling ``init()`` has no effect on other platforms (unless you request other\noptional functionality, see keyword args below.) The intention is that\napplications can call ``init()`` unconditionally on all platforms, after which\nANSI output should just work.\n\n\nColored Output\n--------------\n\nCross-platform printing of colored text can then be done using Colorama's\nconstant shorthand for ANSI escape sequences::\n\n    from colorama import Fore, Back, Style\n    print Fore.RED + 'some red text'\n    print Back.GREEN + and with a green background'\n    print Style.DIM + 'and in dim text'\n    print + Fore.DEFAULT + Back.DEFAULT + Style.DEFAULT\n    print 'back to normal now'\n\nor simply by manually printing ANSI sequences from your own code::\n\n    print '/033[31m' + 'some red text'\n    print '/033[30m' # and reset to default color\n\nor Colorama can be used happily in conjunction with existing ANSI libraries\nsuch as Termcolor::\n\n    from colorama import init\n    from termcolor import colored\n\n    # use Colorama to make Termcolor work on Windows too\n    init()\n\n    # then use Termcolor for all colored text output\n    print colored('Hello, World!', 'green', 'on_red')\n\nAvailable formatting constants are::\n\n    Fore: BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, DEFAULT.\n    Back: BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, DEFAULT.\n    Style: DIM, NORMAL, BRIGHT, RESET_ALL\n\nStyle.RESET_ALL resets foreground, background and brightness. Colorama will\nperform this reset automatically on program exit.\n\n\nInit Keyword Args\n-----------------\n\n``init()`` accepts some kwargs to override default behaviour.\n\ninit(autoreset=False):\n    If you find yourself repeatedly sending reset sequences to turn off color\n    changes at the end of every print, then ``init(autoreset=True)`` will\n    automate that::\n\n        from colorama import init\n        init(autoreset=True)\n        print Fore.RED + 'some red text'\n        print 'automatically back to default color again'\n\ninit(strip=None):\n    Pass ``True`` or ``False`` to override whether ansi codes should be\n    stripped from the output. The default behaviour is to strip if on Windows.\n\ninit(convert=None):\n    Pass ``True`` or ``False`` to override whether to convert ansi codes in the\n    output into win32 calls. The default behaviour is to convert if on Windows\n    and output is to a tty (terminal).\n\ninit(wrap=True):\n    On Windows, colorama works by replacing ``sys.stdout`` and ``sys.stderr``\n    with proxy objects, which override the .write() method to do their work. If\n    this wrapping causes you problems, then this can be disabled by passing\n    ``init(wrap=False)``. The default behaviour is to wrap if autoreset or\n    strip or convert are True.\n\n    When wrapping is disabled, colored printing on non-Windows platforms will\n    continue to work as normal. To do cross-platform colored output, you can\n    use Colorama's ``AnsiToWin32`` proxy directly::\n\n        from colorama import init, AnsiToWin32\n        init(wrap=False)\n        stream = AnsiToWin32(sys.stderr).stream\n        print >>stream, Fore.BLUE + 'blue text on stderr'    \n\n\nStatus & Known Problems\n=======================\n\nFeature complete as far as colored text goes, but still finding bugs and\noccasionally making small changes to the API (such as new keyword arguments\nto ``init()``).\n\nOnly tested on WinXP (CMD, Console2) and Ubuntu (gnome-terminal, xterm). Much\nobliged if anyone can let me know how it fares elsewhere, in particular on\nMacs.\n\nI'd like to add the ability to handle ANSI codes which position the text cursor\nand clear the terminal.\n\nSee outstanding issues and wishlist at:\nhttp://code.google.com/p/colorama/issues/list\n\n\nRecognised ANSI Sequences\n=========================\n\nANSI sequences generally take the form:\n\n    ESC [ <param> ; <param> ... <command>\n\nWhere <param> is an integer, and <command> is a single letter. Zero or more \nparams are passed to a <command>. If no params are passed, it is generally\nsynonymous with passing a single zero. No spaces exist in the sequence, they\nhave just been inserted here to make it easy to read.\n\nThe only ANSI sequences that colorama converts into win32 calls are::\n\n    ESC [ 0 m       # reset all\n    ESC [ 1 m       # bright\n    ESC [ 2 m       # dim (looks same as normal brightness)\n    ESC [ 22 m      # normal brightness\n\n    # FOREGROUND:\n    ESC [ 30 m      # blacK\n    ESC [ 31 m      # red\n    ESC [ 32 m      # green\n    ESC [ 33 m      # yellow\n    ESC [ 34 m      # blue\n    ESC [ 35 m      # magenta\n    ESC [ 36 m      # cyan\n    ESC [ 37 m      # white\n    ESC [ 39 m      # reset\n\n    # BACKGROUND\n    ESC [ 40 m      # blacK\n    ESC [ 41 m      # red\n    ESC [ 42 m      # green\n    ESC [ 43 m      # yellow\n    ESC [ 44 m      # blue\n    ESC [ 45 m      # magenta\n    ESC [ 46 m      # cyan\n    ESC [ 47 m      # white\n    ESC [ 49 m      # reset\n\nMultiple numeric params to the 'm' command can be combined into a single\nsequence, eg::\n\n    ESC [ 36 ; 45 ; 1 m     # bright cyan text on magenta background\n\nAll other ANSI sequences of the form 'ESC [ XXX m' are silently stripped from\nthe output on Windows.\n\nAny other form of ANSI sequence, such as single-character codes or alternative\ninitial characters, are not recognised nor stripped.\n\n\nDevelopment\n===========\n\nTests require Michael Foord's modules 'unittest2' and 'mock', and unittest2\ndiscovery doesn't work for colorama, so use 'nose'::\n\n    nosetests -s\n\nThe -s is required because 'nosetests' otherwise applies a proxy of its own to\nstdout, which confuses the unit tests.\n\n\nChanges\n=======\n\n0.1.11\n    Fix hard-coded reset to white-on-black colors. Fore.RESET, Back.RESET\n    and Style.RESET_ALL now revert to the colors as they were when init()\n    was called.\n0.1.10\n    Stop emulating 'bright' text with bright backgrounds.\n    Display 'normal' text using win32 normal foreground instead of bright.\n    Drop support for 'dim' text.\n0.1.9\n    Fix incompatibility with Python 2.5 and earlier.\n    Remove setup.py dependency on setuptools, now uses stdlib distutils.\n0.1.8\n    Fix ghastly errors all over the place on Ubuntu.\n    Add init kwargs 'convert' and 'strip', which supercede the old 'wrap'.\n0.1.7\n    Python 3 compatible.\n    Fix: Now strips ansi on windows without necessarily converting it to\n    win32 calls (eg. if output is not a tty.)\n    Fix: Flaky interaction of interleaved ansi sent to stdout and stderr.\n    Improved demo.sh (hg checkout only.)\n0.1.6\n    Fix ansi sequences with no params now default to parmlist of [0].\n    Fix flaky behaviour of autoreset and reset_all atexit.\n    Fix stacking of repeated atexit calls - now just called once.\n    Fix ghastly import problems while running tests.\n    'demo.py' (hg checkout only) now demonstrates autoreset and reset atexit.\n    Provide colorama.__version__, used by setup.py.\n    Tests defanged so they no longer actually change terminal color when run.\n0.1.5\n    Now works on Ubuntu.\n0.1.4\n    Implemented RESET_ALL on application exit\n0.1.3\n    Implemented init(wrap=False)\n0.1.2\n    Implemented init(autoreset=True)\n0.1.1\n    Minor tidy\n0.1\n    Works on Windows for foreground color, background color, bright or dim",
+      "description_content_type": null,
+      "docs_url": null,
+      "download_url": "UNKNOWN",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "http://code.google.com/p/colorama/",
+      "keywords": "color colour terminal text ansi windows crossplatform xplatform",
+      "license": "BSD",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "colorama",
+      "package_url": "https://pypi.org/project/colorama/",
+      "platform": "UNKNOWN",
+      "project_url": "https://pypi.org/project/colorama/",
+      "project_urls": {
+        "Download": "UNKNOWN",
+        "Homepage": "http://code.google.com/p/colorama/"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/colorama/0.1.11/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "Cross-platform colored terminal text.",
+      "version": "0.1.11",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 15517557,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "tartley"
+        },
+        {
+          "role": "Owner",
+          "user": "wiggin15"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "38858aff6c5de5a8ea71b5b8dceb2ead64cb4ee0432a3367914e90eba7505c35",
+          "md5": "504e40668de50606de8c8c3405ed0e10",
+          "sha256": "b9449a73936867129ad58ea9ccc24cf5bd5429abcd4c8ab3b5570b515e7d01bf"
+        },
+        "downloads": -1,
+        "filename": "colorama-0.1.11.tar.gz",
+        "has_sig": false,
+        "md5_digest": "504e40668de50606de8c8c3405ed0e10",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 8728,
+        "upload_time": "2010-05-18T00:20:35",
+        "upload_time_iso_8601": "2010-05-18T00:20:35.021651Z",
+        "url": "https://files.pythonhosted.org/packages/38/85/8aff6c5de5a8ea71b5b8dceb2ead64cb4ee0432a3367914e90eba7505c35/colorama-0.1.11.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "5b5e80a93da9ff4b770c414f32563726040997924b83cd679a94cab738e7f8ff",
+          "md5": "16dc0795403bde205d92cfba6449030b",
+          "sha256": "9e7c464abd71a23e203477ca4efc0c784b9f43806d9badbf3758957212dfd39b"
+        },
+        "downloads": -1,
+        "filename": "colorama-0.1.11.zip",
+        "has_sig": false,
+        "md5_digest": "16dc0795403bde205d92cfba6449030b",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 13333,
+        "upload_time": "2010-05-18T00:20:31",
+        "upload_time_iso_8601": "2010-05-18T00:20:31.100694Z",
+        "url": "https://files.pythonhosted.org/packages/5b/5e/80a93da9ff4b770c414f32563726040997924b83cd679a94cab738e7f8ff/colorama-0.1.11.zip",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

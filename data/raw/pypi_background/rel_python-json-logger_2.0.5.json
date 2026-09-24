@@ -1,0 +1,119 @@
+{
+  "package": "python-json-logger",
+  "version": "2.0.5",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:22:58.146005+00:00",
+  "payload": {
+    "info": {
+      "author": "Zakaria Zajac",
+      "author_email": "zak@madzak.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 6 - Mature",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: System :: Logging"
+      ],
+      "description": "![Build Status](https://github.com/madzak/python-json-logger/actions/workflows/build.yml/badge.svg)\n[![License](https://img.shields.io/pypi/l/python-json-logger.svg)](https://pypi.python.org/pypi/python-json-logger/)\n[![Version](https://img.shields.io/pypi/v/python-json-logger.svg)](https://pypi.python.org/pypi/python-json-logger/)\n\nOverview\n=======\nThis library is provided to allow standard python logging to output log data as json objects. With JSON we can make our logs more readable by machines and we can stop writing custom parsers for syslog type records.\n\nNews\n=======\nHi, I see this package is quiet alive and I am sorry for ignoring it so long. I will be stepping up my maintenance of this package so please allow me a week to get things back in order (and most likely a new minor version) and I'll post and update here once I am caught up.\n\nInstalling\n==========\nPip:\n\n    pip install python-json-logger\n\nPypi:\n\n   https://pypi.python.org/pypi/python-json-logger\n\nManual:\n\n    python setup.py install\n\nUsage\n=====\n\n## Integrating with Python's logging framework\n\nJson outputs are provided by the JsonFormatter logging formatter. You can add the custom formatter like below:\n\n**Please note: version 0.1.0 has changed the import structure, please update to the following example for proper importing**\n\n```python\n    import logging\n    from pythonjsonlogger import jsonlogger\n\n    logger = logging.getLogger()\n\n    logHandler = logging.StreamHandler()\n    formatter = jsonlogger.JsonFormatter()\n    logHandler.setFormatter(formatter)\n    logger.addHandler(logHandler)\n```\n\n## Customizing fields\n\nThe fmt parser can also be overidden if you want to have required fields that differ from the default of just `message`.\n\nThese two invocations are equivalent:\n\n```python\nclass CustomJsonFormatter(jsonlogger.JsonFormatter):\n    def parse(self):\n        return self._fmt.split(';')\n\nformatter = CustomJsonFormatter('one;two')\n\n# is equivalent to:\n\nformatter = jsonlogger.JsonFormatter('%(one)s %(two)s')\n```\n\nYou can also add extra fields to your json output by specifying a dict in place of message, as well as by specifying an `extra={}` argument.\n\nContents of these dictionaries will be added at the root level of the entry and may override basic fields.\n\nYou can also use the `add_fields` method to add to or generally normalize the set of default set of fields, it is called for every log event. For example, to unify default fields with those provided by [structlog](http://www.structlog.org/) you could do something like this:\n\n```python\nclass CustomJsonFormatter(jsonlogger.JsonFormatter):\n    def add_fields(self, log_record, record, message_dict):\n        super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)\n        if not log_record.get('timestamp'):\n            # this doesn't use record.created, so it is slightly off\n            now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')\n            log_record['timestamp'] = now\n        if log_record.get('level'):\n            log_record['level'] = log_record['level'].upper()\n        else:\n            log_record['level'] = record.levelname\n\nformatter = CustomJsonFormatter('%(timestamp)s %(level)s %(name)s %(message)s')\n```\n\nItems added to the log record will be included in *every* log message, no matter what the format requires.\n\n## Adding custom object serialization\n\nFor custom handling of object serialization you can specify default json object translator or provide a custom encoder\n\n```python\ndef json_translate(obj):\n    if isinstance(obj, MyClass):\n        return {\"special\": obj.special}\n\nformatter = jsonlogger.JsonFormatter(json_default=json_translate,\n                                     json_encoder=json.JSONEncoder)\nlogHandler.setFormatter(formatter)\n\nlogger.info({\"special\": \"value\", \"run\": 12})\nlogger.info(\"classic message\", extra={\"special\": \"value\", \"run\": 12})\n```\n\n## Using a Config File\n\nTo use the module with a config file using the [`fileConfig` function](https://docs.python.org/3/library/logging.config.html#logging.config.fileConfig), use the class `pythonjsonlogger.jsonlogger.JsonFormatter`. Here is a sample config file.\n\n```ini\n[loggers]\nkeys = root,custom\n\n[logger_root]\nhandlers =\n\n[logger_custom]\nlevel = INFO\nhandlers = custom\nqualname = custom\n\n[handlers]\nkeys = custom\n\n[handler_custom]\nclass = StreamHandler\nlevel = INFO\nformatter = json\nargs = (sys.stdout,)\n\n[formatters]\nkeys = json\n\n[formatter_json]\nformat = %(message)s\nclass = pythonjsonlogger.jsonlogger.JsonFormatter\n```\n\nExample Output\n==============\n\nSample JSON with a full formatter (basically the log message from the unit test). Every log message will appear on 1 line like a typical logger.\n\n```json\n{\n    \"threadName\": \"MainThread\",\n    \"name\": \"root\",\n    \"thread\": 140735202359648,\n    \"created\": 1336281068.506248,\n    \"process\": 41937,\n    \"processName\": \"MainProcess\",\n    \"relativeCreated\": 9.100914001464844,\n    \"module\": \"tests\",\n    \"funcName\": \"testFormatKeys\",\n    \"levelno\": 20,\n    \"msecs\": 506.24799728393555,\n    \"pathname\": \"tests/tests.py\",\n    \"lineno\": 60,\n    \"asctime\": [\"12-05-05 22:11:08,506248\"],\n    \"message\": \"testing logging format\",\n    \"filename\": \"tests.py\",\n    \"levelname\": \"INFO\",\n    \"special\": \"value\",\n    \"run\": 12\n}\n```\n\nExternal Examples\n=================\n\n- [Wesley Tanaka - Structured log files in Python using python-json-logger](https://wtanaka.com/node/8201)\n\n- [Archive](https://web.archive.org/web/20201130054012/https://wtanaka.com/node/8201)\n\n\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "http://github.com/madzak/python-json-logger",
+      "keywords": "",
+      "license": "BSD",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "python-json-logger",
+      "package_url": "https://pypi.org/project/python-json-logger/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/python-json-logger/",
+      "project_urls": {
+        "Homepage": "http://github.com/madzak/python-json-logger"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/python-json-logger/2.0.5/",
+      "requires_dist": null,
+      "requires_python": ">=3.6",
+      "summary": "A python library adding a json log formatter",
+      "version": "2.0.5",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 40050338,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "nhairs"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "a835e03b681313c9af777cbca673c00bcadac4262cc8b7cfdeed2888e2d5d75e"
+        },
+        "digests": {
+          "blake2b_256": "863bfc7b3bff77b7e493bab923caf1f7dff3ef30198b0a79fbd46a09557c17f9",
+          "md5": "bec73e35bdfe5f9a4d42b55cf704b9b8",
+          "sha256": "f389ccb0a8fd26f84c294dc627a999daf58f759b457ee022f698098f6547288d"
+        },
+        "downloads": -1,
+        "filename": "python_json_logger-2.0.5-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "bec73e35bdfe5f9a4d42b55cf704b9b8",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.6",
+        "size": 7804,
+        "upload_time": "2023-02-12T19:15:29",
+        "upload_time_iso_8601": "2023-02-12T19:15:29.713713Z",
+        "url": "https://files.pythonhosted.org/packages/86/3b/fc7b3bff77b7e493bab923caf1f7dff3ef30198b0a79fbd46a09557c17f9/python_json_logger-2.0.5-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "4df78fe192d2535567deecc12d8b8e6c71230adebb4b0db407d852fff8e0b0cf",
+          "md5": "c11d48a55fdda33739aa5abc176f07f2",
+          "sha256": "3853e0b73e6c1ba4b1f2543066b24950bf1c21ed104f297a7bff8c74532a6ab2"
+        },
+        "downloads": -1,
+        "filename": "python-json-logger-2.0.5.tar.gz",
+        "has_sig": false,
+        "md5_digest": "c11d48a55fdda33739aa5abc176f07f2",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.6",
+        "size": 10224,
+        "upload_time": "2023-02-12T19:15:31",
+        "upload_time_iso_8601": "2023-02-12T19:15:31.279893Z",
+        "url": "https://files.pythonhosted.org/packages/4d/f7/8fe192d2535567deecc12d8b8e6c71230adebb4b0db407d852fff8e0b0cf/python-json-logger-2.0.5.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

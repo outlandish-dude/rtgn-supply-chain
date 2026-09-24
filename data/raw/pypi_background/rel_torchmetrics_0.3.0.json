@@ -1,0 +1,122 @@
+{
+  "package": "torchmetrics",
+  "version": "0.3.0",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:18:50.814881+00:00",
+  "payload": {
+    "info": {
+      "author": "PyTorchLightning et al.",
+      "author_email": "name@pytorchlightning.ai",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 3 - Alpha",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "Natural Language :: English",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Scientific/Engineering :: Image Recognition",
+        "Topic :: Scientific/Engineering :: Information Analysis"
+      ],
+      "description": "<div align=\"center\">\n\n<img src=\"https://github.com/PyTorchLightning/metrics/raw/v0.3.0/docs/source/_static/images/logo.png\" width=\"400px\">\n\n**Machine learning metrics for distributed, scalable PyTorch applications.**\n\n---\n\n<p align=\"center\">\n  <a href=\"#what-is-torchmetrics\">What is Torchmetrics</a> \u2022\n  <a href=\"#implementing-your-own-metric\">Implementing a metric</a> \u2022\n  <a href=\"#build-in-metrics\">Built-in metrics</a> \u2022\n  <a href=\"https://torchmetrics.readthedocs.io/en/v0.3.0\">Docs</a> \u2022\n  <a href=\"#community\">Community</a> \u2022\n  <a href=\"#license\">License</a>\n</p>\n\n---\n\n[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/torchmetrics)](https://pypi.org/project/torchmetrics/)\n[![PyPI Status](https://badge.fury.io/py/torchmetrics.svg)](https://badge.fury.io/py/torchmetrics)\n[![PyPI Status](https://pepy.tech/badge/torchmetrics)](https://pepy.tech/project/torchmetrics)\n[![Conda](https://img.shields.io/conda/v/conda-forge/torchmetrics?label=conda&color=success)](https://anaconda.org/conda-forge/torchmetrics)\n[![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/torchmetrics/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A)\n[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/metrics/blob/master/LICENSE)\n\n[![CI testing - base](https://github.com/PyTorchLightning/metrics/actions/workflows/ci_test-base.yml/badge.svg?tag=v0.3.0)](https://github.com/PyTorchLightning/metrics/actions/workflows/ci_test-base.yml)\n[![Build Status](https://dev.azure.com/PytorchLightning/Metrics/_apis/build/status/PyTorchLightning.metrics?branchName=refs%2Ftags%2Fv0.3.0)](https://dev.azure.com/PytorchLightning/Metrics/_build/latest?definitionId=2&branchName=refs%2Ftags%2Fv0.3.0)\n[![codecov](https://codecov.io/gh/PyTorchLightning/metrics/release/v0.3.0/graph/badge.svg?token=NER6LPI3HS)](https://codecov.io/gh/PyTorchLightning/metrics)\n[![Documentation Status](https://readthedocs.org/projects/torchmetrics/badge/?version=latest)](https://torchmetrics.readthedocs.io/en/latest/?badge=latest)\n\n---\n\n</div>\n\n\n## Installation\n\nSimple installation from PyPI\n```bash\npip install torchmetrics\n```\n\n<details>\n  <summary>Other installations</summary>\n\nInstall using conda\n```bash\nconda install torchmetrics\n```\n\nPip from source\n\n```bash\n# with git\npip install git+https://github.com/PytorchLightning/metrics.git@master\n```\n\nPip from archive\n```bash\npip install https://github.com/PyTorchLightning/metrics/archive/master.zip\n```\n\n</details>\n\n---\n\n## What is Torchmetrics\nTorchMetrics is a collection of 25+ PyTorch metrics implementations and an easy-to-use API to create custom metrics. It offers:\n\n* A standardized interface to increase reproducibility\n* Reduces boilerplate\n* Automatic accumulation over batches\n* Metrics optimized for distributed-training\n* Automatic synchronization between multiple devices\n\nYou can use TorchMetrics with any PyTorch model or with [PyTorch Lightning](https://pytorch-lightning.readthedocs.io/en/stable/) to enjoy additional features such as:\n\n* Module metrics are automatically placed on the correct device.\n* Native support for logging metrics in Lightning to reduce even more boilerplate.\n\n## Using TorchMetrics\n\n### Module metrics\n\nThe [module-based metrics](https://pytorchlightning.github.io/metrics/references/modules.html) contain internal metric states (similar to the parameters of the PyTorch module) that automate accumulation and synchronization across devices!\n\n* Automatic accumulation over multiple batches\n* Automatic synchronization between multiple devices\n* Metric arithmetic\n\n**This can be run on CPU, single GPU or multi-GPUs!**\n\nFor the single GPU/CPU case:\n\n``` python\nimport torch\n# import our library\nimport torchmetrics \n\n# initialize metric\nmetric = torchmetrics.Accuracy()\n\nn_batches = 10\nfor i in range(n_batches):\n    # simulate a classification problem\n    preds = torch.randn(10, 5).softmax(dim=-1)\n    target = torch.randint(5, (10,))\n\n    # metric on current batch\n    acc = metric(preds, target)\n    print(f\"Accuracy on batch {i}: {acc}\")    \n\n# metric on all batches using custom accumulation\nacc = metric.compute()\nprint(f\"Accuracy on all data: {acc}\")\n```\n\nModule metric usage remains the same when using multiple GPUs or multiple nodes. \n\n<details>\n  <summary>Example using DDP</summary>\n\n``` python\n\nimport os\nimport torch\nfrom torch import nn\nimport torch.distributed as dist\nimport torch.multiprocessing as mp\nfrom torch.nn.parallel import DistributedDataParallel as DDP\nimport torchmetrics\n\ndef metric_ddp(rank, world_size):\n    os.environ['MASTER_ADDR'] = 'localhost'\n    os.environ['MASTER_PORT'] = '12355'\n\n    # create default process group\n    dist.init_process_group(\"gloo\", rank=rank, world_size=world_size)\n\n    # initialize model\n    metric = torchmetrics.Accuracy()\n\n    # define a model and append your metric to it\n    # this allows metric states to be placed on correct accelerators when\n    # .to(device) is called on the model\n    model = nn.Linear(10, 10)\n    model.metric = metric\n    model = model.to(rank)\n\n    # initialize DDP\n    model = DDP(model, device_ids=[rank])\n\n    n_epochs = 5\n    # this shows iteration over multiple training epochs\n    for n in range(n_epochs):\n\n        # this will be replaced by a DataLoader with a DistributedSampler\n        n_batches = 10\n        for i in range(n_batches):\n            # simulate a classification problem\n            preds = torch.randn(10, 5).softmax(dim=-1)\n            target = torch.randint(5, (10,))\n\n            # metric on current batch\n            acc = metric(preds, target)\n            if rank == 0:  # print only for rank 0\n                print(f\"Accuracy on batch {i}: {acc}\")    \n\n        # metric on all batches and all accelerators using custom accumulation\n        # accuracy is same across both accelerators\n        acc = metric.compute()\n        print(f\"Accuracy on all data: {acc}, accelerator rank: {rank}\")\n\n        # Reseting internal state such that metric ready for new data\n        metric.reset()\n\n    # cleanup\n    dist.destroy_process_group()\n\nif __name__ == \"__main__\":\n    world_size = 2   # number of gpus to parallize over\n    mp.spawn(metric_ddp, args=(world_size,), nprocs=world_size, join=True)\n\n```\n</details>\n\n### Implementing your own Module metric\n\nImplementing your own metric is as easy as subclassing an [`torch.nn.Module`](https://pytorch.org/docs/stable/generated/torch.nn.Module.html). Simply, subclass `torchmetrics.Metric`\nand implement the following methods:\n\n```python\nimport torch\nfrom torchmetrics import Metric\n\nclass MyAccuracy(Metric):\n    def __init__(self, dist_sync_on_step=False):\n        # call `self.add_state`for every internal state that is needed for the metrics computations\n\t# dist_reduce_fx indicates the function that should be used to reduce \n\t# state from multiple processes\n\tsuper().__init__(dist_sync_on_step=dist_sync_on_step)\n\n        self.add_state(\"correct\", default=torch.tensor(0), dist_reduce_fx=\"sum\")\n        self.add_state(\"total\", default=torch.tensor(0), dist_reduce_fx=\"sum\")\n\n    def update(self, preds: torch.Tensor, target: torch.Tensor):\n        # update metric states\n        preds, target = self._input_format(preds, target)\n        assert preds.shape == target.shape\n\n        self.correct += torch.sum(preds == target)\n        self.total += target.numel()\n\n    def compute(self):\n        # compute final result\n        return self.correct.float() / self.total\n```\n\n### Functional metrics\n\nSimilar to [`torch.nn`](https://pytorch.org/docs/stable/nn.html), most metrics have both a [module-based](https://torchmetrics.readthedocs.io/en/latest/references/modules.html) and a [functional](https://torchmetrics.readthedocs.io/en/latest/references/functional.html) version.\nThe functional versions are simple python functions that as input take [torch.tensors](https://pytorch.org/docs/stable/tensors.html) and return the corresponding metric as a [torch.tensor](https://pytorch.org/docs/stable/tensors.html).\n\n``` python\nimport torch\n# import our library\nimport torchmetrics\n\n# simulate a classification problem\npreds = torch.randn(10, 5).softmax(dim=-1)\ntarget = torch.randint(5, (10,))\n\nacc = torchmetrics.functional.accuracy(preds, target)\n```\n\n### Implemented metrics\n\n* [Accuracy](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#accuracy)\n* [AveragePrecision](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#averageprecision)\n* [AUC](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#auc)\n* [AUROC](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#auroc)\n* [F1](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#f1) \n* [Hamming Distance](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#hamming-distance)\n* [ROC](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#roc)\n* [ExplainedVariance](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#explainedvariance)\n* [MeanSquaredError](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#meansquarederror)\n* [R2Score](https://torchmetrics.readthedocs.io/en/latest/references/modules.html#r2score)\n* [bleu_score](https://torchmetrics.readthedocs.io/en/latest/references/functional.html#bleu-score-func)\n* [embedding_similarity](https://torchmetrics.readthedocs.io/en/latest/references/functional.html#embedding-similarity-func)\n\nAnd many more!\n\n## Contribute!\nThe lightning + torchmetric team is hard at work adding even more metrics. \nBut we're looking for incredible contributors like you to submit new metrics\nand improve existing ones!\n\nJoin our [Slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A) \nto get help becoming a contributor!\n\n## Community\nFor help or questions, join our huge community on [Slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A)!\n\n## Citations\nWe\u2019re excited to continue the strong legacy of open source software and have been inspired over the years by \nCaffe, Theano, Keras, PyTorch, torchbearer, ignite, sklearn and fast.ai. When/if a paper is written about this, \nwe\u2019ll be happy to cite these frameworks and the corresponding authors.\n\n## License\nPlease observe the Apache 2.0 license that is listed in this repository. In addition\nthe Lightning framework is Patent Pending.\n\n\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "https://github.com/PyTorchLightning/metrics/archive/master.zip",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/PyTorchLightning/metrics",
+      "keywords": "deep learning,machine learning,pytorch,metrics,AI",
+      "license": "Apache-2.0",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "torchmetrics",
+      "package_url": "https://pypi.org/project/torchmetrics/",
+      "platform": "",
+      "project_url": "https://pypi.org/project/torchmetrics/",
+      "project_urls": {
+        "Bug Tracker": "https://github.com/PyTorchLightning/metrics/issues",
+        "Documentation": "https://torchmetrics.rtfd.io/en/latest/",
+        "Download": "https://github.com/PyTorchLightning/metrics/archive/master.zip",
+        "Homepage": "https://github.com/PyTorchLightning/metrics",
+        "Source Code": "https://github.com/PyTorchLightning/metrics"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/torchmetrics/0.3.0/",
+      "requires_dist": [
+        "numpy",
+        "torch (>=1.3.1)",
+        "packaging"
+      ],
+      "requires_python": ">=3.6",
+      "summary": "PyTorch native Metrics",
+      "version": "0.3.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 36797645,
+    "ownership": {
+      "organization": "Lightning-AI",
+      "roles": []
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "3a65c39d5ca1ccbec6bc402d4465349231aa5011f5f7ce4bd785dfa577262620"
+        },
+        "digests": {
+          "blake2b_256": "8c79e0e5bd38def3b53cf7abf7cf94c90b5d64248892f153c20a0c7d337b927c",
+          "md5": "2ca80b1503c187135067a846e103ce70",
+          "sha256": "445deea46b3d1ed7cdb2164f7bc5831b7e2d690b98bd119142238610384aee63"
+        },
+        "downloads": -1,
+        "filename": "torchmetrics-0.3.0-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "2ca80b1503c187135067a846e103ce70",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.6",
+        "size": 270757,
+        "upload_time": "2021-04-20T19:40:55",
+        "upload_time_iso_8601": "2021-04-20T19:40:55.338077Z",
+        "url": "https://files.pythonhosted.org/packages/8c/79/e0e5bd38def3b53cf7abf7cf94c90b5d64248892f153c20a0c7d337b927c/torchmetrics-0.3.0-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "5f89a114712d2cd5cb38474c1e2d16f6e026e44baee8396b709cdfb3d7a31494",
+          "md5": "db00a1d077ce827ff721d0e8ef681f97",
+          "sha256": "182f4d992233de47629f07dfe6494d7bbdd2fa1f14aa650eee12cbd60f33e187"
+        },
+        "downloads": -1,
+        "filename": "torchmetrics-0.3.0.tar.gz",
+        "has_sig": false,
+        "md5_digest": "db00a1d077ce827ff721d0e8ef681f97",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.6",
+        "size": 97184,
+        "upload_time": "2021-04-20T19:40:56",
+        "upload_time_iso_8601": "2021-04-20T19:40:56.484331Z",
+        "url": "https://files.pythonhosted.org/packages/5f/89/a114712d2cd5cb38474c1e2d16f6e026e44baee8396b709cdfb3d7a31494/torchmetrics-0.3.0.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

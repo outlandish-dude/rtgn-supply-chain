@@ -1,0 +1,123 @@
+{
+  "package": "threadpoolctl",
+  "version": "3.4.0",
+  "status_code": 200,
+  "timestamp": "2026-09-22T19:03:27.318189+00:00",
+  "payload": {
+    "info": {
+      "author": "Thomas Moreau",
+      "author_email": "thomas.moreau.2010@gmail.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Software Development :: Libraries :: Python Modules"
+      ],
+      "description": "# Thread-pool Controls [![Build Status](https://dev.azure.com/joblib/threadpoolctl/_apis/build/status/joblib.threadpoolctl?branchName=master)](https://dev.azure.com/joblib/threadpoolctl/_build/latest?definitionId=1&branchName=master) [![codecov](https://codecov.io/gh/joblib/threadpoolctl/branch/master/graph/badge.svg)](https://codecov.io/gh/joblib/threadpoolctl)\n\nPython helpers to limit the number of threads used in the\nthreadpool-backed of common native libraries used for scientific\ncomputing and data science (e.g. BLAS and OpenMP).\n\nFine control of the underlying thread-pool size can be useful in\nworkloads that involve nested parallelism so as to mitigate\noversubscription issues.\n\n## Installation\n\n- For users, install the last published version from PyPI:\n\n  ```bash\n  pip install threadpoolctl\n  ```\n\n- For contributors, install from the source repository in developer\n  mode:\n\n  ```bash\n  pip install -r dev-requirements.txt\n  flit install --symlink\n  ```\n\n  then you run the tests with pytest:\n\n  ```bash\n  pytest\n  ```\n\n## Usage\n\n### Command Line Interface\n\nGet a JSON description of thread-pools initialized when importing python\npackages such as numpy or scipy for instance:\n\n```\npython -m threadpoolctl -i numpy scipy.linalg\n[\n  {\n    \"filepath\": \"/home/ogrisel/miniconda3/envs/tmp/lib/libmkl_rt.so\",\n    \"prefix\": \"libmkl_rt\",\n    \"user_api\": \"blas\",\n    \"internal_api\": \"mkl\",\n    \"version\": \"2019.0.4\",\n    \"num_threads\": 2,\n    \"threading_layer\": \"intel\"\n  },\n  {\n    \"filepath\": \"/home/ogrisel/miniconda3/envs/tmp/lib/libiomp5.so\",\n    \"prefix\": \"libiomp\",\n    \"user_api\": \"openmp\",\n    \"internal_api\": \"openmp\",\n    \"version\": null,\n    \"num_threads\": 4\n  }\n]\n```\n\nThe JSON information is written on STDOUT. If some of the packages are missing,\na warning message is displayed on STDERR.\n\n### Python Runtime Programmatic Introspection\n\nIntrospect the current state of the threadpool-enabled runtime libraries\nthat are loaded when importing Python packages:\n\n```python\n>>> from threadpoolctl import threadpool_info\n>>> from pprint import pprint\n>>> pprint(threadpool_info())\n[]\n\n>>> import numpy\n>>> pprint(threadpool_info())\n[{'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libmkl_rt.so',\n  'internal_api': 'mkl',\n  'num_threads': 2,\n  'prefix': 'libmkl_rt',\n  'threading_layer': 'intel',\n  'user_api': 'blas',\n  'version': '2019.0.4'},\n {'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libiomp5.so',\n  'internal_api': 'openmp',\n  'num_threads': 4,\n  'prefix': 'libiomp',\n  'user_api': 'openmp',\n  'version': None}]\n\n>>> import xgboost\n>>> pprint(threadpool_info())\n[{'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libmkl_rt.so',\n  'internal_api': 'mkl',\n  'num_threads': 2,\n  'prefix': 'libmkl_rt',\n  'threading_layer': 'intel',\n  'user_api': 'blas',\n  'version': '2019.0.4'},\n {'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libiomp5.so',\n  'internal_api': 'openmp',\n  'num_threads': 4,\n  'prefix': 'libiomp',\n  'user_api': 'openmp',\n  'version': None},\n {'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libgomp.so.1.0.0',\n  'internal_api': 'openmp',\n  'num_threads': 4,\n  'prefix': 'libgomp',\n  'user_api': 'openmp',\n  'version': None}]\n```\n\nIn the above example, `numpy` was installed from the default anaconda channel and comes\nwith MKL and its Intel OpenMP (`libiomp5`) implementation while `xgboost` was installed\nfrom pypi.org and links against GNU OpenMP (`libgomp`) so both OpenMP runtimes are\nloaded in the same Python program.\n\nThe state of these libraries is also accessible through the object oriented API:\n\n```python\n>>> from threadpoolctl import ThreadpoolController, threadpool_info\n>>> from pprint import pprint\n>>> import numpy\n>>> controller = ThreadpoolController()\n>>> pprint(controller.info())\n[{'architecture': 'Haswell',\n  'filepath': '/home/jeremie/miniconda/envs/dev/lib/libopenblasp-r0.3.17.so',\n  'internal_api': 'openblas',\n  'num_threads': 4,\n  'prefix': 'libopenblas',\n  'threading_layer': 'pthreads',\n  'user_api': 'blas',\n  'version': '0.3.17'}]\n\n>>> controller.info() == threadpool_info()\nTrue\n```\n\n### Setting the Maximum Size of Thread-Pools\n\nControl the number of threads used by the underlying runtime libraries\nin specific sections of your Python program:\n\n```python\n>>> from threadpoolctl import threadpool_limits\n>>> import numpy as np\n\n>>> with threadpool_limits(limits=1, user_api='blas'):\n...     # In this block, calls to blas implementation (like openblas or MKL)\n...     # will be limited to use only one thread. They can thus be used jointly\n...     # with thread-parallelism.\n...     a = np.random.randn(1000, 1000)\n...     a_squared = a @ a\n```\n\nThe threadpools can also be controlled via the object oriented API, which is especially\nuseful to avoid searching through all the loaded shared libraries each time. It will\nhowever not act on libraries loaded after the instantiation of the\n`ThreadpoolController`:\n\n```python\n>>> from threadpoolctl import ThreadpoolController\n>>> import numpy as np\n>>> controller = ThreadpoolController()\n\n>>> with controller.limit(limits=1, user_api='blas'):\n...     a = np.random.randn(1000, 1000)\n...     a_squared = a @ a\n```\n\n### Restricting the limits to the scope of a function\n\n`threadpool_limits` and `ThreadpoolController` can also be used as decorators to set\nthe maximum number of threads used by the supported libraries at a function level. The\ndecorators are accessible through their `wrap` method:\n\n```python\n>>> from threadpoolctl import ThreadpoolController, threadpool_limits\n>>> import numpy as np\n>>> controller = ThreadpoolController()\n\n>>> @controller.wrap(limits=1, user_api='blas')\n... # or @threadpool_limits.wrap(limits=1, user_api='blas')\n... def my_func():\n...     # Inside this function, calls to blas implementation (like openblas or MKL)\n...     # will be limited to use only one thread.\n...     a = np.random.randn(1000, 1000)\n...     a_squared = a @ a\n...\n```\n\n### Switching the FlexiBLAS backend\n\n`FlexiBLAS` is a BLAS wrapper for which the BLAS backend can be switched at runtime.\n`threadpoolctl` exposes python bindings for this feature. Here's an example but note\nthat this part of the API is experimental and subject to change without deprecation:\n\n```python\n>>> from threadpoolctl import ThreadpoolController\n>>> import numpy as np\n>>> controller = ThreadpoolController()\n\n>>> controller.info()\n[{'user_api': 'blas',\n  'internal_api': 'flexiblas',\n  'num_threads': 1,\n  'prefix': 'libflexiblas',\n  'filepath': '/usr/local/lib/libflexiblas.so.3.3',\n  'version': '3.3.1',\n  'available_backends': ['NETLIB', 'OPENBLASPTHREAD', 'ATLAS'],\n  'loaded_backends': ['NETLIB'],\n  'current_backend': 'NETLIB'}]\n\n# Retrieve the flexiblas controller\n>>> flexiblas_ct = controller.select(internal_api=\"flexiblas\").lib_controllers[0]\n\n# Switch the backend with one predefined at build time (listed in \"available_backends\")\n>>> flexiblas_ct.switch_backend(\"OPENBLASPTHREAD\")\n>>> controller.info()\n[{'user_api': 'blas',\n  'internal_api': 'flexiblas',\n  'num_threads': 4,\n  'prefix': 'libflexiblas',\n  'filepath': '/usr/local/lib/libflexiblas.so.3.3',\n  'version': '3.3.1',\n  'available_backends': ['NETLIB', 'OPENBLASPTHREAD', 'ATLAS'],\n  'loaded_backends': ['NETLIB', 'OPENBLASPTHREAD'],\n  'current_backend': 'OPENBLASPTHREAD'},\n {'user_api': 'blas',\n  'internal_api': 'openblas',\n  'num_threads': 4,\n  'prefix': 'libopenblas',\n  'filepath': '/usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.8.so',\n  'version': '0.3.8',\n  'threading_layer': 'pthreads',\n  'architecture': 'Haswell'}]\n\n# It's also possible to directly give the path to a shared library\n>>> flexiblas_controller.switch_backend(\"/home/jeremie/miniforge/envs/flexiblas_threadpoolctl/lib/libmkl_rt.so\")\n>>> controller.info()\n[{'user_api': 'blas',\n  'internal_api': 'flexiblas',\n  'num_threads': 2,\n  'prefix': 'libflexiblas',\n  'filepath': '/usr/local/lib/libflexiblas.so.3.3',\n  'version': '3.3.1',\n  'available_backends': ['NETLIB', 'OPENBLASPTHREAD', 'ATLAS'],\n  'loaded_backends': ['NETLIB',\n   'OPENBLASPTHREAD',\n   '/home/jeremie/miniforge/envs/flexiblas_threadpoolctl/lib/libmkl_rt.so'],\n  'current_backend': '/home/jeremie/miniforge/envs/flexiblas_threadpoolctl/lib/libmkl_rt.so'},\n {'user_api': 'openmp',\n  'internal_api': 'openmp',\n  'num_threads': 4,\n  'prefix': 'libomp',\n  'filepath': '/home/jeremie/miniforge/envs/flexiblas_threadpoolctl/lib/libomp.so',\n  'version': None},\n {'user_api': 'blas',\n  'internal_api': 'openblas',\n  'num_threads': 4,\n  'prefix': 'libopenblas',\n  'filepath': '/usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.8.so',\n  'version': '0.3.8',\n  'threading_layer': 'pthreads',\n  'architecture': 'Haswell'},\n {'user_api': 'blas',\n  'internal_api': 'mkl',\n  'num_threads': 2,\n  'prefix': 'libmkl_rt',\n  'filepath': '/home/jeremie/miniforge/envs/flexiblas_threadpoolctl/lib/libmkl_rt.so.2',\n  'version': '2024.0-Product',\n  'threading_layer': 'gnu'}]\n```\n\nYou can observe that the previously linked OpenBLAS shared object stays loaded by\nthe Python program indefinitely, but FlexiBLAS itself no longer delegates BLAS calls\nto OpenBLAS as indicated by the `current_backend` attribute.\n### Writing a custom library controller\n\nCurrently, `threadpoolctl` has support for `OpenMP` and the main `BLAS` libraries.\nHowever it can also be used to control the threadpool of other native libraries,\nprovided that they expose an API to get and set the limit on the number of threads.\nFor that, one must implement a controller for this library and register it to\n`threadpoolctl`.\n\nA custom controller must be a subclass of the `LibController` class and implement\nthe attributes and methods described in the docstring of `LibController`. Then this\nnew controller class must be registered using the `threadpoolctl.register` function.\nAn complete example can be found [here](\n  https://github.com/joblib/threadpoolctl/blob/master/tests/_pyMylib/__init__.py).\n\n### Sequential BLAS within OpenMP parallel region\n\nWhen one wants to have sequential BLAS calls within an OpenMP parallel region, it's\nsafer to set `limits=\"sequential_blas_under_openmp\"` since setting `limits=1` and\n`user_api=\"blas\"` might not lead to the expected behavior in some configurations\n(e.g. OpenBLAS with the OpenMP threading layer\nhttps://github.com/xianyi/OpenBLAS/issues/2985).\n\n### Known Limitations\n\n- `threadpool_limits` can fail to limit the number of inner threads when nesting\n  parallel loops managed by distinct OpenMP runtime implementations (for instance\n  libgomp from GCC and libomp from clang/llvm or libiomp from ICC).\n\n  See the `test_openmp_nesting` function in [tests/test_threadpoolctl.py](\n  https://github.com/joblib/threadpoolctl/blob/master/tests/test_threadpoolctl.py)\n  for an example. More information can be found at:\n  https://github.com/jeremiedbb/Nested_OpenMP\n\n  Note however that this problem does not happen when `threadpool_limits` is\n  used to limit the number of threads used internally by BLAS calls that are\n  themselves nested under OpenMP parallel loops. `threadpool_limits` works as\n  expected, even if the inner BLAS implementation relies on a distinct OpenMP\n  implementation.\n\n- Using Intel OpenMP (ICC) and LLVM OpenMP (clang) in the same Python program\n  under Linux is known to cause problems. See the following guide for more details\n  and workarounds:\n  https://github.com/joblib/threadpoolctl/blob/master/multiple_openmp.md\n\n- Setting the maximum number of threads of the OpenMP and BLAS libraries has a global\n  effect and impacts the whole Python process. There is no thread level isolation as\n  these libraries do not offer thread-local APIs to configure the number of threads to\n  use in nested parallel calls.\n\n\n## Maintainers\n\nTo make a release:\n\nBump the version number (`__version__`) in `threadpoolctl.py`.\n\nBuild the distribution archives:\n\n```bash\npip install flit\nflit build\n```\n\nCheck the contents of `dist/`.\n\nIf everything is fine, make a commit for the release, tag it, push the\ntag to github and then:\n\n```bash\nflit publish\n```\n\n### Credits\n\nThe initial dynamic library introspection code was written by @anton-malakhov\nfor the smp package available at https://github.com/IntelPython/smp .\n\nthreadpoolctl extends this for other operating systems. Contrary to smp,\nthreadpoolctl does not attempt to limit the size of Python multiprocessing\npools (threads or processes) or set operating system-level CPU affinity\nconstraints: threadpoolctl only interacts with native libraries via their\npublic runtime APIs.\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/joblib/threadpoolctl",
+      "keywords": null,
+      "license": "BSD-3-Clause",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "threadpoolctl",
+      "package_url": "https://pypi.org/project/threadpoolctl/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/threadpoolctl/",
+      "project_urls": {
+        "Homepage": "https://github.com/joblib/threadpoolctl"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/threadpoolctl/3.4.0/",
+      "requires_dist": null,
+      "requires_python": ">=3.8",
+      "summary": "threadpoolctl",
+      "version": "3.4.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41099157,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "jeremiedbb"
+        },
+        {
+          "role": "Owner",
+          "user": "ogrisel"
+        },
+        {
+          "role": "Owner",
+          "user": "tommoral"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": null,
+        "core-metadata": {
+          "sha256": "5a6bc562311ecab86a0dd9dc2780e176621956fdcca9434da077faedcb889862"
+        },
+        "digests": {
+          "blake2b_256": "1e84ccd9b08653022b7785b6e3ee070ffb2825841e0dc119be22f0840b2b35cb",
+          "md5": "659cf3eb6d79b63382d98882bd14b83c",
+          "sha256": "8f4c689a65b23e5ed825c8436a92b818aac005e0f3715f6a1664d7c7ee29d262"
+        },
+        "downloads": -1,
+        "filename": "threadpoolctl-3.4.0-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "659cf3eb6d79b63382d98882bd14b83c",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.8",
+        "size": 17960,
+        "upload_time": "2024-03-20T13:42:46",
+        "upload_time_iso_8601": "2024-03-20T13:42:46.132978Z",
+        "url": "https://files.pythonhosted.org/packages/1e/84/ccd9b08653022b7785b6e3ee070ffb2825841e0dc119be22f0840b2b35cb/threadpoolctl-3.4.0-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": null,
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "7b507e12b84eabcc8a88ec0e617f6fe94dd31db747ec27ff2b18728eaadaa086",
+          "md5": "99b941e8022c91317c1e9bf6decc808b",
+          "sha256": "f11b491a03661d6dd7ef692dd422ab34185d982466c49c8f98c8f716b5c93196"
+        },
+        "downloads": -1,
+        "filename": "threadpoolctl-3.4.0.tar.gz",
+        "has_sig": false,
+        "md5_digest": "99b941e8022c91317c1e9bf6decc808b",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.8",
+        "size": 41622,
+        "upload_time": "2024-03-20T13:42:53",
+        "upload_time_iso_8601": "2024-03-20T13:42:53.011674Z",
+        "url": "https://files.pythonhosted.org/packages/7b/50/7e12b84eabcc8a88ec0e617f6fe94dd31db747ec27ff2b18728eaadaa086/threadpoolctl-3.4.0.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

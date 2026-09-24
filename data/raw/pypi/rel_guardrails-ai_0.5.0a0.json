@@ -1,0 +1,249 @@
+{
+  "package": "guardrails-ai",
+  "version": "0.5.0a0",
+  "status_code": 200,
+  "url": "https://pypi.org/pypi/guardrails-ai/0.5.0a0/json",
+  "timestamp": "2026-09-22T05:48:43.765734+00:00",
+  "payload": {
+    "info": {
+      "author": "Guardrails AI",
+      "author_email": "contact@guardrailsai.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.9"
+      ],
+      "description": "<div align=\"center\">\n\n<img src=\"https://raw.githubusercontent.com/guardrails-ai/guardrails/main/docs/img/Guardrails-ai-logo-for-dark-bg.svg#gh-dark-mode-only\" alt=\"Guardrails AI Logo\" width=\"600px\">\n<img src=\"https://raw.githubusercontent.com/guardrails-ai/guardrails/main/docs/img/Guardrails-ai-logo-for-white-bg.svg#gh-light-mode-only\" alt=\"Guardrails AI Logo\" width=\"600px\">\n\n<hr>\n\n[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)\n![PyPI - Python Version](https://img.shields.io/pypi/pyversions/guardrails-ai)\n[![CI](https://github.com/guardrails-ai/guardrails/actions/workflows/ci.yml/badge.svg)](https://github.com/guardrails-ai/guardrails/actions/workflows/ci.yml)\n[![codecov](https://codecov.io/gh/guardrails-ai/guardrails/graph/badge.svg?token=CPkjw91Ngo)](https://codecov.io/gh/guardrails-ai/guardrails)\n[![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)\n[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/guardrails_ai)](https://x.com/guardrails_ai)\n[![Discord](https://img.shields.io/discord/1085077079697150023?logo=discord&label=support&link=https%3A%2F%2Fdiscord.gg%2Fgw4cR9QvYE)](https://discord.gg/U9RKkZSBgx)\n[![Static Badge](https://img.shields.io/badge/Docs-blue?link=https%3A%2F%2Fwww.guardrailsai.com%2Fdocs)](https://www.guardrailsai.com/docs)\n[![Static Badge](https://img.shields.io/badge/Blog-blue?link=https%3A%2F%2Fwww.guardrailsai.com%2Fblog)](https://www.guardrailsai.com/blog)\n\n</div>\n\n## What is Guardrails?\n\nGuardrails is a Python framework that helps build reliable AI applications by performing two key functions:\n1. Guardrails runs Input/Output Guards in your application that detect, quantify and mitigate the presence of specific types of risks. To look at the full suite of risks, check out [Guardrails Hub](https://hub.guardrailsai.com/).\n2. Guardrails help you generate structured data from LLMs.\n\n\n<div align=\"center\">\n<img src=\"https://raw.githubusercontent.com/guardrails-ai/guardrails/main/docs/img/with_and_without_guardrails.svg\" alt=\"Guardrails in your application\" width=\"1500px\">\n</div>\n\n\n### Guardrails Hub\n\nGuardrails Hub is a collection of pre-built measures of specific types of risks (called 'validators'). Multiple validators can be combined together into Input and Output Guards that intercept the inputs and outputs of LLMs. Visit [Guardrails Hub](https://hub.guardrailsai.com/) to see the full list of validators and their documentation.\n\n<div align=\"center\">\n<img src=\"https://raw.githubusercontent.com/guardrails-ai/guardrails/main/docs/img/guardrails_hub.gif\" alt=\"Guardrails Hub gif\" width=\"600px\">\n</div>\n\n\n## Installation\n\n```python\npip install guardrails-ai\n```\n\n\n## Getting Started\n\n\n### Create Input and Output Guards for LLM Validation\n\n1. Download and configure the Guardrails Hub CLI.\n    \n    ```bash\n    pip install guardrails-ai\n    guardrails configure\n    ```\n2. Install a guardrail from Guardrails Hub.\n\n    ```bash\n    guardrails hub install hub://guardrails/regex_match\n    ```\n3. Create a Guard from the installed guardrail.\n\n    ```python\n    from guardrails import Guard, OnFailAction\n    from guardrails.hub import RegexMatch\n\n    guard = Guard().use(\n        RegexMatch, regex=\"\\(?\\d{3}\\)?-? *\\d{3}-? *-?\\d{4}\", on_fail=OnFailAction.EXCEPTION\n    )\n\n    guard.validate(\"123-456-7890\")  # Guardrail passes\n\n    try:\n        guard.validate(\"1234-789-0000\")  # Guardrail fails\n    except Exception as e:\n        print(e)\n    ```\n    Output:\n    ```console\n    Validation failed for field with errors: Result must match \\(?\\d{3}\\)?-? *\\d{3}-? *-?\\d{4}\n    ```\n4. Run multiple guardrails within a Guard.\n    First, install the necessary guardrails from Guardrails Hub.\n\n    ```bash\n    guardrails hub install hub://guardrails/competitor_check\n    guardrails hub install hub://guardrails/toxic_language\n    ```\n\n    Then, create a Guard from the installed guardrails.\n    \n    ```python\n    from guardrails import Guard, OnFailAction\n    from guardrails.hub import CompetitorCheck, ToxicLanguage\n\n    guard = Guard().use_many(\n        CompetitorCheck([\"Apple\", \"Microsoft\", \"Google\"], on_fail=OnFailAction.EXCEPTION),\n        ToxicLanguage(threshold=0.5, validation_method=\"sentence\", on_fail=OnFailAction.EXCEPTION),),\n    )\n\n    guard.validate(\n        \"\"\"An apple a day keeps a doctor away.\n        This is good advice for keeping your health.\"\"\"\n    )  # Both the guardrails pass\n\n    try:\n        guard.validate(\n            \"\"\"Shut the hell up! Apple just released a new iPhone.\"\"\"\n        )  # Both the guardrails fail\n    except Exception as e:\n        print(e)\n    ```\n    Output:\n    ```console\n    Validation failed for field with errors: Found the following competitors: [['Apple']]. Please avoid naming those competitors next time, The following sentences in your response were found to be toxic:\n\n    - Shut the hell up!\n    ```\n\n### Use Guardrails to generate structured data from LLMs\n\n\nLet's go through an example where we ask an LLM to generate fake pet names. To do this, we'll create a Pydantic [BaseModel](https://docs.pydantic.dev/latest/api/base_model/) that represents the structure of the output we want.\n\n```py\nfrom pydantic import BaseModel, Field\n\nclass Pet(BaseModel):\n    pet_type: str = Field(description=\"Species of pet\")\n    name: str = Field(description=\"a unique pet name\")\n```\n\nNow, create a Guard from the `Pet` class. The Guard can be used to call the LLM in a manner so that the output is formatted to the `Pet` class. Under the hood, this is done by either of two methods:\n1. Function calling: For LLMs that support function calling, we generate structured data using the function call syntax.\n2. Prompt optimization: For LLMs that don't support function calling, we add the schema of the expected output to the prompt so that the LLM can generate structured data.\n\n```py\nfrom guardrails import Guard\nimport openai\n\nprompt = \"\"\"\n    What kind of pet should I get and what should I name it?\n\n    ${gr.complete_json_suffix_v2}\n\"\"\"\nguard = Guard.from_pydantic(output_class=Pet, prompt=prompt)\n\nraw_output, validated_output, *rest = guard(\n    llm_api=openai.completions.create,\n    engine=\"gpt-3.5-turbo-instruct\"\n)\n\nprint(validated_output)\n```\n\nThis prints: \n```\n{\n    \"pet_type\": \"dog\",\n    \"name\": \"Buddy\n}\n```\n\n## FAQ\n\n#### I'm running into issues with Guardrails. Where can I get help?\n\nYou can reach out to us on [Discord](https://discord.gg/gw4cR9QvYE) or [Twitter](https://twitter.com/guardrails_ai).\n\n#### Can I use Guardrails with any LLM?\n\nYes, Guardrails can be used with proprietary and open-source LLMs. Check out this guide on [how to use Guardrails with any LLM](https://www.guardrailsai.com/docs/how_to_guides/llm_api_wrappers).\n\n#### Can I create my own validators?\n\nYes, you can create your own validators and contribute them to Guardrails Hub. Check out this guide on [how to create your own validators](https://www.guardrailsai.com/docs/hub/how_to_guides/custom_validator).\n\n#### Does Guardrails support other languages?\n\nGuardrails can be used with Python and JavaScript. Check out the docs on how to use Guardrails from JavaScript. We are working on adding support for other languages. If you would like to contribute to Guardrails, please reach out to us on [Discord](https://discord.gg/gw4cR9QvYE) or [Twitter](https://twitter.com/guardrails_ai).\n\n\n## Contributing\n\nWe welcome contributions to Guardrails!\n\nGet started by checking out Github issues and check out the [Contributing Guide](CONTRIBUTING.md). Feel free to open an issue, or reach out if you would like to add to the project!\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": null,
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://www.guardrailsai.com/",
+      "keywords": null,
+      "license": "Apache-2.0",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "guardrails-ai",
+      "package_url": "https://pypi.org/project/guardrails-ai/",
+      "platform": null,
+      "project_url": "https://pypi.org/project/guardrails-ai/",
+      "project_urls": {
+        "Documentation": "https://www.guardrailsai.com/docs",
+        "Homepage": "https://www.guardrailsai.com/"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/guardrails-ai/0.5.0a0/",
+      "requires_dist": [
+        "lxml<5.0.0,>=4.9.3",
+        "openai<2.0.0,>=1.30.1",
+        "rich<14.0.0,>=13.6.0",
+        "pydantic<3.0,>=2.0.0",
+        "typer[all]<0.10.0,>=0.9.0",
+        "griffe<0.37.0,>=0.36.9",
+        "tenacity>=8.1.0",
+        "regex<2024.0.0,>=2023.10.3",
+        "rstr<4.0.0,>=3.2.2",
+        "typing-extensions<5.0.0,>=4.8.0",
+        "python-dateutil<3.0.0,>=2.8.2",
+        "tiktoken>=0.5.1",
+        "nltk<4.0.0,>=3.8.1",
+        "sqlvalidator<0.0.21,>=0.0.20; extra == \"sql\"",
+        "sqlalchemy>=2.0.9; extra == \"sql\"",
+        "sqlglot<20.0.0,>=19.0.3; extra == \"sql\"",
+        "faiss-cpu<2.0.0,>=1.7.4; extra == \"vectordb\"",
+        "numpy<2.0,>=1.25; extra == \"vectordb\"",
+        "litellm<2.0.0,>=1.37.14; extra == \"litellm\"",
+        "manifest-ml<0.2.0,>=0.1.8; extra == \"manifest\"",
+        "transformers<5.0.0,>=4.36.0; extra == \"huggingface\"",
+        "anthropic<0.8.0,>=0.7.2; extra == \"anthropic\"",
+        "torch<3.0.0,>=2.1.1; extra == \"huggingface\"",
+        "nbdoc<0.0.83,>=0.0.82; extra == \"docs-build\"",
+        "pydash<8.0.0,>=7.0.6",
+        "docspec_python==2.2.1; extra == \"docs-build\"",
+        "pydoc-markdown==4.8.2; extra == \"docs-build\"",
+        "langchain-core<0.3,>=0.1",
+        "coloredlogs<16.0.0,>=15.0.1",
+        "requests<3.0.0,>=2.31.0",
+        "faker<26.0.0,>=25.2.0",
+        "jsonref<2.0.0,>=1.1.0",
+        "jsonschema[format]<5.0.0,>=4.22.0",
+        "jwt<2.0.0,>=1.3.1",
+        "pip>=22",
+        "opentelemetry-sdk<2.0.0,>=1.24.0",
+        "opentelemetry-exporter-otlp-proto-grpc<2.0.0,>=1.24.0",
+        "opentelemetry-exporter-otlp-proto-http<2.0.0,>=1.24.0",
+        "guardrails-api-client==0.3.4"
+      ],
+      "requires_python": "<4.0,>=3.9",
+      "summary": "Adding guardrails to large language models.",
+      "version": "0.5.0a0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 40025281,
+    "ownership": {
+      "organization": "guardrails",
+      "roles": []
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "27bbaa58e17e17dd291a0bdf531f0093acea10ff43f50962f3f893da9d9ee49c"
+        },
+        "digests": {
+          "blake2b_256": "e90a5a9debd42e50b190709c3483b7e8b63089609bede25c2a1f36af6e54963d",
+          "md5": "90801db604ac170143c6646640913c05",
+          "sha256": "e0ae3a2b20c2687e29bcf7c9f9c1d63015a329b2af973c1032a9611418e87bb8"
+        },
+        "downloads": -1,
+        "filename": "guardrails_ai-0.5.0a0-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "90801db604ac170143c6646640913c05",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": "<4.0,>=3.9",
+        "size": 162830,
+        "upload_time": "2024-06-20T20:40:25",
+        "upload_time_iso_8601": "2024-06-20T20:40:25.230593Z",
+        "url": "https://files.pythonhosted.org/packages/e9/0a/5a9debd42e50b190709c3483b7e8b63089609bede25c2a1f36af6e54963d/guardrails_ai-0.5.0a0-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "003bbb799a3c1c823a52fdb55dd374b96f1453b53285967dd6ffe860958d17c1",
+          "md5": "4202e04b241a7383cc3d029028b1f592",
+          "sha256": "15e9a13dbfdf55a34ebf2f44e167c1af8abb8e1e4881e6d4995887defb1165aa"
+        },
+        "downloads": -1,
+        "filename": "guardrails_ai-0.5.0a0.tar.gz",
+        "has_sig": false,
+        "md5_digest": "4202e04b241a7383cc3d029028b1f592",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": "<4.0,>=3.9",
+        "size": 124492,
+        "upload_time": "2024-06-20T20:40:27",
+        "upload_time_iso_8601": "2024-06-20T20:40:27.871988Z",
+        "url": "https://files.pythonhosted.org/packages/00/3b/bb799a3c1c823a52fdb55dd374b96f1453b53285967dd6ffe860958d17c1/guardrails_ai-0.5.0a0.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "aliases": [
+          "CVE-2024-6961",
+          "PYSEC-2026-1431"
+        ],
+        "details": "RAIL documents are an XML-based format invented by Guardrails AI to enforce formatting checks on LLM outputs. Guardrails users that consume RAIL documents from external sources are vulnerable to XXE, which may cause leakage of internal file data via the SYSTEM entity.",
+        "fixed_in": [
+          "0.5.0"
+        ],
+        "id": "GHSA-f8hx-f4xw-c646",
+        "link": "https://osv.dev/vulnerability/GHSA-f8hx-f4xw-c646",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-45758",
+          "GHSA-xmpw-2vmm-p4p6"
+        ],
+        "details": "Guardrails AI is a Python framework that helps build AI applications. On May 11, 2026 at approximately 6:00 PM Pacific, an attacker published a malicious version of `guardrails-ai` (0.10.1) to PyPI. Aany user who installed `guardrails-ai==0.10.1` from PyPI on May 11, 2026 may be affected. Security researchers identified the malicious package within approximately 2 hours of publication, and PyPI quarantined the repository. Based on our telemetry, Guardrails AI maintainers have observed no requests to Guardrails AI infrastructure originating from the malicious 0.10.1 version, and a review of system and access logs has produced no evidence of user data exfiltration through their systems. Users should upgrade to version 0.10.2 or downgrade to version 0.10.0, both of which are unaffected. Those who installed version 0.10.1 should rotate any credentials accessible from their machine (GitHub PATs, cloud provider keys, package registry tokens, API keys) and audit their GitHub account for unauthorized workflows or repositories.",
+        "fixed_in": [],
+        "id": "PYSEC-2026-206",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-206",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-31233",
+          "GHSA-r6hf-g5x6-7pv9"
+        ],
+        "details": "Guardrails AI thru 0.6.7 contains a code injection vulnerability (CWE-94) in its Hub package installation mechanism. When installing validator packages via guardrails hub install, the system retrieves a manifest from the Guardrails Hub and dynamically executes a script specified in the post_install field. The script path is constructed from untrusted manifest data and executed without proper validation or sanitization, allowing remote code execution. An attacker who can publish malicious packages to the Hub can inject arbitrary code that will be executed on any system where a victim installs the malicious package.",
+        "fixed_in": [],
+        "id": "PYSEC-2026-347",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-347",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-45858",
+          "GHSA-w392-75q8-vr67"
+        ],
+        "details": "An arbitrary code execution vulnerability exists in versions 0.2.9 up to 0.5.10 of the Guardrails AI Guardrails framework because of the way it validates XML files. If a victim user loads a maliciously crafted XML file containing Python code, the code will be passed to an eval function, causing it to execute on the user's machine.",
+        "fixed_in": [
+          "0.5.10"
+        ],
+        "id": "PYSEC-2026-1432",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1432",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-6961",
+          "GHSA-f8hx-f4xw-c646"
+        ],
+        "details": "RAIL documents are an XML-based format invented by Guardrails AI to enforce formatting checks on LLM outputs. Guardrails users that consume RAIL documents from external sources are vulnerable to XXE, which may cause leakage of internal file data via the SYSTEM entity.",
+        "fixed_in": [
+          "0.5.0"
+        ],
+        "id": "PYSEC-2026-1431",
+        "link": "https://osv.dev/vulnerability/PYSEC-2026-1431",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2024-45858",
+          "PYSEC-2026-1432"
+        ],
+        "details": "An arbitrary code execution vulnerability exists in versions 0.2.9 up to 0.5.10 of the Guardrails AI Guardrails framework because of the way it validates XML files. If a victim user loads a maliciously crafted XML file containing Python code, the code will be passed to an eval function, causing it to execute on the user's machine.",
+        "fixed_in": [
+          "0.5.10"
+        ],
+        "id": "GHSA-w392-75q8-vr67",
+        "link": "https://osv.dev/vulnerability/GHSA-w392-75q8-vr67",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      },
+      {
+        "aliases": [
+          "CVE-2026-31233",
+          "PYSEC-2026-347"
+        ],
+        "details": "Guardrails AI thru 0.6.7 contains a code injection vulnerability (CWE-94) in its Hub package installation mechanism. When installing validator packages via guardrails hub install, the system retrieves a manifest from the Guardrails Hub and dynamically executes a script specified in the post_install field. The script path is constructed from untrusted manifest data and executed without proper validation or sanitization, allowing remote code execution. An attacker who can publish malicious packages to the Hub can inject arbitrary code that will be executed on any system where a victim installs the malicious package.",
+        "fixed_in": [],
+        "id": "GHSA-r6hf-g5x6-7pv9",
+        "link": "https://osv.dev/vulnerability/GHSA-r6hf-g5x6-7pv9",
+        "source": "osv",
+        "summary": null,
+        "withdrawn": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "package": "threadpoolctl",
+  "version": "2.1.0",
+  "status_code": 200,
+  "timestamp": "2026-09-22T19:03:25.460993+00:00",
+  "payload": {
+    "info": {
+      "author": "Thomas Moreau",
+      "author_email": "thomas.moreau.2010@gmail.com",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Software Development :: Libraries :: Python Modules"
+      ],
+      "description": "# Thread-pool Controls [![Build Status](https://dev.azure.com/joblib/threadpoolctl/_apis/build/status/joblib.threadpoolctl?branchName=master)](https://dev.azure.com/joblib/threadpoolctl/_build/latest?definitionId=1&branchName=master) [![codecov](https://codecov.io/gh/joblib/threadpoolctl/branch/master/graph/badge.svg)](https://codecov.io/gh/joblib/threadpoolctl)\n\nPython helpers to limit the number of threads used in the\nthreadpool-backed of common native libraries used for scientific\ncomputing and data science (e.g. BLAS and OpenMP).\n\nFine control of the underlying thread-pool size can be useful in\nworkloads that involve nested parallelism so as to mitigate\noversubscription issues.\n\n## Installation\n\n- For users, install the last published version from PyPI:\n\n  ```bash\n  pip install threadpoolctl\n  ```\n\n- For contributors, install from the source repository in developer\n  mode:\n\n  ```bash\n  pip install -r dev-requirements.txt\n  flit install --symlink\n  ```\n\n  then you run the tests with pytest:\n\n  ```bash\n  pytest\n  ```\n\n## Usage\n\n### Command Line Interface\n\nGet a JSON description of thread-pools initialized when importing python\npackages such as numpy or scipy for instance:\n\n```\npython -m threadpoolctl -i numpy scipy.linalg\n[\n  {\n    \"filepath\": \"/home/ogrisel/miniconda3/envs/tmp/lib/libmkl_rt.so\",\n    \"prefix\": \"libmkl_rt\",\n    \"user_api\": \"blas\",\n    \"internal_api\": \"mkl\",\n    \"version\": \"2019.0.4\",\n    \"num_threads\": 2,\n    \"threading_layer\": \"intel\"\n  },\n  {\n    \"filepath\": \"/home/ogrisel/miniconda3/envs/tmp/lib/libiomp5.so\",\n    \"prefix\": \"libiomp\",\n    \"user_api\": \"openmp\",\n    \"internal_api\": \"openmp\",\n    \"version\": null,\n    \"num_threads\": 4\n  }\n]\n```\n\nThe JSON information is written on STDOUT. If some of the packages are missing,\na warning message is displayed on STDERR.\n\n### Python Runtime Programmatic Introspection\n\nIntrospect the current state of the threadpool-enabled runtime libraries\nthat are loaded when importing Python packages:\n\n```python\n>>> from threadpoolctl import threadpool_info\n>>> from pprint import pprint\n>>> pprint(threadpool_info())\n[]\n\n>>> import numpy\n>>> pprint(threadpool_info())\n[{'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libmkl_rt.so',\n  'internal_api': 'mkl',\n  'num_threads': 2,\n  'prefix': 'libmkl_rt',\n  'threading_layer': 'intel',\n  'user_api': 'blas',\n  'version': '2019.0.4'},\n {'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libiomp5.so',\n  'internal_api': 'openmp',\n  'num_threads': 4,\n  'prefix': 'libiomp',\n  'user_api': 'openmp',\n  'version': None}]\n\n>>> import xgboost\n>>> pprint(threadpool_info())\n[{'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libmkl_rt.so',\n  'internal_api': 'mkl',\n  'num_threads': 2,\n  'prefix': 'libmkl_rt',\n  'threading_layer': 'intel',\n  'user_api': 'blas',\n  'version': '2019.0.4'},\n {'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libiomp5.so',\n  'internal_api': 'openmp',\n  'num_threads': 4,\n  'prefix': 'libiomp',\n  'user_api': 'openmp',\n  'version': None},\n {'filepath': '/home/ogrisel/miniconda3/envs/tmp/lib/libgomp.so.1.0.0',\n  'internal_api': 'openmp',\n  'num_threads': 4,\n  'prefix': 'libgomp',\n  'user_api': 'openmp',\n  'version': None}]\n```\n\nIn the above example, `numpy` was installed from the default anaconda channel and\ncomes with the MKL and its Intel OpenMP (`libiomp5`) implementation while\n`xgboost` was installed from pypi.org and links against GNU OpenMP (`libgomp`)\nso both OpenMP runtimes are loaded in the same Python program.\n\n### Setting the Maximum Size of Thread-Pools\n\nControl the number of threads used by the underlying runtime libraries\nin specific sections of your Python program:\n\n```python\nfrom threadpoolctl import threadpool_limits\nimport numpy as np\n\n\nwith threadpool_limits(limits=1, user_api='blas'):\n    # In this block, calls to blas implementation (like openblas or MKL)\n    # will be limited to use only one thread. They can thus be used jointly\n    # with thread-parallelism.\n    a = np.random.randn(1000, 1000)\n    a_squared = a @ a\n```\n\n### Known Limitations\n\n- `threadpool_limits` can fail to limit the number of inner threads when nesting\n  parallel loops managed by distinct OpenMP runtime implementations (for instance\n  libgomp from GCC and libomp from clang/llvm or libiomp from ICC).\n\n  See the `test_openmp_nesting` function in [tests/test_threadpoolctl.py](\n  https://github.com/joblib/threadpoolctl/blob/master/tests/test_threadpoolctl.py)\n  for an example. More information can be found at:\n  https://github.com/jeremiedbb/Nested_OpenMP\n\n  Note however that this problem does not happen when `threadpool_limits` is\n  used to limit the number of threads used internally by BLAS calls that are\n  themselves nested under OpenMP parallel loops. `threadpool_limits` works as\n  expected, even if the inner BLAS implementation relies on a distinct OpenMP\n  implementation.\n\n- Using Intel OpenMP (ICC) and LLVM OpenMP (clang) in the same Python program\n  under Linux is known to cause problems. See the following guide for more details\n  and workarounds:\n  https://github.com/joblib/threadpoolctl/blob/master/multiple_openmp.md\n\n\n## Maintainers\n\nTo make a release:\n\nBump the version number (`__version__`) in `threadpoolctl.py`.\n\nBuild the distribution archives:\n\n```bash\npip install flit\nflit build\n```\n\nCheck the contents of `dist/`.\n\nIf everything is fine, make a commit for the release, tag it, push the\ntag to github and then:\n\n```bash\nflit publish\n```\n\n### Credits\n\nThe initial dynamic library introspection code was written by @anton-malakhov\nfor the smp package available at https://github.com/IntelPython/smp .\n\nthreadpoolctl extends this for other operationg systems. Contrary to smp,\nthreadpoolctl does not attempt to limit the size of Python multiprocessing\npools (threads or processes) or set operating system-level CPU affinity\nconstraints: threadpoolctl only interacts with native libraries via their\npublic runtime APIs.\n",
+      "description_content_type": "text/markdown",
+      "docs_url": null,
+      "download_url": "",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "https://github.com/joblib/threadpoolctl",
+      "keywords": "",
+      "license": "",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "",
+      "maintainer_email": "",
+      "name": "threadpoolctl",
+      "package_url": "https://pypi.org/project/threadpoolctl/",
+      "platform": "",
+      "project_url": "https://pypi.org/project/threadpoolctl/",
+      "project_urls": {
+        "Homepage": "https://github.com/joblib/threadpoolctl"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/threadpoolctl/2.1.0/",
+      "requires_dist": null,
+      "requires_python": ">=3.5",
+      "summary": "threadpoolctl",
+      "version": "2.1.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 41099157,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "jeremiedbb"
+        },
+        {
+          "role": "Owner",
+          "user": "ogrisel"
+        },
+        {
+          "role": "Owner",
+          "user": "tommoral"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": {
+          "sha256": "4d5d30f21a01d4c59e2a441d55def63ff8f68ae7f14ace88a80092f1ed2fa903"
+        },
+        "digests": {
+          "blake2b_256": "f712ec3f2e203afa394a149911729357aa48affc59c20e2c1c8297a60f33f133",
+          "md5": "127fc0c9707171195dcdb554b50a4c41",
+          "sha256": "38b74ca20ff3bb42caca8b00055111d74159ee95c4370882bbff2b93d24da725"
+        },
+        "downloads": -1,
+        "filename": "threadpoolctl-2.1.0-py3-none-any.whl",
+        "has_sig": false,
+        "md5_digest": "127fc0c9707171195dcdb554b50a4c41",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": ">=3.5",
+        "size": 12640,
+        "upload_time": "2020-05-29T09:19:37",
+        "upload_time_iso_8601": "2020-05-29T09:19:37.313298Z",
+        "url": "https://files.pythonhosted.org/packages/f7/12/ec3f2e203afa394a149911729357aa48affc59c20e2c1c8297a60f33f133/threadpoolctl-2.1.0-py3-none-any.whl",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "78e8e39dc842f512ab5be11efe83160ddb7ad3c0cc1b8d42ce8c0469a0d2b926",
+          "md5": "7f7f76e1ac12be086c9e02912a4caf68",
+          "sha256": "ddc57c96a38beb63db45d6c159b5ab07b6bced12c45a1f07b2b92f272aebfa6b"
+        },
+        "downloads": -1,
+        "filename": "threadpoolctl-2.1.0.tar.gz",
+        "has_sig": false,
+        "md5_digest": "7f7f76e1ac12be086c9e02912a4caf68",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": ">=3.5",
+        "size": 26644,
+        "upload_time": "2020-05-29T09:19:39",
+        "upload_time_iso_8601": "2020-05-29T09:19:39.671168Z",
+        "url": "https://files.pythonhosted.org/packages/78/e8/e39dc842f512ab5be11efe83160ddb7ad3c0cc1b8d42ce8c0469a0d2b926/threadpoolctl-2.1.0.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

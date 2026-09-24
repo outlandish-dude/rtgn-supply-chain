@@ -1,0 +1,93 @@
+{
+  "package": "flake8",
+  "version": "1.7.0",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:52:19.256932+00:00",
+  "payload": {
+    "info": {
+      "author": "Tarek Ziade",
+      "author_email": "tarek@ziade.org",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python",
+        "Topic :: Software Development",
+        "Topic :: Utilities"
+      ],
+      "description": "======\r\nFlake8\r\n======\r\n\r\nFlake8 is a wrapper around these tools:\r\n\r\n- PyFlakes\r\n- pep8\r\n- Ned's McCabe script\r\n\r\nFlake8 runs all tools by launching the single 'flake8' script, but ignores pep8\r\nand PyFlakes extended options and just uses defaults. It displays the warnings\r\nin a per-file, merged output.\r\n\r\nIt also adds a few features:\r\n\r\n- files that contains with this header are skipped::\r\n\r\n    # flake8: noqa\r\n\r\n- lines that contain a \"# NOQA\" comment at the end will not issue pyflakes \r\n  warnings.\r\n- lines that contain a \"# NOPEP8\" comment at the end will not issue pep8 \r\n  warnings.\r\n- a Mercurial hook.\r\n- a McCabe complexity checker.\r\n\r\nQuickStart\r\n==========\r\n\r\nTo run flake8 just invoke it against any directory or Python module::\r\n\r\n    $ flake8 coolproject\r\n    coolproject/mod.py:1027: local variable 'errors' is assigned to but never used\r\n    coolproject/mod.py:97: 'shutil' imported but unused\r\n    coolproject/mod.py:729: redefinition of function 'readlines' from line 723\r\n    coolproject/mod.py:1028: local variable 'errors' is assigned to but never used\r\n    coolproject/mod.py:625:17: E225 missing whitespace around operato\r\n\r\nThe output of PyFlakes *and* pep8 is merged and returned.\r\n\r\nflake8 offers an extra option: --max-complexity, which will emit a warning if the\r\nMcCabe complexityu of a function is higher that the value. By default it's\r\ndeactivated::\r\n\r\n    $ bin/flake8 --max-complexity 12 flake8\r\n    coolproject/mod.py:97: 'shutil' imported but unused\r\n    coolproject/mod.py:729: redefinition of function 'readlines' from line 723\r\n    coolproject/mod.py:1028: local variable 'errors' is assigned to but never used\r\n    coolproject/mod.py:625:17: E225 missing whitespace around operator\r\n    coolproject/mod.py:452:1: 'missing_whitespace_around_operator' is too complex (18)\r\n    coolproject/mod.py:939:1: 'Checker.check_all' is too complex (12)\r\n    coolproject/mod.py:1204:1: 'selftest' is too complex (14)\r\n\r\nThis feature is quite useful to detect over-complex code. According to McCabe, anything\r\nthat goes beyond 10 is too complex.\r\nSee https://en.wikipedia.org/wiki/Cyclomatic_complexity.\r\n\r\n\r\nMercurial hook\r\n==============\r\n\r\nTo use the Mercurial hook on any *commit* or *qrefresh*, change your .hg/rc file\r\nlike this::\r\n\r\n    [hooks]\r\n    commit = python:flake8.run.hg_hook\r\n    qrefresh = python:flake8.run.hg_hook\r\n\r\n    [flake8]\r\n    strict = 0\r\n    complexity = 12\r\n\r\n\r\nIf *strict* option is set to **1**, any warning will block the commit. When\r\n*strict* is set to **0**, warnings are just displayed in the standard output.\r\n\r\n*complexity* defines the maximum McCabe complexity allowed before a warning\r\nis emited. If you don't specify it it's just ignored. If specified, must\r\nbe a positive value. 12 is usually a good value.\r\n\r\nGit hook\r\n========\r\n\r\nTo use the Git hook on any *commit*, add a **pre-commit** file in the\r\n*.git/hooks* directory containing::\r\n\r\n    #!/usr/bin/python\r\n    import sys\r\n    from flake8.run import git_hook\r\n\r\n    COMPLEXITY = 10\r\n    STRICT = False\r\n\r\n    if __name__ == '__main__':\r\n        sys.exit(git_hook(complexity=COMPLEXITY, strict=STRICT, ignore='E501'))\r\n\r\n\r\nIf *strict* option is set to **True**, any warning will block the commit. When\r\n*strict* is set to **False** or omited, warnings are just displayed in the\r\nstandard output.\r\n\r\n*complexity* defines the maximum McCabe complexity allowed before a warning\r\nis emited. If you don't specify it or set it to **-1**, it's just ignored.\r\nIf specified, it must be a positive value. 12 is usually a good value.\r\n\r\n*lazy* when set to ``True`` will also take into account files not added to the \r\nindex.\r\n\r\nAlso, make sure the file is executable and adapt the shebang line so it\r\npoint to your python interpreter.\r\n\r\n\r\nBuildout integration\r\n=====================\r\n\r\nIn order to use Flake8 inside a buildout, edit your buildout.cfg and add this::\r\n\r\n    [buildout]\r\n\r\n    parts +=\r\n        ...\r\n        flake8\r\n\r\n    [flake8]\r\n    recipe = zc.recipe.egg\r\n    eggs = flake8\r\n           ${buildout:eggs}\r\n    entry-points =\r\n        flake8=flake8.run:main\r\n\r\n\r\nsetuptools integration\r\n======================\r\n\r\nIf setuptools is available, Flake8 provides a command that checks the\r\nPython files declared by your project. To use it, add flake8 to your\r\nsetup_requires::\r\n\r\n    setup(\r\n        name=\"project\",\r\n        packages=[\"project\"],\r\n\r\n        setup_requires=[\r\n            \"flake8\"\r\n        ]\r\n    )\r\n\r\nRunning ``python setup.py flake8`` on the command line will check the\r\nfiles listed in your ``py_modules`` and ``packages``. If any warnings\r\nare found, the command will exit with an error code::\r\n\r\n    $ python setup.py flake8\r\n    \r\n\r\n\r\nOriginal projects\r\n=================\r\n\r\nFlake8 is just a glue project, all the merits go to the creators of the original\r\nprojects:\r\n\r\n- pep8: http://github.com/jcrocholl/pep8/\r\n- PyFlakes: http://divmod.org/trac/wiki/DivmodPyflakes\r\n- McCabe: http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html\r\n\r\nWarning / Error codes\r\n=====================\r\n\r\nBelow are lists of all warning and error codes flake8 will generate, broken\r\nout by component.\r\n\r\npep8:\r\n\r\n- E101: indentation contains mixed spaces and tabs\r\n- E111: indentation is not a multiple of four\r\n- E112: expected an indented block\r\n- E113: unexpected indentation\r\n- E201: whitespace after char\r\n- E202: whitespace before char\r\n- E203: whitespace before char\r\n- E211: whitespace before text\r\n- E223: tab / multiple spaces before operator\r\n- E224: tab / multiple spaces after operator\r\n- E225: missing whitespace around operator\r\n- E225: missing whitespace around operator\r\n- E231: missing whitespace after char\r\n- E241: multiple spaces after separator\r\n- E242: tab after separator\r\n- E251: no spaces around keyword / parameter equals\r\n- E262: inline comment should start with '# '\r\n- E301: expected 1 blank line, found 0\r\n- E302: expected 2 blank lines, found <n>\r\n- E303: too many blank lines (<n>)\r\n- E304: blank lines found after function decorator\r\n- E401: multiple imports on one line\r\n- E501: line too long (<n> characters)\r\n- E701: multiple statements on one line (colon)\r\n- E702: multiple statements on one line (semicolon)\r\n- W191: indentation contains tabs\r\n- W291: trailing whitespace\r\n- W292: no newline at end of file\r\n- W293: blank line contains whitespace\r\n- W391: blank line at end of file\r\n- W601: .has_key() is deprecated, use 'in'\r\n- W602: deprecated form of raising exception\r\n- W603: '<>' is deprecated, use '!='\r\n- W604: backticks are deprecated, use 'repr()'\r\n\r\npyflakes:\r\n\r\n- W402: <module> imported but unused\r\n- W403: import <module> from line <n> shadowed by loop variable\r\n- W404: 'from <module> import ``*``' used; unable to detect undefined names\r\n- W405: future import(s) <name> after other statements\r\n- W801: redefinition of unused <name> from line <n>\r\n- W802: undefined name <name>\r\n- W803: undefined name <name> in __all__\r\n- W804: local variable <name> (defined in enclosing scope on line <n>) referenced before assignment\r\n- W805: duplicate argument <name> in function definition\r\n- W806: redefinition of function <name> from line <n>\r\n- W806: local variable <name> is assigned to but never used\r\n\r\nMcCabe:\r\n\r\n- W901: '<function_name>' is too complex ('<complexity_level>')\r\n\r\nCHANGES\r\n=======\r\n\r\n1.7.0 - 2012-12-21\r\n------------------\r\n\r\n- Fixes part of #35: Exception for no WITHITEM being an attribute of Checker \r\n  for python 3.3\r\n- Support stdin\r\n- Incorporate @phd's builtins pull request\r\n- Fix the git hook\r\n- Update pep8.py to the latest version\r\n\r\n1.6.2 - 2012-11-25\r\n------------------\r\n\r\n- fixed the NameError: global name 'message' is not defined (#46)\r\n\r\n\r\n1.6.1 - 2012-11-24\r\n------------------\r\n\r\n- fixed the mercurial hook, a change from a previous patch was not properly \r\n  applied\r\n- fixed an assumption about warnings/error messages that caused an exception \r\n  to be thrown when McCabe is used\r\n\r\n1.6 - 2012-11-16\r\n----------------\r\n\r\n- changed the signatures of the ``check_file`` function in flake8/run.py, \r\n  ``skip_warning`` in flake8/util.py and the ``check``, ``checkPath``\r\n  functions in flake8/pyflakes.py.\r\n- fix ``--exclude`` and ``--ignore`` command flags (#14, #19)\r\n- fix the git hook that wasn't catching files not already added to the index \r\n  (#29)\r\n- pre-emptively includes the addition to pep8 to ignore certain lines. Add ``# \r\n  nopep8`` to the end of a line to ignore it. (#37)\r\n- ``check_file`` can now be used without any special prior setup (#21)\r\n- unpacking exceptions will no longer cause an exception (#20)\r\n- fixed crash on non-existant file (#38)\r\n\r\n\r\n\r\n1.5 - 2012-10-13\r\n----------------\r\n\r\n- fixed the stdin\r\n- make sure mccabe catches the syntax errors as warnings\r\n- pep8 upgrade\r\n- added max_line_length default value\r\n- added Flake8Command and entry points is setuptools is around\r\n- using the setuptools console wrapper when available\r\n\r\n\r\n1.4 - 2012-07-12\r\n----------------\r\n\r\n- git_hook: Only check staged changes for compliance\r\n- use pep8 1.2\r\n\r\n\r\n1.3.1 - 2012-05-19\r\n------------------\r\n\r\n- fixed support for Python 2.5\r\n\r\n\r\n1.3 - 2012-03-12\r\n----------------\r\n\r\n- fixed false W402 warning on exception blocks.\r\n\r\n\r\n1.2 - 2012-02-12\r\n----------------\r\n\r\n- added a git hook\r\n- now python 3 compatible \r\n- mccabe and pyflakes have warning codes like pep8 now\r\n\r\n\r\n1.1 - 2012-02-14\r\n----------------\r\n\r\n- fixed the value returned by --version\r\n- allow the flake8: header to be more generic\r\n- fixed the \"hg hook raises 'physical lines'\" bug\r\n- allow three argument form of raise\r\n- now uses setuptools if available, for 'develop' command\r\n\r\n1.0 - 2011-11-29\r\n----------------\r\n\r\n- Deactivates by default the complexity checker\r\n- Introduces the complexity option in the HG hook and the command line.\r\n\r\n\r\n0.9 - 2011-11-09\r\n----------------\r\n\r\n- update pep8 version to 0.6.1\r\n- mccabe check: gracefully handle compile failure\r\n\r\n0.8 - 2011-02-27\r\n----------------\r\n\r\n- fixed hg hook\r\n- discard unexisting files on hook check\r\n\r\n\r\n0.7 - 2010-02-18\r\n----------------\r\n\r\n- Fix pep8 intialization when run through Hg\r\n- Make pep8 short options work when run throug the command line\r\n- skip duplicates when controlling files via Hg\r\n\r\n\r\n0.6 - 2010-02-15\r\n----------------\r\n\r\n- Fix the McCabe metric on some loops",
+      "description_content_type": null,
+      "docs_url": null,
+      "download_url": "UNKNOWN",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "http://bitbucket.org/tarek/flake8",
+      "keywords": "",
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": "Ian Cordasco",
+      "maintainer_email": "graffatcolmingov@gmail.com",
+      "name": "flake8",
+      "package_url": "https://pypi.org/project/flake8/",
+      "platform": "UNKNOWN",
+      "project_url": "https://pypi.org/project/flake8/",
+      "project_urls": {
+        "Download": "UNKNOWN",
+        "Homepage": "http://bitbucket.org/tarek/flake8"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/flake8/1.7.0/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "code checking using pep8 and pyflakes",
+      "version": "1.7.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 29731930,
+    "ownership": {
+      "organization": "PyCQA",
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "graffatcolmingov"
+        },
+        {
+          "role": "Maintainer",
+          "user": "asottile"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "70498e2663e3da42ec06a800624cd683f625d139ff20a95f11e332260196426b",
+          "md5": "a7830d1a6c23e889bc1fcaa4a87f53bd",
+          "sha256": "3318f09503c202476082e9b915f258076be2bcd0d1acbbab49e001d5707eb723"
+        },
+        "downloads": -1,
+        "filename": "flake8-1.7.0.tar.gz",
+        "has_sig": false,
+        "md5_digest": "a7830d1a6c23e889bc1fcaa4a87f53bd",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 42352,
+        "upload_time": "2012-12-21T22:51:32",
+        "upload_time_iso_8601": "2012-12-21T22:51:32.946346Z",
+        "url": "https://files.pythonhosted.org/packages/70/49/8e2663e3da42ec06a800624cd683f625d139ff20a95f11e332260196426b/flake8-1.7.0.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

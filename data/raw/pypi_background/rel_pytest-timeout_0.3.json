@@ -1,0 +1,119 @@
+{
+  "package": "pytest-timeout",
+  "version": "0.3",
+  "status_code": 200,
+  "timestamp": "2026-09-22T18:27:45.730399+00:00",
+  "payload": {
+    "info": {
+      "author": "Floris Bruynooghe",
+      "author_email": "flub@devork.be",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 4 - Beta",
+        "Environment :: Console",
+        "Environment :: Plugins",
+        "Intended Audience :: Developers",
+        "License :: DFSG approved",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Topic :: Software Development :: Testing"
+      ],
+      "description": "==============\npytest-timeout\n==============\n\nThis is a plugin which will terminate tests after a certain timeout.\nWhen doing so you will get a stack dump of all threads running at the\ntime.  This is useful when e.g. running tests under a continuous\nintegration (CI) server.\n\nNote that while by default on POSIX systems py.test will continue to\nexecute the tests after a test has timed out this is not always\npossible.  Often the only sure way to interrupt a hanging test is by\nterminating the entire process.  This in turn will result in no JUnit\nXML output being created etc.  But the plugin will ensure you will\nhave the debugging output on stderr nevertheless.  See below for\ndetailed information on the timeout methods and their side-effects.\n\nThe pytest-timeout plugin has been tested on python 2.6 or higher,\nincluding 3.X.\n\n\nUsage\n=====\n\nInstall is as simple as e.g.::\n\n   pip install pytest-timeout\n\nNow you can run tests using a timeout, in seconds, after which they\nwill be terminated::\n\n   py.test --timeout=300\n\nAlternatively you can mark individual tests as having a timeout::\n\n   @pytest.mark.timeout(300)\n   def test_foo():\n       pass\n\nBy default the plugin will not time out any tests, you must specify a\nvalid timeout for the plugin to interrupt long-running tests.  A\ntimeout is always specified as an integer number of seconds and can be\ndefined in a number of ways, from low to high priority:\n\n1. You can set a global timeout in the `py.test configuration file`__\n   using the ``timeout`` option.  E.g.::\n\n      [pytest]\n      timeout = 300\n\n2. The ``PYTEST_TIMEOUT`` environment variable sets a global timeout\n   overriding a possible value in the configuration file.\n\n3. The ``--timeout`` command line option sets a global timeout\n   overriding both the environment variable and configuration option.\n\n4. Using the ``timeout`` marker_ on test items you can specify\n   timeouts on a per-item basis::\n\n      @pytest.mark.timeout(300)\n      def test_foo():\n          pass\n\n__ http://pytest.org/latest/customize.html#how-test-configuration-is-read-from-configuration-ini-files\n\n.. _marker: http://pytest.org/latest/mark.html\n\nSetting a timeout to 0 seconds disables the timeout, so if you have a\nglobal timeout set you can still disable the timeout by using the\nmark.\n\nTimeout Methods\n===============\n\nInterrupting tests which hang is not always as simple and can be\nplatform dependent.  Furthermore some methods of terminating a test\nmight conflict with the code under test itself.  The pytest-timeout\nplugin tries to pick the most suitable method based on your platform,\nbut occasionally you may need to specify a specific timeout method\nexplicitly.\n\n   If a timeout method does not work your safest bet is to use the\n   *thread* method.\n\nthread\n------\n\nThis is the surest and most portable method.  It is also the default\non systems not supporting the *signal* method.  For each test item the\npytest-timeout plugin starts a timer thread which will terminate the\nwhole process after the specified timeout.  When a test item finishes\nthis timer thread is cancelled and the test run continues.\n\nThe downsides of this method are that there is a relatively large\noverhead for running each test and that test runs are not completed.\nThis means that other py.test features, like e.g. JUnit XML output or\nfixture teardown, will not function normally.  The second issue might\nbe alleviated by using the ``--boxed`` option of the pytest-xdist_\nplugin.\n\n.. _pytest-xdist: http://pypi.python.org/pypi/pytest-xdist\n\nThe benefit of this method is that it will always work.  Furthermore\nit will still provide you debugging information by printing the stacks\nof all the threads in the application to stderr.\n\nsignal\n------\n\nIf the system supports the SIGALRM signal the *signal* method will be\nused by default.  This method schedules an alarm when the test item\nstarts and cancels it when it finishes.  If the alarm expires during\nthe test the signal handler will dump the stack of any other threads\nrunning to stderr and use ``pytest.fail()`` to interrupt the test.\n\nThe benefit of this method is that the py.test process is not\nterminated and the test run can complete normally.\n\nThe main issue to look out for with this method is that it may\ninterfere with the code under test.  If the code under test uses\nSIGALRM itself things will go wrong and you will have to choose the\n*thread* method.\n\nSpecifying the Timeout Method\n-----------------------------\n\nThe timeout method can be specified by using the ``timeout_method``\noption in the `py.test configuration file`__, the ``--timeout_method``\ncommand line parameter or the ``timeout`` marker_.  Simply set their\nvalue to the string ``thread`` or ``signal`` to override the default\nmethod.  On a marker this is done using the ``method`` keyword::\n\n   @pytest.mark.timeout(method=thread)\n   def test_foo():\n       pass\n\n__ http://pytest.org/latest/customize.html#how-test-configuration-is-read-from-configuration-ini-files\n\n.. _marker: http://pytest.org/latest/mark.html\n\nThe ``timeout`` Marker API\n==========================\n\nThe full syntax of the timeout marker is::\n\n   pytest.mark.timeout(timeout=0, method=DEFAULT_METHOD)\n\nYou can use either positional or keyword arguments for both the\ntimeout and the method.  Neither needs to be present.\n\nSee the marker api documentation_ and examples_ for the various ways\nmarkers can be applied to test items.\n\n.. _documentation: http://pytest.org/latest/mark.html\n\n.. _examples: http://pytest.org/latest/example/markers.html#marking-whole-classes-or-modules\n\n\nChangelog\n=========\n\n0.3\n---\n\n* Added the PYTEST_TIMEOUT environment variable as a way of specifying\n  the timeout (closes issue #2).\n\n* More flexible marker argument parsing: you can now specify the\n  method using a positional argument.\n\n* The plugin is now enabled by default.  There is no longer a need to\n  specify ``timeout=0`` in the configuration file or on the command\n  line simply so that a marker would work.\n\n\n0.2\n---\n\n* Add a marker to modify the timeout delay using a @pytest.timeout(N)\n  syntax, thanks to Laurant Brack for the initial code.\n\n* Allow the timeout marker to select the timeout method using the\n  ``method`` keyword argument.\n\n* Rename the --nosigalrm option to --method=thread to future proof\n  support for eventlet and gevent.  Thanks to Ronny Pfannschmidt for\n  the hint.\n\n* Add ``timeout`` and ``timeout_method`` items to the configuration\n  file so you can enable and configure the plugin using the ini file.\n  Thanks to Holger Krekel and Ronny Pfannschmidt for the hints.\n\n* Tested (and fixed) for python 2.6, 2.7 and 3.2.",
+      "description_content_type": null,
+      "docs_url": null,
+      "download_url": "UNKNOWN",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "http://bitbucket.org/flub/pytest-timeout/",
+      "keywords": null,
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "pytest-timeout",
+      "package_url": "https://pypi.org/project/pytest-timeout/",
+      "platform": "UNKNOWN",
+      "project_url": "https://pypi.org/project/pytest-timeout/",
+      "project_urls": {
+        "Download": "UNKNOWN",
+        "Homepage": "http://bitbucket.org/flub/pytest-timeout/"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/pytest-timeout/0.3/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "pytest plugin to abort tests after a timeout",
+      "version": "0.3",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 40105020,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "The_Compiler"
+        },
+        {
+          "role": "Owner",
+          "user": "anatoly"
+        },
+        {
+          "role": "Owner",
+          "user": "flub"
+        },
+        {
+          "role": "Owner",
+          "user": "hpk"
+        },
+        {
+          "role": "Owner",
+          "user": "nicoddemus"
+        },
+        {
+          "role": "Owner",
+          "user": "pfctdayelise"
+        },
+        {
+          "role": "Owner",
+          "user": "ronny"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "1c06b7ac6653037f67b4438f480d21b8491c85d2d619cc1cfa2167fb8af339b3",
+          "md5": "46de81f106ab8a320c39a37d7d8f0429",
+          "sha256": "0b65091ef62e90600f9d7ec43aa075dd447f7e350683596bf2e79255ebf4ae21"
+        },
+        "downloads": -1,
+        "filename": "pytest-timeout-0.3.tar.gz",
+        "has_sig": false,
+        "md5_digest": "46de81f106ab8a320c39a37d7d8f0429",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 9678,
+        "upload_time": "2012-09-18T23:37:18",
+        "upload_time_iso_8601": "2012-09-18T23:37:18.506679Z",
+        "url": "https://files.pythonhosted.org/packages/1c/06/b7ac6653037f67b4438f480d21b8491c85d2d619cc1cfa2167fb8af339b3/pytest-timeout-0.3.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}

@@ -1,0 +1,267 @@
+{
+  "package": "pytz",
+  "version": "2012g",
+  "status_code": 200,
+  "timestamp": "2026-09-22T19:04:40.931306+00:00",
+  "payload": {
+    "info": {
+      "author": "Stuart Bishop",
+      "author_email": "stuart@stuartbishop.net",
+      "bugtrack_url": null,
+      "classifiers": [
+        "Development Status :: 6 - Mature",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Topic :: Software Development :: Libraries :: Python Modules"
+      ],
+      "description": "pytz - World Timezone Definitions for Python\n============================================\n\n:Author: Stuart Bishop <stuart@stuartbishop.net>\n\nIntroduction\n~~~~~~~~~~~~\n\npytz brings the Olson tz database into Python. This library allows\naccurate and cross platform timezone calculations using Python 2.4\nor higher. It also solves the issue of ambiguous times at the end\nof daylight savings, which you can read more about in the Python\nLibrary Reference (``datetime.tzinfo``).\n\nAmost all of the Olson timezones are supported.\n\nNote that this library differs from the documented Python API for\ntzinfo implementations; if you want to create local wallclock\ntimes you need to use the ``localize()`` method documented in this\ndocument. In addition, if you perform date arithmetic on local\ntimes that cross DST boundaries, the results may be in an incorrect\ntimezone (ie. subtract 1 minute from 2002-10-27 1:00 EST and you get\n2002-10-27 0:59 EST instead of the correct 2002-10-27 1:59 EDT). A\n``normalize()`` method is provided to correct this. Unfortunatly these\nissues cannot be resolved without modifying the Python datetime\nimplementation.\n\n\nInstallation\n~~~~~~~~~~~~\n\nThis package can either be installed from a .egg file using setuptools,\nor from the tarball using the standard Python distutils.\n\nIf you are installing from a tarball, run the following command as an\nadministrative user::\n\n    python setup.py install\n\nIf you are installing using setuptools, you don't even need to download\nanything as the latest version will be downloaded for you\nfrom the Python package index::\n\n    easy_install --upgrade pytz\n\nIf you already have the .egg file, you can use that too::\n\n    easy_install pytz-2008g-py2.6.egg\n\n\nExample & Usage\n~~~~~~~~~~~~~~~\n\nLocalized times and date arithmetic\n-----------------------------------\n\n>>> from datetime import datetime, timedelta\n>>> from pytz import timezone\n>>> import pytz\n>>> utc = pytz.utc\n>>> utc.zone\n'UTC'\n>>> eastern = timezone('US/Eastern')\n>>> eastern.zone\n'US/Eastern'\n>>> amsterdam = timezone('Europe/Amsterdam')\n>>> fmt = '%Y-%m-%d %H:%M:%S %Z%z'\n\nThis library only supports two ways of building a localized time. The\nfirst is to use the ``localize()`` method provided by the pytz library.\nThis is used to localize a naive datetime (datetime with no timezone\ninformation):\n\n>>> loc_dt = eastern.localize(datetime(2002, 10, 27, 6, 0, 0))\n>>> print(loc_dt.strftime(fmt))\n2002-10-27 06:00:00 EST-0500\n\nThe second way of building a localized time is by converting an existing\nlocalized time using the standard ``astimezone()`` method:\n\n>>> ams_dt = loc_dt.astimezone(amsterdam)\n>>> ams_dt.strftime(fmt)\n'2002-10-27 12:00:00 CET+0100'\n\nUnfortunately using the tzinfo argument of the standard datetime\nconstructors ''does not work'' with pytz for many timezones.\n\n>>> datetime(2002, 10, 27, 12, 0, 0, tzinfo=amsterdam).strftime(fmt)\n'2002-10-27 12:00:00 AMT+0020'\n\nIt is safe for timezones without daylight savings trasitions though, such\nas UTC:\n\n>>> datetime(2002, 10, 27, 12, 0, 0, tzinfo=pytz.utc).strftime(fmt)\n'2002-10-27 12:00:00 UTC+0000'\n\nThe preferred way of dealing with times is to always work in UTC,\nconverting to localtime only when generating output to be read\nby humans.\n\n>>> utc_dt = datetime(2002, 10, 27, 6, 0, 0, tzinfo=utc)\n>>> loc_dt = utc_dt.astimezone(eastern)\n>>> loc_dt.strftime(fmt)\n'2002-10-27 01:00:00 EST-0500'\n\nThis library also allows you to do date arithmetic using local\ntimes, although it is more complicated than working in UTC as you\nneed to use the ``normalize()`` method to handle daylight savings time\nand other timezone transitions. In this example, ``loc_dt`` is set\nto the instant when daylight savings time ends in the US/Eastern\ntimezone.\n\n>>> before = loc_dt - timedelta(minutes=10)\n>>> before.strftime(fmt)\n'2002-10-27 00:50:00 EST-0500'\n>>> eastern.normalize(before).strftime(fmt)\n'2002-10-27 01:50:00 EDT-0400'\n>>> after = eastern.normalize(before + timedelta(minutes=20))\n>>> after.strftime(fmt)\n'2002-10-27 01:10:00 EST-0500'\n\nCreating localtimes is also tricky, and the reason why working with\nlocal times is not recommended. Unfortunately, you cannot just pass\na ``tzinfo`` argument when constructing a datetime (see the next\nsection for more details)\n\n>>> dt = datetime(2002, 10, 27, 1, 30, 0)\n>>> dt1 = eastern.localize(dt, is_dst=True)\n>>> dt1.strftime(fmt)\n'2002-10-27 01:30:00 EDT-0400'\n>>> dt2 = eastern.localize(dt, is_dst=False)\n>>> dt2.strftime(fmt)\n'2002-10-27 01:30:00 EST-0500'\n\nConverting between timezones also needs special attention. This also\nneeds to use the ``normalize()`` method to ensure the conversion is\ncorrect.\n\n>>> utc_dt = utc.localize(datetime.utcfromtimestamp(1143408899))\n>>> utc_dt.strftime(fmt)\n'2006-03-26 21:34:59 UTC+0000'\n>>> au_tz = timezone('Australia/Sydney')\n>>> au_dt = au_tz.normalize(utc_dt.astimezone(au_tz))\n>>> au_dt.strftime(fmt)\n'2006-03-27 08:34:59 EST+1100'\n>>> utc_dt2 = utc.normalize(au_dt.astimezone(utc))\n>>> utc_dt2.strftime(fmt)\n'2006-03-26 21:34:59 UTC+0000'\n\nYou can take shortcuts when dealing with the UTC side of timezone\nconversions. ``normalize()`` and ``localize()`` are not really\nnecessary when there are no daylight savings time transitions to\ndeal with.\n\n>>> utc_dt = datetime.utcfromtimestamp(1143408899).replace(tzinfo=utc)\n>>> utc_dt.strftime(fmt)\n'2006-03-26 21:34:59 UTC+0000'\n>>> au_tz = timezone('Australia/Sydney')\n>>> au_dt = au_tz.normalize(utc_dt.astimezone(au_tz))\n>>> au_dt.strftime(fmt)\n'2006-03-27 08:34:59 EST+1100'\n>>> utc_dt2 = au_dt.astimezone(utc)\n>>> utc_dt2.strftime(fmt)\n'2006-03-26 21:34:59 UTC+0000'\n\n\n``tzinfo`` API\n--------------\n\nThe ``tzinfo`` instances returned by the ``timezone()`` function have\nbeen extended to cope with ambiguous times by adding an ``is_dst``\nparameter to the ``utcoffset()``, ``dst()`` && ``tzname()`` methods.\n\n>>> tz = timezone('America/St_Johns')\n\n>>> normal = datetime(2009, 9, 1)\n>>> ambiguous = datetime(2009, 10, 31, 23, 30)\n\nThe ``is_dst`` parameter is ignored for most timestamps. It is only used\nduring DST transition ambiguous periods to resulve that ambiguity.\n\n>>> tz.utcoffset(normal, is_dst=True)\ndatetime.timedelta(-1, 77400)\n>>> tz.dst(normal, is_dst=True)\ndatetime.timedelta(0, 3600)\n>>> tz.tzname(normal, is_dst=True)\n'NDT'\n\n>>> tz.utcoffset(ambiguous, is_dst=True)\ndatetime.timedelta(-1, 77400)\n>>> tz.dst(ambiguous, is_dst=True)\ndatetime.timedelta(0, 3600)\n>>> tz.tzname(ambiguous, is_dst=True)\n'NDT'\n\n>>> tz.utcoffset(normal, is_dst=False)\ndatetime.timedelta(-1, 77400)\n>>> tz.dst(normal, is_dst=False)\ndatetime.timedelta(0, 3600)\n>>> tz.tzname(normal, is_dst=False)\n'NDT'\n\n>>> tz.utcoffset(ambiguous, is_dst=False)\ndatetime.timedelta(-1, 73800)\n>>> tz.dst(ambiguous, is_dst=False)\ndatetime.timedelta(0)\n>>> tz.tzname(ambiguous, is_dst=False)\n'NST'\n\nIf ``is_dst`` is not specified, ambiguous timestamps will raise\nan ``pytz.exceptions.AmbiguousTimeError`` exception.\n\n>>> tz.utcoffset(normal)\ndatetime.timedelta(-1, 77400)\n>>> tz.dst(normal)\ndatetime.timedelta(0, 3600)\n>>> tz.tzname(normal)\n'NDT'\n\n>>> import pytz.exceptions\n>>> try:\n...     tz.utcoffset(ambiguous)\n... except pytz.exceptions.AmbiguousTimeError:\n...     print('pytz.exceptions.AmbiguousTimeError: %s' % ambiguous)\npytz.exceptions.AmbiguousTimeError: 2009-10-31 23:30:00\n>>> try:\n...     tz.dst(ambiguous)\n... except pytz.exceptions.AmbiguousTimeError:\n...     print('pytz.exceptions.AmbiguousTimeError: %s' % ambiguous)\npytz.exceptions.AmbiguousTimeError: 2009-10-31 23:30:00\n>>> try:\n...     tz.tzname(ambiguous)\n... except pytz.exceptions.AmbiguousTimeError:\n...     print('pytz.exceptions.AmbiguousTimeError: %s' % ambiguous)\npytz.exceptions.AmbiguousTimeError: 2009-10-31 23:30:00\n\n\nProblems with Localtime\n~~~~~~~~~~~~~~~~~~~~~~~\n\nThe major problem we have to deal with is that certain datetimes\nmay occur twice in a year. For example, in the US/Eastern timezone\non the last Sunday morning in October, the following sequence\nhappens:\n\n    - 01:00 EDT occurs\n    - 1 hour later, instead of 2:00am the clock is turned back 1 hour\n      and 01:00 happens again (this time 01:00 EST)\n\nIn fact, every instant between 01:00 and 02:00 occurs twice. This means\nthat if you try and create a time in the 'US/Eastern' timezone using\nthe standard datetime syntax, there is no way to specify if you meant\nbefore of after the end-of-daylight-savings-time transition.\n\n>>> loc_dt = datetime(2002, 10, 27, 1, 30, 00, tzinfo=eastern)\n>>> loc_dt.strftime(fmt)\n'2002-10-27 01:30:00 EST-0500'\n\nAs you can see, the system has chosen one for you and there is a 50%\nchance of it being out by one hour. For some applications, this does\nnot matter. However, if you are trying to schedule meetings with people\nin different timezones or analyze log files it is not acceptable. \n\nThe best and simplest solution is to stick with using UTC.  The pytz\npackage encourages using UTC for internal timezone representation by\nincluding a special UTC implementation based on the standard Python\nreference implementation in the Python documentation.\n\nThe UTC timezone unpickles to be the same instance, and pickles to a\nsmaller size than other pytz tzinfo instances.  The UTC implementation\ncan be obtained as pytz.utc, pytz.UTC, or pytz.timezone('UTC').\n\n>>> import pickle, pytz\n>>> dt = datetime(2005, 3, 1, 14, 13, 21, tzinfo=utc)\n>>> naive = dt.replace(tzinfo=None)\n>>> p = pickle.dumps(dt, 1)\n>>> naive_p = pickle.dumps(naive, 1)\n>>> len(p) - len(naive_p)\n17\n>>> new = pickle.loads(p)\n>>> new == dt\nTrue\n>>> new is dt\nFalse\n>>> new.tzinfo is dt.tzinfo\nTrue\n>>> pytz.utc is pytz.UTC is pytz.timezone('UTC')\nTrue\n\nNote that this instance is not the same instance (or implementation) as\nother timezones with the same meaning (GMT, Greenwich, Universal, etc.).\n\n>>> utc is pytz.timezone('GMT')\nFalse\n\nIf you insist on working with local times, this library provides a\nfacility for constructing them unambiguously:\n\n>>> loc_dt = datetime(2002, 10, 27, 1, 30, 00)\n>>> est_dt = eastern.localize(loc_dt, is_dst=True)\n>>> edt_dt = eastern.localize(loc_dt, is_dst=False)\n>>> print(est_dt.strftime(fmt) + ' / ' + edt_dt.strftime(fmt))\n2002-10-27 01:30:00 EDT-0400 / 2002-10-27 01:30:00 EST-0500\n\nIf you pass None as the is_dst flag to localize(), pytz will refuse to\nguess and raise exceptions if you try to build ambiguous or non-existent\ntimes.\n\nFor example, 1:30am on 27th Oct 2002 happened twice in the US/Eastern\ntimezone when the clocks where put back at the end of Daylight Savings\nTime:\n\n>>> dt = datetime(2002, 10, 27, 1, 30, 00)\n>>> try:\n...     eastern.localize(dt, is_dst=None)\n... except pytz.exceptions.AmbiguousTimeError:\n...     print('pytz.exceptions.AmbiguousTimeError: %s' % dt)\npytz.exceptions.AmbiguousTimeError: 2002-10-27 01:30:00\n\nSimilarly, 2:30am on 7th April 2002 never happened at all in the\nUS/Eastern timezone, as the clocks where put forward at 2:00am skipping\nthe entire hour:\n\n>>> dt = datetime(2002, 4, 7, 2, 30, 00)\n>>> try:\n...     eastern.localize(dt, is_dst=None)\n... except pytz.exceptions.NonExistentTimeError:\n...     print('pytz.exceptions.NonExistentTimeError: %s' % dt)\npytz.exceptions.NonExistentTimeError: 2002-04-07 02:30:00\n\nBoth of these exceptions share a common base class to make error handling\neasier:\n\n>>> isinstance(pytz.AmbiguousTimeError(), pytz.InvalidTimeError)\nTrue\n>>> isinstance(pytz.NonExistentTimeError(), pytz.InvalidTimeError)\nTrue\n\nAlthough ``localize()`` handles many cases, it is still not possible\nto handle all. In cases where countries change their timezone definitions,\ncases like the end-of-daylight-savings-time occur with no way of resolving\nthe ambiguity. For example, in 1915 Warsaw switched from Warsaw time to\nCentral European time. So at the stroke of midnight on August 5th 1915\nthe clocks were wound back 24 minutes creating an ambiguous time period\nthat cannot be specified without referring to the timezone abbreviation\nor the actual UTC offset. In this case midnight happened twice, neither\ntime during a daylight savings time period:\n\n>>> warsaw = pytz.timezone('Europe/Warsaw')\n>>> loc_dt1 = warsaw.localize(datetime(1915, 8, 4, 23, 59, 59), is_dst=False)\n>>> loc_dt1.strftime(fmt)\n'1915-08-04 23:59:59 WMT+0124'\n>>> loc_dt2 = warsaw.localize(datetime(1915, 8, 5, 00, 00, 00), is_dst=False)\n>>> loc_dt2.strftime(fmt)\n'1915-08-05 00:00:00 CET+0100'\n>>> str(loc_dt2 - loc_dt1)\n'0:24:01'\n\nThe only way of creating a time during the missing 24 minutes is\nconverting from another timezone - because neither of the timezones\ninvolved where in daylight savings mode the API simply provides no way\nto express it:\n\n>>> utc_dt = datetime(1915, 8, 4, 22, 36, tzinfo=pytz.utc)\n>>> utc_dt.astimezone(warsaw).strftime(fmt)\n'1915-08-04 23:36:00 CET+0100'\n\nThe standard Python way of handling all these ambiguities is not to\nhandle them, such as demonstrated in this example using the US/Eastern\ntimezone definition from the Python documentation (Note that this\nimplementation only works for dates between 1987 and 2006 - it is\nincluded for tests only!):\n\n>>> from pytz.reference import Eastern # pytz.reference only for tests\n>>> dt = datetime(2002, 10, 27, 0, 30, tzinfo=Eastern)\n>>> str(dt)\n'2002-10-27 00:30:00-04:00'\n>>> str(dt + timedelta(hours=1))\n'2002-10-27 01:30:00-05:00'\n>>> str(dt + timedelta(hours=2))\n'2002-10-27 02:30:00-05:00'\n>>> str(dt + timedelta(hours=3))\n'2002-10-27 03:30:00-05:00'\n\nNotice the first two results? At first glance you might think they are\ncorrect, but taking the UTC offset into account you find that they are\nactually two hours appart instead of the 1 hour we asked for.\n\n>>> from pytz.reference import UTC # pytz.reference only for tests\n>>> str(dt.astimezone(UTC))\n'2002-10-27 04:30:00+00:00'\n>>> str((dt + timedelta(hours=1)).astimezone(UTC))\n'2002-10-27 06:30:00+00:00'\n\n\nCountry Information\n~~~~~~~~~~~~~~~~~~~\n\nA mechanism is provided to access the timezones commonly in use\nfor a particular country, looked up using the ISO 3166 country code.\nIt returns a list of strings that can be used to retrieve the relevant\ntzinfo instance using ``pytz.timezone()``:\n\n>>> print(' '.join(pytz.country_timezones['nz']))\nPacific/Auckland Pacific/Chatham\n\nThe Olson database comes with a ISO 3166 country code to English country\nname mapping that pytz exposes as a dictionary:\n\n>>> print(pytz.country_names['nz'])\nNew Zealand\n\n\nWhat is UTC\n~~~~~~~~~~~\n\n'UTC' is Universal Time, also known as Greenwich Mean Time or GMT\nin the United Kingdom. All other timezones are given as offsets from\nUTC. No daylight savings time occurs in UTC, making it a useful timezone\nto perform date arithmetic without worrying about the confusion and\nambiguities caused by daylight savings time transitions, your country\nchanging its timezone, or mobile computers that move roam through\nmultiple timezones.\n\n\nHelpers\n~~~~~~~\n\nThere are two lists of timezones provided.\n\n``all_timezones`` is the exhaustive list of the timezone names that can\nbe used.\n\n>>> from pytz import all_timezones\n>>> len(all_timezones) >= 500\nTrue\n>>> 'Etc/Greenwich' in all_timezones\nTrue\n\n``common_timezones`` is a list of useful, current timezones. It doesn't\ncontain deprecated zones or historical zones, except for a few I've\ndeemed in common usage, such as US/Eastern (open a bug report if you\nthink other timezones are deserving of being included here). It is also\na sequence of strings.\n\n>>> from pytz import common_timezones\n>>> len(common_timezones) < len(all_timezones)\nTrue\n>>> 'Etc/Greenwich' in common_timezones\nFalse\n>>> 'Australia/Melbourne' in common_timezones\nTrue\n>>> 'US/Eastern' in common_timezones\nTrue\n>>> 'Canada/Eastern' in common_timezones\nTrue\n>>> 'US/Pacific-New' in all_timezones\nTrue\n>>> 'US/Pacific-New' in common_timezones\nFalse\n\nBoth ``common_timezones`` and ``all_timezones`` are alphabetically\nsorted:\n\n>>> common_timezones_dupe = common_timezones[:]\n>>> common_timezones_dupe.sort()\n>>> common_timezones == common_timezones_dupe\nTrue\n>>> all_timezones_dupe = all_timezones[:]\n>>> all_timezones_dupe.sort()\n>>> all_timezones == all_timezones_dupe\nTrue\n\n``all_timezones`` and ``common_timezones`` are also available as sets.\n\n>>> from pytz import all_timezones_set, common_timezones_set\n>>> 'US/Eastern' in all_timezones_set\nTrue\n>>> 'US/Eastern' in common_timezones_set\nTrue\n>>> 'Australia/Victoria' in common_timezones_set\nFalse\n\nYou can also retrieve lists of timezones used by particular countries\nusing the ``country_timezones()`` function. It requires an ISO-3166\ntwo letter country code.\n\n>>> from pytz import country_timezones\n>>> print(' '.join(country_timezones('ch')))\nEurope/Zurich\n>>> print(' '.join(country_timezones('CH')))\nEurope/Zurich\n\n\nLicense\n~~~~~~~\n\nMIT license.\n\nThis code is also available as part of Zope 3 under the Zope Public\nLicense,  Version 2.1 (ZPL).\n\nI'm happy to relicense this code if necessary for inclusion in other\nopen source projects.\n\n\nLatest Versions\n~~~~~~~~~~~~~~~\n\nThis package will be updated after releases of the Olson timezone\ndatabase.  The latest version can be downloaded from the `Python Package\nIndex <http://pypi.python.org/pypi/pytz/>`_.  The code that is used\nto generate this distribution is hosted on launchpad.net and available\nusing the `Bazaar version control system <http://bazaar-vcs.org>`_\nusing::\n\n    bzr branch lp:pytz\n\n\nBugs, Feature Requests & Patches\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\nBugs can be reported using `Launchpad <https://bugs.launchpad.net/pytz>`_.\n\n\nIssues & Limitations\n~~~~~~~~~~~~~~~~~~~~\n\n- Offsets from UTC are rounded to the nearest whole minute, so timezones\n  such as Europe/Amsterdam pre 1937 will be up to 30 seconds out. This\n  is a limitation of the Python datetime library.\n\n- If you think a timezone definition is incorrect, I probably can't fix\n  it. pytz is a direct translation of the Olson timezone database, and\n  changes to the timezone definitions need to be made to this source.\n  If you find errors they should be reported to the time zone mailing\n  list, linked from http://www.twinsun.com/tz/tz-link.htm\n\n\nFurther Reading\n~~~~~~~~~~~~~~~\n\nMore info than you want to know about timezones:\nhttp://www.twinsun.com/tz/tz-link.htm\n\n\nContact\n~~~~~~~\n\nStuart Bishop <stuart@stuartbishop.net>",
+      "description_content_type": null,
+      "docs_url": "https://pythonhosted.org/pytz/",
+      "download_url": "http://pypi.python.org/pypi/pytz",
+      "downloads": {
+        "last_day": -1,
+        "last_month": -1,
+        "last_week": -1
+      },
+      "dynamic": null,
+      "home_page": "http://pytz.sourceforge.net",
+      "keywords": "timezone,tzinfo,datetime,olson,time",
+      "license": "MIT",
+      "license_expression": null,
+      "license_files": null,
+      "maintainer": null,
+      "maintainer_email": null,
+      "name": "pytz",
+      "package_url": "https://pypi.org/project/pytz/",
+      "platform": "Independant",
+      "project_url": "https://pypi.org/project/pytz/",
+      "project_urls": {
+        "Download": "http://pypi.python.org/pypi/pytz",
+        "Homepage": "http://pytz.sourceforge.net"
+      },
+      "provides_extra": null,
+      "release_url": "https://pypi.org/project/pytz/2012g/",
+      "requires_dist": null,
+      "requires_python": null,
+      "summary": "World timezone definitions, modern and historical",
+      "version": "2012g",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    "last_serial": 39364553,
+    "ownership": {
+      "organization": null,
+      "roles": [
+        {
+          "role": "Owner",
+          "user": "stub"
+        }
+      ]
+    },
+    "urls": [
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "31998b0bdcad9167030dfe4028fe24773c6411c9ade612ba617b7076559fea9f",
+          "md5": "8c1df2cbc0008ed267f069d80e49e7a2",
+          "sha256": "fa0a4310c08476fc646707ab50449dadc1e636bef480bbf0ff6ed49b2d7a5ed4"
+        },
+        "downloads": -1,
+        "filename": "pytz-2012g-py2.4.egg",
+        "has_sig": false,
+        "md5_digest": "8c1df2cbc0008ed267f069d80e49e7a2",
+        "packagetype": "bdist_egg",
+        "python_version": "2.4",
+        "requires_python": null,
+        "size": 510619,
+        "upload_time": "2012-10-19T11:00:26",
+        "upload_time_iso_8601": "2012-10-19T11:00:26.976660Z",
+        "url": "https://files.pythonhosted.org/packages/31/99/8b0bdcad9167030dfe4028fe24773c6411c9ade612ba617b7076559fea9f/pytz-2012g-py2.4.egg",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "750874bbbffbbbe95a076dfdef70445fafdd20c08e91a4030f4394dd716e5924",
+          "md5": "02646a5df06f465e4675cde5d08e0557",
+          "sha256": "e895a373bc75f4c32c65fd1adfaff1630d4239b4348e304237a31b72257007ba"
+        },
+        "downloads": -1,
+        "filename": "pytz-2012g-py2.5.egg",
+        "has_sig": false,
+        "md5_digest": "02646a5df06f465e4675cde5d08e0557",
+        "packagetype": "bdist_egg",
+        "python_version": "2.5",
+        "requires_python": null,
+        "size": 510222,
+        "upload_time": "2012-10-19T11:00:43",
+        "upload_time_iso_8601": "2012-10-19T11:00:43.230567Z",
+        "url": "https://files.pythonhosted.org/packages/75/08/74bbbffbbbe95a076dfdef70445fafdd20c08e91a4030f4394dd716e5924/pytz-2012g-py2.5.egg",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "956f761a72419cfdff673a27fdea6098fc13592ff56243d0ec2c152efe4c81ee",
+          "md5": "ed3b76e322808553e887b7cdbe9c2bdd",
+          "sha256": "0dfe7d141834688f229e9d9b41fe1da1b47d3868e592b063fea49e6069f2d1d4"
+        },
+        "downloads": -1,
+        "filename": "pytz-2012g-py2.6.egg",
+        "has_sig": false,
+        "md5_digest": "ed3b76e322808553e887b7cdbe9c2bdd",
+        "packagetype": "bdist_egg",
+        "python_version": "2.6",
+        "requires_python": null,
+        "size": 510197,
+        "upload_time": "2012-10-19T11:00:59",
+        "upload_time_iso_8601": "2012-10-19T11:00:59.669564Z",
+        "url": "https://files.pythonhosted.org/packages/95/6f/761a72419cfdff673a27fdea6098fc13592ff56243d0ec2c152efe4c81ee/pytz-2012g-py2.6.egg",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "ae462a4ceac91892c966ccb8803dbeb9eeb84881dff815ad5475f2b0c7d4d89b",
+          "md5": "5ff1c9708c3d30d2d1694f9942b795aa",
+          "sha256": "c9aa30894d6e69b4024883b13671a111efcec94da49e188933f2a4074b43ca17"
+        },
+        "downloads": -1,
+        "filename": "pytz-2012g-py2.7.egg",
+        "has_sig": false,
+        "md5_digest": "5ff1c9708c3d30d2d1694f9942b795aa",
+        "packagetype": "bdist_egg",
+        "python_version": "2.7",
+        "requires_python": null,
+        "size": 510082,
+        "upload_time": "2012-10-19T11:01:14",
+        "upload_time_iso_8601": "2012-10-19T11:01:14.319041Z",
+        "url": "https://files.pythonhosted.org/packages/ae/46/2a4ceac91892c966ccb8803dbeb9eeb84881dff815ad5475f2b0c7d4d89b/pytz-2012g-py2.7.egg",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "88dc89908ae9b41f49d06743ec73ba00ec669a4f82cc50f49b624a6421afd6d8",
+          "md5": "98db8c6b11df01b0106eb02f77bd2dbf",
+          "sha256": "ad82006092ce74d839c668058acf4da44765c099c1e3988b41ece155ddf4b6cb"
+        },
+        "downloads": -1,
+        "filename": "pytz-2012g-py3.1.egg",
+        "has_sig": false,
+        "md5_digest": "98db8c6b11df01b0106eb02f77bd2dbf",
+        "packagetype": "bdist_egg",
+        "python_version": "3.1",
+        "requires_python": null,
+        "size": 510278,
+        "upload_time": "2012-10-19T11:16:02",
+        "upload_time_iso_8601": "2012-10-19T11:16:02.148264Z",
+        "url": "https://files.pythonhosted.org/packages/88/dc/89908ae9b41f49d06743ec73ba00ec669a4f82cc50f49b624a6421afd6d8/pytz-2012g-py3.1.egg",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "5ce4d0626afb4a1c3f723c8dd78be2d290d5ba2b4c6528014f64a2d3412c2a1c",
+          "md5": "c4ba0b4af6e1cc122a4bc70503120c4c",
+          "sha256": "e85d43348d46728988ab4f23b7ff5e6e57aa52545d8d16c9730a013a4c9a8171"
+        },
+        "downloads": -1,
+        "filename": "pytz-2012g-py3.2.egg",
+        "has_sig": false,
+        "md5_digest": "c4ba0b4af6e1cc122a4bc70503120c4c",
+        "packagetype": "bdist_egg",
+        "python_version": "3.2",
+        "requires_python": null,
+        "size": 510255,
+        "upload_time": "2012-10-19T11:15:06",
+        "upload_time_iso_8601": "2012-10-19T11:15:06.042270Z",
+        "url": "https://files.pythonhosted.org/packages/5c/e4/d0626afb4a1c3f723c8dd78be2d290d5ba2b4c6528014f64a2d3412c2a1c/pytz-2012g-py3.2.egg",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "e0679f9bdc3e3541cff69db9f00a9f3633e76d6e09038272fbf9d0104209d711",
+          "md5": "fb4477be3949f1434c68fe1de74a04d5",
+          "sha256": "6d2593b93fe7d841ccd6f83dd9a62d3355a8af57df6247d661992629b7b8ca7a"
+        },
+        "downloads": -1,
+        "filename": "pytz-2012g.tar.bz2",
+        "has_sig": false,
+        "md5_digest": "fb4477be3949f1434c68fe1de74a04d5",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 171238,
+        "upload_time": "2012-10-19T10:59:50",
+        "upload_time_iso_8601": "2012-10-19T10:59:50.519108Z",
+        "url": "https://files.pythonhosted.org/packages/e0/67/9f9bdc3e3541cff69db9f00a9f3633e76d6e09038272fbf9d0104209d711/pytz-2012g.tar.bz2",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "2bdc8a5ab30b85e053afe883796099e84492a2a459493ff7ad099f67b97a41a9",
+          "md5": "53d9c52eedd9c27d8bd5396907d5594f",
+          "sha256": "f230fc6318b9d90b9ad6d0d5b5c4b12a68166601f51e4e2d32179eea28f50f09"
+        },
+        "downloads": -1,
+        "filename": "pytz-2012g.tar.gz",
+        "has_sig": false,
+        "md5_digest": "53d9c52eedd9c27d8bd5396907d5594f",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 252795,
+        "upload_time": "2012-10-19T11:00:00",
+        "upload_time_iso_8601": "2012-10-19T11:00:00.613833Z",
+        "url": "https://files.pythonhosted.org/packages/2b/dc/8a5ab30b85e053afe883796099e84492a2a459493ff7ad099f67b97a41a9/pytz-2012g.tar.gz",
+        "yanked": false,
+        "yanked_reason": null
+      },
+      {
+        "comment_text": "",
+        "core-metadata": false,
+        "digests": {
+          "blake2b_256": "310fe260a082c7b86b04df960bdeaf02a3b8569a98201954f4762167b439a915",
+          "md5": "1a9b24da1ab6328074b48fc3d4525078",
+          "sha256": "fb8009064f6453835a7d44b4523874782fc2c4145796cb701db445e470b9c9cf"
+        },
+        "downloads": -1,
+        "filename": "pytz-2012g.zip",
+        "has_sig": false,
+        "md5_digest": "1a9b24da1ab6328074b48fc3d4525078",
+        "packagetype": "sdist",
+        "python_version": "source",
+        "requires_python": null,
+        "size": 524039,
+        "upload_time": "2012-10-19T11:00:11",
+        "upload_time_iso_8601": "2012-10-19T11:00:11.309984Z",
+        "url": "https://files.pythonhosted.org/packages/31/0f/e260a082c7b86b04df960bdeaf02a3b8569a98201954f4762167b439a915/pytz-2012g.zip",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "vulnerabilities": []
+  }
+}
