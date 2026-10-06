@@ -51,7 +51,7 @@ def test_source_unflagged_segregation(trainer_instance):
         bin_labels = trainer_instance.data_splits[split]["binary"]["y"]
 
         # 1. No source_unflagged in binary fold
-        for m in bin_meta:
+        for m in bin_meta: 
             assert m["label_str"] != "source_unflagged", (
                 f"Found source_unflagged in binary {split} fold!"
             )

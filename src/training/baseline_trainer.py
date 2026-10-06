@@ -46,9 +46,11 @@ class BaselineTrainer:
         self,
         graph_dir: Union[str, Path] = "data/experimental/graph",
         output_dir: Union[str, Path] = "experiments/baselines",
+        mode: str = "chrono",
     ) -> None:
         self.graph_dir = Path(graph_dir)
         self.output_dir = Path(output_dir)
+        self.mode = mode.lower()
         self.models_dir = self.output_dir / "models"
         self.preds_dir = self.output_dir / "predictions"
         self.metrics_dir = self.output_dir / "metrics"
@@ -92,11 +94,18 @@ class BaselineTrainer:
             raise RuntimeError("Data must be loaded before preparing partitions.")
 
         splits = ["train", "val", "test"]
-        mask_keys = {
-            "train": "train_mask_chrono",
-            "val": "val_mask_chrono",
-            "test": "test_mask_chrono",
-        }
+        if self.mode in ("tier_c", "graph_disjoint"):
+            mask_keys = {
+                "train": "train_mask_graph_disjoint",
+                "val": "val_mask_graph_disjoint",
+                "test": "test_mask_graph_disjoint",
+            }
+        else:
+            mask_keys = {
+                "train": "train_mask_chrono",
+                "val": "val_mask_chrono",
+                "test": "test_mask_chrono",
+            }
 
         for split in splits:
             m = self.split_masks[mask_keys[split]]
@@ -161,6 +170,17 @@ class BaselineTrainer:
         y_test = self.data_splits["test"]["binary"]["y"]
         test_pkgs = self.data_splits["test"]["binary"]["packages"]
 
+        pos_train = int(np.sum(y_train == 1))
+        neg_train = int(np.sum(y_train == 0))
+        pos_val = int(np.sum(y_val == 1))
+        neg_val = int(np.sum(y_val == 0))
+        pos_test = int(np.sum(y_test == 1))
+        neg_test = int(np.sum(y_test == 0))
+
+        unflagged_train = len(self.data_splits["train"]["unflagged"]["indices"])
+        unflagged_val = len(self.data_splits["val"]["unflagged"]["indices"])
+        unflagged_test = len(self.data_splits["test"]["unflagged"]["indices"])
+
         models: Dict[str, Any] = {
             "prevalence": PrevalenceBaseline(),
             "logistic_regression": LogisticRegressionBaseline(),
@@ -211,6 +231,23 @@ class BaselineTrainer:
 
             # Collect metrics payload
             all_metrics[name] = {
+                "model": name,
+                "mode": self.mode,
+                "train_counts": {
+                    "supervised_positives": pos_train,
+                    "supervised_negatives": neg_train,
+                    "ignored_source_unflagged": unflagged_train,
+                },
+                "val_counts": {
+                    "supervised_positives": pos_val,
+                    "supervised_negatives": neg_val,
+                    "ignored_source_unflagged": unflagged_val,
+                },
+                "test_counts": {
+                    "supervised_positives": pos_test,
+                    "supervised_negatives": neg_test,
+                    "ignored_source_unflagged": unflagged_test,
+                },
                 "validation_threshold": optimal_thresh,
                 "validation_metrics": val_metrics,
                 "test_metrics_full": test_eval_results["full"],
@@ -219,6 +256,13 @@ class BaselineTrainer:
 
             summary_rows.append({
                 "model": name,
+                "mode": self.mode,
+                "train_pos": pos_train,
+                "train_neg": neg_train,
+                "val_pos": pos_val,
+                "val_neg": neg_val,
+                "test_pos": pos_test,
+                "test_neg": neg_test,
                 "val_threshold": optimal_thresh,
                 "val_auprc": val_metrics["auprc"],
                 "val_auroc": val_metrics["auroc"],

@@ -36,13 +36,18 @@ class RTGNModel(nn.Module):
         time_dim: int = 32,
         heads: int = 4,
         dropout: float = 0.2,
+        use_time_encoding: bool = True,
+        use_graph: bool = True,
     ) -> None:
         super().__init__()
         self.num_packages = num_packages
+        self.in_feature_dim = in_feature_dim
         self.hidden_dim = hidden_dim
         self.time_dim = time_dim
+        self.use_time_encoding = use_time_encoding
+        self.use_graph = use_graph
 
-        # 1. Feature encoder for PackageVersion causal features (13 -> 64)
+        # 1. Feature encoder for PackageVersion causal features (in_feature_dim -> hidden_dim)
         self.version_encoder = nn.Sequential(
             nn.Linear(in_feature_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
@@ -51,7 +56,10 @@ class RTGNModel(nn.Module):
         )
 
         # 2. Continuous harmonic time encoder for edge elapsed time (days -> 32)
-        self.time_encoder = HarmonicTimeEncoder(dimension=time_dim)
+        if self.use_time_encoding:
+            self.time_encoder = HarmonicTimeEncoder(dimension=time_dim)
+        else:
+            self.time_encoder = None
 
         # 3. Dynamic package temporal memory (NO static package-ID embeddings)
         self.package_memory = PackageMemoryManager(
@@ -61,14 +69,17 @@ class RTGNModel(nn.Module):
         )
 
         # 4. Relation-aware Heterogeneous GATv2 (2 layers)
-        self.hetero_gnn = HeteroGATv2Net(
-            in_dim=hidden_dim,
-            hidden_dim=hidden_dim,
-            out_dim=hidden_dim,
-            edge_dim=time_dim,
-            heads=heads,
-            dropout=dropout,
-        )
+        if self.use_graph:
+            self.hetero_gnn = HeteroGATv2Net(
+                in_dim=hidden_dim,
+                hidden_dim=hidden_dim,
+                out_dim=hidden_dim,
+                edge_dim=time_dim if self.use_time_encoding else None,
+                heads=heads,
+                dropout=dropout,
+            )
+        else:
+            self.hetero_gnn = None
 
         # 5. Detection Head: 2-layer MLP (64 -> 32 -> 1)
         self.detection_head = nn.Sequential(
@@ -92,12 +103,16 @@ class RTGNModel(nn.Module):
         self,
         edge_time_dict: Dict[str, torch.Tensor],
         query_time: float,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> Optional[Dict[str, torch.Tensor]]:
         """
         Encode elapsed time from each edge timestamp to query timestamp:
             delta_seconds = max(0, query_time - edge_time)
             delta_days = delta_seconds / 86400.0
+        Returns None if use_time_encoding is False.
         """
+        if not self.use_time_encoding or self.time_encoder is None:
+            return None
+
         attr_dict = {}
         for rel_name, edge_times in edge_time_dict.items():
             if edge_times.numel() == 0:
@@ -111,17 +126,17 @@ class RTGNModel(nn.Module):
         self,
         version_features: torch.Tensor,
         package_ids: torch.Tensor,
-        edge_index_dict: Dict[str, torch.Tensor],
-        edge_attr_dict: Dict[str, torch.Tensor],
+        edge_index_dict: Optional[Dict[str, torch.Tensor]] = None,
+        edge_attr_dict: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Forward pass through RTGN.
 
         Args:
-            version_features: Tensor of shape (N_v, 13)
+            version_features: Tensor of shape (N_v, in_feature_dim)
             package_ids: Tensor of shape (M_p, ) indicating package indices
-            edge_index_dict: dict of edge indices per relation
-            edge_attr_dict: dict of harmonic time encodings per relation
+            edge_index_dict: dict of edge indices per relation (or None if no graph)
+            edge_attr_dict: dict of harmonic time encodings per relation (or None)
         Returns:
             logits: (N_v, ) unnormalized classification scores
             probabilities: (N_v, ) sigmoid probabilities
@@ -133,13 +148,18 @@ class RTGNModel(nn.Module):
         # 2. Query package memory states (dynamic state, no static package ID embedding)
         h_pkg = self.package_memory.get_memory(package_ids)
 
-        x_dict = {
-            "package": h_pkg,
-            "package_version": h_ver,
-        }
-
-        # 3. 2-Layer Heterogeneous GATv2 message passing
-        out_dict = self.hetero_gnn(x_dict, edge_index_dict, edge_attr_dict)
+        # 3. Heterogeneous GATv2 message passing (or identity bypass if use_graph=False)
+        if self.use_graph and self.hetero_gnn is not None and edge_index_dict is not None:
+            x_dict = {
+                "package": h_pkg,
+                "package_version": h_ver,
+            }
+            out_dict = self.hetero_gnn(x_dict, edge_index_dict, edge_attr_dict)
+        else:
+            out_dict = {
+                "package": h_pkg,
+                "package_version": h_ver,
+            }
 
         # 4. Predict compromise logits on version representations
         h_ver_out = out_dict["package_version"]

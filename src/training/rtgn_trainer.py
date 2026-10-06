@@ -48,6 +48,8 @@ class RTGNTrainer:
         device: Union[str, torch.device] = "cpu",
         checkpoint_dir: Union[str, Path] = "experiments/rtgn/checkpoints",
         max_grad_norm: float = 1.0,
+        use_historical_features: bool = True,
+        use_package_balancing: bool = True,
     ) -> None:
         self.device = torch.device(device)
         self.model = model.to(self.device)
@@ -58,6 +60,8 @@ class RTGNTrainer:
         self.checkpoint_dir = Path(checkpoint_dir)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         self.max_grad_norm = max_grad_norm
+        self.use_historical_features = use_historical_features
+        self.use_package_balancing = use_package_balancing
 
         self.best_val_auprc: float = -1.0
         self.best_epoch: int = -1
@@ -85,6 +89,7 @@ class RTGNTrainer:
         features_path: Union[str, Path] = "data/experimental/graph/package_version_features.pt",
         split_masks_path: Union[str, Path] = "data/experimental/graph/split_masks.pt",
         nodes_csv_path: Union[str, Path] = "data/experimental/graph/nodes_package_version.csv",
+        train_split_key: Optional[str] = None,
     ) -> None:
         """
         Load graph artifacts and pre-sort edge buffers and events chronologically.
@@ -95,6 +100,16 @@ class RTGNTrainer:
         raw_masks = torch.load(split_masks_path)
         self.split_masks = {k: v.numpy() for k, v in raw_masks.items()}
         self.df_nodes = pd.read_csv(nodes_csv_path)
+
+        # Handle historical features ablation
+        if not self.use_historical_features:
+            if hasattr(self.model, "in_feature_dim") and self.model.in_feature_dim == 7:
+                self.version_features = self.version_features[:, :7]
+                logger.info("Ablation: Historical release features sliced out (in_feature_dim=7).")
+            else:
+                self.version_features = self.version_features.clone()
+                self.version_features[:, 7:] = 0.0
+                logger.info("Ablation: Historical release features zero-masked (indices 7..12 = 0).")
 
         num_packages = data["package"].num_nodes
         self.all_package_ids = torch.arange(num_packages, device=self.device)
@@ -123,10 +138,15 @@ class RTGNTrainer:
                 self.ordered_indices[split_key] = split_indices
                 logger.info(f"Split {split_key}: {len(split_indices)} releases chronologically ordered.")
 
-        # 3. Initialize loss weighting on chronological training fold
-        train_indices = self.ordered_indices["train_mask_chrono"]
+        # 3. Initialize loss weighting on training fold
+        split_to_use = train_split_key or "train_mask_chrono"
+        train_indices = self.ordered_indices[split_to_use]
         train_labels = torch.tensor(self.df_nodes.loc[train_indices, "target_label"].values, dtype=torch.float32)
-        train_weights = torch.tensor(self.df_nodes.loc[train_indices, "sample_weight"].values, dtype=torch.float32)
+        if self.use_package_balancing:
+            train_weights = torch.tensor(self.df_nodes.loc[train_indices, "sample_weight"].values, dtype=torch.float32)
+        else:
+            train_weights = torch.ones_like(train_labels)
+            logger.info("Ablation: Package balancing disabled (uniform sample weights = 1.0).")
         self.loss_fn.compute_weights(train_labels, train_weights)
 
         # 4. Precompute event groups per split for efficient execution
@@ -156,7 +176,10 @@ class RTGNTrainer:
             group_tensor = torch.tensor(group_indices, dtype=torch.long, device=self.device)
             group_pkgs = torch.tensor(self.df_nodes.loc[group_indices, "package_id"].values, dtype=torch.long, device=self.device)
             group_targets = torch.tensor(self.df_nodes.loc[group_indices, "target_label"].values, dtype=torch.float32, device=self.device)
-            group_weights = torch.tensor(self.df_nodes.loc[group_indices, "sample_weight"].values, dtype=torch.float32, device=self.device)
+            if self.use_package_balancing:
+                group_weights = torch.tensor(self.df_nodes.loc[group_indices, "sample_weight"].values, dtype=torch.float32, device=self.device)
+            else:
+                group_weights = torch.ones(len(group_indices), dtype=torch.float32, device=self.device)
             has_supervised = bool(((group_targets == 0) | (group_targets == 1)).any().item())
             group_y_np = self.df_nodes.loc[group_indices, "target_label"].values
 
